@@ -1,3 +1,14 @@
+"""
+Visualization, simulation, and signal processing utilities for brain activity modeling
+--------------------------------------------------------------------------------------
+
+This module provides a set of helper functions for:
+- Visualizing brain surfaces, sensors, and connectivity matrices
+- Simulating brain activity using the Jansen–Rit model within The Virtual Brain (TVB)
+- Preprocessing EEG and region-based signals
+- Computing and plotting functional connectivity and power spectral density (PSD)
+"""
+
 import os
 
 import matplotlib.pyplot as plt
@@ -12,103 +23,129 @@ from scipy.signal import butter, filtfilt
 from scipy import signal
 
 from classes import JRPSP
-from global_variable_creation import get_eeg_monitor, get_conn, show_plots, save_plots, th, temp_avg_period, fig_folder
+from global_variable_creation import get_eeg_monitor, get_conn
+import global_variable_creation as gv
 
 
 def skin_and_sensors_visualization():
+    """
+    Visualize the patient's skin surface, EEG sensor positions, and the connectivity matrix.
+
+    This function loads the surface (skin) and EEG sensor configuration from file,
+    visualizes them in 3D, and plots the brain connectivity matrix.
+
+    It saves and/or displays the plots depending on the global variables:
+        - save_plots
+        - show_plots
+        - fig_folder
+    """
     conn = get_conn()
 
-    # Patient's skin configuration
+    # Load and configure patient skin model
     skin = surfaces.SkinAir.from_file()
     skin.configure()
 
-    # EEG sensors configuration
+    # Load and configure EEG sensor positions
     sens_eeg = sensors.SensorsEEG.from_file()
     sens_eeg.configure()
 
-    plt.figure(figsize = (6,6))
+    # === 3D Visualization of skin and sensors ===
+    plt.figure(figsize=(6, 6))
     ax = plt.subplot(111, projection='3d')
 
-    # Plot cortical regions as black dots:
-    x, y, z = conn.centres.T[:,:]
+    # Plot cortical regions as black dots
+    x, y, z = conn.centres.T[:, :]
     ax.plot(x, y, z, 'ko')
 
-    # Plot EEG sensors as blue x's:
+    # Plot EEG sensors as red X's
     x, y, z = sens_eeg.sensors_to_surface(skin).T
     ax.plot(x, y, z, 'rx')
 
-    # Plot boundary surface
+    # Plot the surface mesh
     x, y, z = skin.vertices.T
     ax.plot_trisurf(x, y, z, triangles=skin.triangles, alpha=0.1, edgecolor='k')
 
-    if save_plots == True:
-        fig_name = f"Skin_and_sensors.png"
-        os.makedirs(fig_folder, exist_ok=True)
-        fig_path = os.path.join(fig_folder, fig_name)
-        plt.savefig(fig_path, dpi=200)
-
-    if show_plots == True:
+    # Save or display
+    if gv.save_plots:
+        fig_name = "Skin_and_sensors.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
         plt.show()
 
+    # === Connectivity Matrix ===
     plt.figure()
-    plt.imshow(conn.weights, cmap = 'binary')
+    plt.imshow(conn.weights, cmap='binary')
 
-    if save_plots == True:
-        fig_name = f"Connectivity.png"
-        fig_path = os.path.join(fig_folder, fig_name)
-        plt.savefig(fig_path, dpi=200)
-
-    if show_plots == True:
+    if gv.save_plots:
+        fig_name = "Connectivity.png"
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
         plt.show()
 
-def brain_activity_visualization(eeg, tavg, start_time = -1000):
+def brain_activity_visualization(eeg, tavg, start_time=-1000):
+    """
+    Visualize EEG and regional brain activity signals.
 
+    Args:
+        eeg (np.ndarray): EEG signals, shape [time, channels].
+        tavg (np.ndarray): Region-averaged signals, shape [time, regions].
+        start_time (int): Time index from which to start visualization.
+
+    Normalizes and re-references the data before plotting.
+    """
     conn = get_conn()
     mon_eeg = get_eeg_monitor()
 
-    # Dimensions of eeg and tavg are [time, channels]
+    # === EEG signals ===
     eeg = eeg[start_time:, :]
-    eeg /= (np.max(eeg,0) - np.min(eeg,0 )) #normalization step
-    eeg -= np.mean(eeg, 0)  #re-referencing step
-    times_eeg = np.linspace(0,np.shape(eeg)[0], np.shape(eeg)[0]) #creating an array of time-steps
+    eeg /= (np.max(eeg, 0) - np.min(eeg, 0))
+    eeg -= np.mean(eeg, 0)
+    times_eeg = np.arange(eeg.shape[0])
 
+    # === Regional signals ===
     tavg = tavg[start_time:]
-    tavg /= (np.max(tavg,0) - np.min(tavg,0 )) #normalization step
-    tavg -= np.mean(tavg, 0)  #re-referencing step
-    times_tavg = np.linspace(0,np.shape(tavg)[0], np.shape(tavg)[0]) #creating an array of time-steps
+    tavg /= (np.max(tavg, 0) - np.min(tavg, 0))
+    tavg -= np.mean(tavg, 0)
+    times_tavg = np.arange(tavg.shape[0])
 
-    plt.figure(figsize=(10,12))
-    plt.plot(times_eeg, eeg + np.r_[:len(mon_eeg.sensors.labels)], color = 'b') # the np.r_[:76] is addedd to separate channels or regions
-    plt.yticks(np.r_[:len(mon_eeg.sensors.labels)], mon_eeg.sensors.labels, fontsize = 12)
-    plt.title("Brain activity (EEG) ", fontsize = 18)
-    plt.xlabel('time (ms)', fontsize = 16)
+    # EEG Plot
+    plt.figure(figsize=(10, 12))
+    plt.plot(times_eeg, eeg + np.r_[:len(mon_eeg.sensors.labels)], color='b')
+    plt.yticks(np.r_[:len(mon_eeg.sensors.labels)], mon_eeg.sensors.labels, fontsize=12)
+    plt.title("Brain activity (EEG)", fontsize=18)
+    plt.xlabel('Time (ms)', fontsize=16)
 
-    if save_plots == True:
-        fig_name = f"Brain_activity_EEG.png"
-        os.makedirs(fig_folder, exist_ok=True)
-        fig_path = os.path.join(fig_folder, fig_name)
-        plt.savefig(fig_path, dpi=200)
-
-    if show_plots == True:
+    if gv.save_plots:
+        plt.savefig(os.path.join(gv.fig_folder, "Brain_activity_EEG.png"), dpi=200)
+    if gv.show_plots:
         plt.show()
 
-    plt.figure(figsize=(10,12))
-    plt.plot(times_tavg, tavg + np.r_[:len(conn.region_labels)], color = 'red') # the np.r_[:76] is addedd to separate channels or regions
-    plt.yticks(np.r_[:len(conn.region_labels)], conn.region_labels, fontsize = 12)
-    plt.title("Brain activity (region space) ", fontsize = 18)
-    plt.xlabel('time (ms)', fontsize = 16)
+    # Regional activity Plot
+    plt.figure(figsize=(10, 12))
+    plt.plot(times_tavg, tavg + np.r_[:len(conn.region_labels)], color='red')
+    plt.yticks(np.r_[:len(conn.region_labels)], conn.region_labels, fontsize=12)
+    plt.title("Brain activity (region space)", fontsize=18)
+    plt.xlabel('Time (ms)', fontsize=16)
 
-    if save_plots == True:
-        fig_name = f"Brain_activity_region_spece.png"
-        os.makedirs(fig_folder, exist_ok=True)
-        fig_path = os.path.join(fig_folder, fig_name)
-        plt.savefig(fig_path, dpi=200)
-
-    if show_plots == True:
+    if gv.save_plots:
+        plt.savefig(os.path.join(gv.fig_folder, "Brain_activity_region_space.png"), dpi=200)
+    if gv.show_plots:
         plt.show()
 
-def eeg_visualization(datas, times, display_time = 3000, chlist = [4,13,20,23,38,41,45,50,62]):
+def eeg_visualization(datas, times, display_time=3000, chlist=[4, 13, 20, 23, 38, 41, 45, 50, 62]):
+    """
+    Visualize EEG signals for multiple conditions or datasets.
 
+    Args:
+        datas (dict): Dictionary where each key is a condition, containing:
+            - 'eeg': EEG data array
+            - 'label': Name of the condition
+            - 'color': Line color
+        times (np.ndarray): Time points (in ms)
+        display_time (int): Number of milliseconds to display
+        chlist (list[int]): List of EEG channels to plot
+    """
     mon_eeg = get_eeg_monitor()
 
     for key, value in datas.items():
@@ -116,112 +153,143 @@ def eeg_visualization(datas, times, display_time = 3000, chlist = [4,13,20,23,38
         label = value['label']
         color = value['color']
 
-        #Plot EEG
-        plt.figure(figsize=(10,12))
-        plt.plot(times[:display_time], time_series[:display_time, 0, chlist, 0] + np.r_[:(len(chlist))], color = color)
-        plt.yticks(np.r_[:len(chlist)], mon_eeg.sensors.labels[chlist], fontsize = 12)
-        plt.title("EEG sensors, " + label, fontsize = 18)
-        plt.xlabel('time (ms)', fontsize = 16)
+        plt.figure(figsize=(10, 12))
+        plt.plot(times[:display_time],
+                 time_series[:display_time, 0, chlist, 0] + np.r_[:len(chlist)],
+                 color=color)
+        plt.yticks(np.r_[:len(chlist)], mon_eeg.sensors.labels[chlist], fontsize=12)
+        plt.title("EEG sensors, " + label, fontsize=18)
+        plt.xlabel('Time (ms)', fontsize=16)
 
-        if save_plots == True:
-            fig_name = f"EEG_sensors_" + label + f".png"
-            os.makedirs(fig_folder, exist_ok=True)
-            fig_path = os.path.join(fig_folder, fig_name)
-            plt.savefig(fig_path, dpi=200)
-
-        if show_plots == True:
+        if gv.save_plots:
+            fig_name = f"EEG_sensors_{label}.png"
+            os.makedirs(gv.fig_folder, exist_ok=True)
+            plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+        if gv.show_plots:
             plt.show()
 
-def simulate(sim_time, structural_connectivities, noise = 50e-3, cp = 24, np_parameter = 3, g = 1, velocity = np.inf, cip = 1, cep = 1, taue = 1, tau_e_values = np.linspace(0.270,0.310,2), C_ip_values = np.linspace(35,10,2), C_ep_values = np.linspace(110,20,2), impaired_regions = [], stimulus = None):
-    '''This function simulates signals at different levels of neurodegeneration parameters. The regions in which hypoinhibition is modelled are passed 
-    through the "regions" argument which by default is equal to the "impaired_regions" listed above''' 
+def simulate(sim_time, noise=50e-3, cp=24, np_parameter=3,
+             g=1, velocity=np.inf, cip=1, cep=1, taue=1,
+             tau_e_values=np.linspace(0.270, 0.310, 2),
+             C_ip_values=np.linspace(35, 10, 2),
+             C_ep_values=np.linspace(110, 20, 2),
+             stimulus=None):
+    """
+    Run a simulation of brain activity based on the Jansen–Rit neural mass model.
+
+    Args:
+        sim_time (float): Simulation duration in ms.
+        structural_connectivities (np.ndarray): Structural connectivity matrices.
+        noise (float): Noise level for stochastic integration.
+        cp (int): Connectivity pattern index.
+        np_parameter (int): Neuroplasticity parameter index.
+        g (float): Global coupling strength.
+        velocity (float): Signal conduction velocity.
+        cip, cep, taue: Model parameters controlling inhibitory and excitatory coupling.
+        tau_e_values, C_ip_values, C_ep_values: Parameter grids for tuning.
+        impaired_regions (list): Brain regions to apply hypoinhibition.
+        stimulus (object): Optional external stimulus object.
+
+    Returns:
+        tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
+    """
     conn = get_conn()
-    conn.weights = structural_connectivities[cp, np_parameter, :, :] #This alters the connectome according to equation 3 for a combination of cp and np
-    # cp is comprised between 0 and 2 with 50 equal steps, while neuroplasticity is uniformally distributed between 0 and 2 with steps of 0.25 amplitude (plus a value of 2.5 at the end)
-    conn.weights = conn.weights / np.max(conn.weights)              #normalised by maximum weight  
+    conn.weights = np.load(gv.struct_path)[cp, np_parameter, :, :]
+    conn.weights = conn.weights / np.max(conn.weights)
     conn.weights *= g
-    conn.speed = np.array(velocity)                               #To select conduction velocity of the signal
+    conn.speed = np.array(velocity)
     conn.configure()
-    
-    Cep_value = C_ep_values[cep] #this determines the value of C_ep = J*a_2
-    Cip_value = C_ip_values[cip] #this determines the value of C_ip = J*a_4
-    a_value = 0.0325/tau_e_values[taue] #this determines the value of t_e = 1/a; 0.032.5 is a constant determined
-    #so that when H_e is 3.25 mV then tau_e is 10 ms
+
+    # Model parameters (based on Jansen–Rit equations)
+    Cep_value = C_ep_values[cep]
+    Cip_value = C_ip_values[cip]
+    a_value = 0.0325 / tau_e_values[taue]
     J_value = 128
 
-    # setup model based on paper's parameters
     model_pars = dict(
-        A=3.25, #excitatory PSP
-        B=22, #inhibitory PSP
-        v0=6.0,
-        a=a_value, #a_value, # increased with respect to the healthy case. (also remember that TVB uses ms, not s)
-        b=0.05,    # decreased with respect to the healthy case. (also remember that TVB uses ms, not s)
-        r=0.56,
-        nu_max=0.0025, # e0 in the JR original paper
-        # TVB factors C_i into J*a_i, e.g. C1 = a_1 * J
-        J= J_value,
-        a_1=1.0,
-        a_2=Cep_value/J_value,
-        a_3=0.25,
-        a_4=Cip_value/J_value,
-        mu=0.22, # baseline input, avg of 120 and 320 pulses/s
+        A=3.25, B=22, v0=6.0,
+        a=a_value, b=0.05, r=0.56,
+        nu_max=0.0025, J=J_value,
+        a_1=1.0, a_2=Cep_value / J_value,
+        a_3=0.25, a_4=Cip_value / J_value,
+        mu=0.22
     )
 
-    # implement JR + afferent PSP for setting the JR in the right portion of the phase space
-    # factor out noise from dy4 = A a (p(t) + ...) as y4 += dt (...) + A a dW_t
-    # this allows us to model the noise as TVB does it, though scaling requires experiment
+    # Add stochastic noise
     nsig = np.zeros((8, 76, 1))
     nsig[4] = model_pars['A'] * model_pars['a'] * (.320 - .120) * noise
     noise = tvb.noise.Additive(nsig=nsig)
 
-    #setting up monitors:
+    # Define monitors
     mon_eeg = get_eeg_monitor()
-    mon_tavg = monitors.TemporalAverage(period=temp_avg_period)
-    #Bundling
-    what_to_watch = (mon_tavg, mon_eeg)
-    sim = simulator.Simulator(connectivity=conn,
-                         conduction_speed=float(conn.speed),
-                         model=JRPSP(
-                         variables_of_interest=("y0", "y1", "y2", "y3", "y4", "y5", "y6", "y7"),
-                         **{k: np.array(v) for k, v in model_pars.items()}),
-                         coupling=tvb.coupling.Linear(a=np.r_[a_value*10]),
-                         integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=noise), 
-                         stimulus = stimulus,
-                         monitors=what_to_watch,
-                         simulation_length=sim_time)
+    mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
+
+    sim = simulator.Simulator(
+        connectivity=conn,
+        conduction_speed=float(conn.speed),
+        model=JRPSP(
+            variables_of_interest=("y0", "y1", "y2", "y3", "y4", "y5", "y6", "y7"),
+            **{k: np.array(v) for k, v in model_pars.items()}
+        ),
+        coupling=tvb.coupling.Linear(a=np.r_[a_value * 10]),
+        integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=noise),
+        stimulus=stimulus,
+        monitors=(mon_tavg, mon_eeg),
+        simulation_length=sim_time
+    )
     sim.configure()
 
-    (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time) #tavg is the name of signals in region space
-
-    return ttavg, tavg, teeg, eeg # ttavg and teeg are the timestamps
-
-def preprocess(ttavg, tavg, teeg, eeg, PSD = True, normalize = True, cut = 1000):
-
-    if PSD:
-        #Discarding initial transient for PSD analysis
-        ttavg = ttavg[cut:]
-        tavg = tavg[cut:, :, :, :]
-        teeg = teeg[cut:]
-        eeg = eeg[cut:, :, :, :]        
-        ttavg -= cut
-        teeg -= cut
-
-    if normalize:
-        #Normalizing and subtracting average
-        tavg /= (np.max(tavg,0) - np.min(tavg,0 ))
-        tavg -= np.mean(tavg, 0)
-        eeg /= (np.max(eeg,0) - np.min(eeg,0 ))
-        eeg -= np.mean(eeg, 0)
-                           
+    (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time)
     return ttavg, tavg, teeg, eeg
 
+def preprocess(times, time_serie, start_time=1000):
+    """
+    Normalize and re-reference EEG data.
+
+    Args:
+        times (np.ndarray): times array.
+        time_serie (np.ndarray): time_serie signal array of shape [time, 1, channels, 1].
+        start_time (int): Index at which to start preprocessing.
+
+    Returns:
+        np.ndarray: Preprocessed times (cut from start time to end).
+        np.ndarray: Preprocessed data (normalized, zero-mean).
+    """
+    times = times[start_time:]
+    time_serie = time_serie[start_time:, :, :, :]
+    trange = np.max(time_serie, axis=0) - np.min(time_serie, axis=0)
+    trange[trange == 0] = 1
+    time_serie = (time_serie - np.min(time_serie, axis=0)) / trange
+    return times, time_serie
+
+def bandpass_filter(data, lowcut, highcut, fs=1000.0, order=4):
+    """
+    Apply a zero-phase Butterworth bandpass filter.
+
+    Args:
+        data (np.ndarray): 1D signal array.
+        lowcut (float): Lower cutoff frequency (Hz).
+        highcut (float): Upper cutoff frequency (Hz).
+        fs (float): Sampling frequency (Hz). Default = 1000.
+        order (int): Filter order.
+
+    Returns:
+        np.ndarray: Filtered signal.
+    """
+    nyquist = 0.5 * fs
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = butter(order, [low, high], btype='band')
+    y = filtfilt(b, a, data)
+    return y
+
 def ev(time_series):
-    
     conn = get_conn()
     tsr = TimeSeriesRegion(connectivity=conn,
                        data=time_series,                            #in TVB 4D format
-                       sample_period=temp_avg_period) #in ms
+                       sample_period=gv.temp_avg_period) #in ms
     tsr.configure()
+    
     input_shape = tsr.data.shape
     result_shape = (input_shape[2], input_shape[2], input_shape[1], input_shape[3])
     result = np.zeros(result_shape)
@@ -232,25 +300,38 @@ def ev(time_series):
             result[:, :, var, mode] = np.corrcoef(data.T)
 
     corr_coeff = graph.CorrelationCoefficients(source=tsr, array_data=result)
+    
     return corr_coeff
 
 def functional_connectivity(time_series, label):
 
     conn = get_conn()
+    #time_series = time_series[np.isnan(time_series)]
     tsr_corr = ev(time_series)
-    corr = tsr_corr.array_data[..., 0, 0]
+
+    corr= tsr_corr.array_data[..., 0, 0]
+    
     corr -= np.eye(len(time_series[0,0,:,0]))
+
     #Define a threshold for connections
-    corr_th = (corr) > th
+    corr_th = (corr) > gv.th
+
     pmatrix = np.zeros((len(time_series[0,0,:,0]),len(time_series[0,0,:,0])))
 
     for i in range(len(time_series[0,0,:,0])):
         for j in range(len(time_series[0,0,:,0])):
+            
             region_A = time_series[:,0, i, 0]
             region_B = time_series[:,0, j, 0]
+            
             pmatrix[i][j] = pearsonr(region_A, region_B)[1]
 
+    pmatrix_th = pmatrix < 0.05
+
+    corr_th_significance = np.multiply(corr_th, pmatrix_th)
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
+
     # Plot corr_tavg
     im1 = ax1.imshow(corr, interpolation='nearest', cmap='bwr')
     ax1.set_yticks(np.arange(len(conn.region_labels)))
@@ -271,88 +352,96 @@ def functional_connectivity(time_series, label):
     cax = fig.add_axes([ax2.get_position().x1 + 0.01, ax2.get_position().y0, 0.02, ax2.get_position().height])
     cbar = plt.colorbar(im2, cax=cax)
 
-    if save_plots == True:
-        fig_name = label + f"_FC_.png"
-        os.makedirs(fig_folder, exist_ok=True)
-        fig_path = os.path.join(fig_folder, fig_name)
-        plt.savefig(fig_path, dpi=200)
-
-    if show_plots == True:
+    if gv.save_plots:
+        fig_name = f"Functional_connectivity_{label}.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
         plt.show()
 
-def functional_connectivity_alpha(time_series, label, lowcutfreq = 8, highcutfreq = 13):
-    # fs is the sampling frequency (1000 Hz here)
-   
-    # Apply bandpass filter to the time series (8-13 Hz for alpha band)
-    filtered_time_series = np.zeros_like(time_series)
-    
-    for i in range(time_series.shape[2]):
-        for j in range(time_series.shape[3]):
-            filtered_time_series[:, 0, i, j] = bandpass_filter(time_series[:, 0, i, j], lowcutfreq, highcutfreq,  order=5)
+def functional_connectivity_alpha(time_series, label):
+    """
+    Compute the alpha-band (8–13 Hz) functional connectivity matrix.
 
-    functional_connectivity(filtered_time_series, label + ' filtered (' + str(lowcutfreq) + '-' + str(highcutfreq) + ')')
+    This is a convenience wrapper around `functional_connectivity()`.
 
-def bandpass_filter(data, lowcut, highcut, order):
-    nyquist = 0.5 / (temp_avg_period/1000)
-    low = lowcut / nyquist
-    high = highcut / nyquist
-    b, a = butter(order, [low, high], btype='band')
-    y = filtfilt(b, a, data, axis=0)
-    return y
+    Args:
+        time_series (np.ndarray): Regional time series array.
+        label (str): Dataset label.
 
-def psd(time_series, label, lowcut = 0.5, highcut = 45, n_seg = 2048, window = 'hamming'): 
+    Returns:
+        np.ndarray: Alpha-band functional connectivity matrix.
+    """
 
+    time_series = bandpass_filter(time_series, lowcut=8, highcut=13)
+    return functional_connectivity(time_series, label)
+
+def psd(time_series, label, lowcut=0.5, highcut=45, n_seg=2048, window='hamming'):
+    """
+    Compute and visualize the Power Spectral Density (PSD) of regional brain signals.
+
+    Args:
+        time_series (np.ndarray): Array [time, 1, regions, 1].
+        label (str): Dataset label for plotting.
+        lowcut (float): Lower cutoff frequency for filtering (Hz).
+        highcut (float): Upper cutoff frequency (Hz).
+        n_seg (int): Segment length for Welch method.
+        window (str): Window function name (e.g., 'hamming').
+
+    Notes:
+        - The PSD is computed via Welch’s method for each region.
+        - The mean and standard deviation across regions are plotted.
+    """
     n_timepoints = time_series.shape[0]
     n_regions = time_series.shape[2]
-    # Inizializza matrice per segnali filtrati
     filtered_signals = np.zeros((n_timepoints, n_regions))
-    # Applica filtro passa-banda a ogni regione
+
+    # Apply bandpass filter
     for i in range(n_regions):
         region_signal = time_series[:, 0, i, 0]
         filtered_signals[:, i] = bandpass_filter(region_signal, lowcut, highcut, order=4)
 
-    # Calcola PSD con il metodo di Welch per ogni regione
+    # Compute PSD for each region
     psd_all = []
     for i in range(n_regions):
-        freqs, psd = signal.welch(
+        freqs, psd_vals = signal.welch(
             filtered_signals[:, i],
-            fs=1/(temp_avg_period/1000),
-            nperseg=n_seg,
+            fs=1 / (gv.temp_avg_period / 1000),
+            nperseg=min(n_seg, len(filtered_signals[:, i])),
             noverlap=n_seg // 2,
             window=window
         )
-        psd_all.append(psd)
-    
-    psd_all = np.array(psd_all)  # (n_regions, n_freqs)
+        psd_all.append(psd_vals)
 
-    # Media e deviazione standard tra regioni
+    psd_all = np.array(psd_all)
     psd_mean = np.mean(psd_all, axis=0)
     psd_std = np.std(psd_all, axis=0)
 
-    # Normalizzazione
+    # Normalize
     psd_mean /= np.max(psd_mean)
     psd_std /= np.max(psd_mean)
 
-    plt.figure(figsize = (10,6))
-    plt.plot(freqs, psd_mean, label = label, linewidth = 4)
-    plt.fill_between(freqs, psd_mean + psd_std, psd_mean - psd_std, where = None, alpha = 0.35)
-    plt.title(label + 'mean PSD', fontsize = 29)
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(freqs, psd_mean, label=label, linewidth=3)
+    plt.fill_between(freqs, psd_mean + psd_std, psd_mean - psd_std, alpha=0.35)
+    plt.title(label + ' mean PSD', fontsize=20)
     plt.ylim(0, 1.01)
-    plt.xlim(-0.1, 45)
-    plt.xlabel('frequency [Hz]', fontsize = 20)
-    plt.ylabel('PSD channels', fontsize = 20)
-    plt.title('PSD')
-    plt.tick_params(axis='both', which='major', labelsize=20)
-    plt.legend(fontsize = 20)
+    plt.xlim(0, 45)
+    plt.xlabel('Frequency [Hz]', fontsize=16)
+    plt.ylabel('Normalized PSD', fontsize=16)
+    plt.legend(fontsize=14)
+    plt.grid(True)
 
-    if save_plots == True:
-        fig_name = f"PSD.png"
-        os.makedirs(fig_folder, exist_ok=True)
-        fig_path = os.path.join(fig_folder, fig_name)
-        plt.savefig(fig_path, dpi=200)
-
-    if show_plots == True:
+    # Save / show
+    if gv.save_plots:
+        fig_name = f"{label}_PSD.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
         plt.show()
+    else:
+        plt.close()
 
 def make_train(node_idx, node_weights, **params):
     conn = get_conn()
@@ -406,4 +495,3 @@ def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, m
         plt.yticks(fontsize = 22)
         plt.legend(fontsize = 29)
         plt.show()
-

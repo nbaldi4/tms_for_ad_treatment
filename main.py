@@ -1,74 +1,105 @@
 import numpy as np
+import argparse
 from tvb.simulator.lab import *
 
 from utils import skin_and_sensors_visualization, brain_activity_visualization, simulate, preprocess, eeg_visualization
 from utils import functional_connectivity, psd, functional_connectivity
-from global_variable_creation import get_eeg_monitor, get_conn
+import global_variable_creation as gv
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--show_plots", action="store_true", help="Show plots on screen")
+    parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
+    parser.add_argument("--fig_folder", type=str, help="Path to save figures")
+    parser.add_argument("--struct_conn", type=str, help="Path to structural connectivity file")
+    parser.add_argument("--EEG", action="store_true", help="Perform eeg")
+    parser.add_argument("--PSD", action="store_true", help="Perform psd")
+    parser.add_argument("--FC", action="store_true", help="Perform fc")
+    parser.add_argument("--brain_activity", action="store_true", help="Compute brain activity")
+    parser.add_argument("--skin_and_sensors", action="store_true", help="Visualize skin and sensors positions")
+    parser.add_argument("--th", type=float, help="Threshold for FC visualization")
+    parser.add_argument("--temp_avg_period", type=float, help="Average integration step")
+    parser.add_argument(
+        "--impaired_regions",
+        nargs="+",               # accepts one or more values
+        type=int,                # convert them to integers
+        help="List of impaired region indices"
+    )
+
+    args = parser.parse_args()
+    gv.show_plots = args.show_plots
+    gv.save_plots = args.save_plots
+    gv.eeg = args.EEG
+    gv.psd = args.PSD
+    gv.fc = args.FC
+    gv.brain_activity = args.brain_activity
+    gv.skin_and_sensors = args.skin_and_sensors
+    gv.th = args.th
+    gv.temp_avg_period = args.temp_avg_period
+
+    if args.fig_folder:
+        gv.fig_folder = args.fig_folder
+
+    if args.struct_conn:
+        gv.struct_path = args.struct_conn
+
+    if args.impaired_regions:
+        gv.impaired_regions = args.impaired_regions
+
+    """ L'idea è di scrivere un codice che possa replicare e confrontare segnali neurali (stimolati e non) dati una serie di parametri, l'interfaccia servirà quindi
+    solo a inserire i parametri d'interesse e a scegliere se visualizzare o meno alcuni plots. Proprio a questo scopo ho messo degli hastag accanto agli elementi
+    che voglio conservare in qualità di comandi per interfaccia"""
+    global_coupling_val = [1] #######################
+    velocity_val = [np.inf] #########################
+    noise_val = [50e-3] #############################
+    time_index = 1000 ###############################
+    skip_to_stim = False ############################
+
+    """Connettività struttura e dati sani esterni sono utili e quindi lasciamo la possibilità di inserirli
+    ma dovremo implementare un'interfaccia adeguata"""
+
+    struct_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/tms_for_ad_treatment/'
+    struct_conn = np.load(struct_path + 'structural_connectivities.npy')
+
+    psd_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
+    matrix_path = psd_path + 'psd_ctr_preview.npy'
+
+    ttavg, tavg, teeg, eeg = simulate(sim_time = 20000, C_ep_values=[110.0], C_ip_values=[35.0], tau_e_values=[0.294], cip=0, cep=0,taue=0)
+    ttavg, tavg = preprocess(ttavg, tavg)
+    teeg, eeg = preprocess(teeg, eeg)
+
+    datas = {'data_healthy': {'tavg': tavg, 'eeg': eeg, 'label': 'Healthy', 'color': 'blue'}}
+
+    if gv.skin_and_sensors == True:
+        skin_and_sensors_visualization()
+
+    if gv.brain_activity == True:
+        brain_activity_visualization(eeg=eeg[:,0,:,0], tavg=tavg[:,0,:,0])
+
+    if gv.eeg == True:
+        eeg_visualization(datas = datas, times = teeg)
+
+    """il controllo sulla label della FC va migliorato, vorrei si potesse inserire da terminale, magari facendo si che alla tupla di parametri richiesti 
+    venga associata una certa dicita (e.g. malato braak stage 2 - beta stage 1)"""
+    if gv.fc == True:
+        functional_connectivity(eeg, 'EEG')
+        functional_connectivity(tavg, 'TAVG')
+
+    if gv.psd == True:
+        psd(eeg, 'EEG')
+        psd(tavg, 'TAVG')
+
+    # In TVB the output for the JR (tavg or eeg) is a 4D object of dimensions [num_timestamps, num_modes, channels (or regions), 1] 
+    # The interesting variables are stored in the first and third argument, in which you find the timeseries of channels (if you refer to eeg)
+    # or the timeseries of regions (if you refer to tavg)
+
+    #FC_alpha_visualization(datas, FC_alpha_visualizing, mon_EEG, conn, period=period)
+
+    #compare_matrix_and_computed_psd(path = matrix_path, values = eeg_healthy, values2 = eeg_very_healty, visualizing = True)
 
 
-""" L'idea è di scrivere un codice che possa replicare e confrontare segnali neurali stimolati e non dati una serie di parametri, l'interfaccia servirà quindi
-solo a inserire i parametri d'interesse e a scegliere se visualizzare o meno alcuni plots. Proprio a questo scopo ho messo degli hastag accanto agli elementi
-chr voglio conservare in qualità di comandi per interfaccia"""
-eeg_vis = True
-psd_vis = True
-fc_vis = True
-brain_activity = True
-skin_and_sensors = True
-FC_alpha_visualizing = False ####################
-stim_visualizing = False ########################
-global_coupling_val = [1] #######################
-velocity_val = [np.inf] #########################
-noise_val = [50e-3] #############################
-time_index = 1000 ###############################
-skip_to_stim = False ############################
-
-"""Connettività struttura e dati sani esterni sono utili e quindi lasciamo la possibilità di inserirli
-ma dovremo implementare un'interfaccia adeguata"""
-
-struct_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/'
-struct_conn = np.load(struct_path + 'structural_connectivities.npy')
-
-psd_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
-matrix_path = psd_path + 'psd_ctr_preview.npy'
-
-# Define impaired regions (taken from Braak stages)
-impaired_regions = [21,22,30,31,32,34,59,60,68,69,70,72]
-
-# Here EEG monitor configuration can globally modified
-mon = get_eeg_monitor()
-conn = get_conn()
-
-ttavg, tavg, teeg, eeg = simulate(impaired_regions = impaired_regions, structural_connectivities = struct_conn, cp = 15, np_parameter = 3, g=1, velocity=np.inf, noise=50e-3,  #This is the standard value of neuroplasticity used in the paper
-                                                sim_time = 20000, C_ep_values=[110.0], C_ip_values=[35.0], tau_e_values=[0.294], cip=0, cep=0,taue=0)
-ttavg, tavg, teeg, eeg = preprocess(ttavg, tavg, teeg, eeg)
-datas = {'data_healthy': {'tavg': tavg, 'eeg': eeg, 'label': 'Healthy', 'color': 'blue'}}
-
-if skin_and_sensors == True:
-    skin_and_sensors_visualization()
-
-if brain_activity == True:
-    brain_activity_visualization(eeg=eeg[:,0,:,0], tavg=tavg[:,0,:,0])
-
-if eeg_vis == True:
-    eeg_visualization(datas = datas, times = teeg)
-
-"""il controllo sulla label della FC va migliorato, vorrei si potesse inserire da terminale, magari facendo si che alla tupla di parametri richiesti 
-venga associata una certa dicita (e.g. malato braak stage 2 - beta stage 1)"""
-if fc_vis == True:
-    functional_connectivity(eeg, 'EEG')
-    functional_connectivity(tavg, 'TAVG')
-
-if psd_vis == True:
-    psd(eeg, 'EEG')
-    psd(tavg, 'TAVG')
-
-# In TVB the output for the JR (tavg or eeg) is a 4D object of dimensions [num_timestamps, num_modes, channels (or regions), 1] 
-# The interesting variables are stored in the first and third argument, in which you find the timeseries of channels (if you refer to eeg)
-# or the timeseries of regions (if you refer to tavg)
-
-#FC_alpha_visualization(datas, FC_alpha_visualizing, mon_EEG, conn, period=period)
-
-#compare_matrix_and_computed_psd(path = matrix_path, values = eeg_healthy, values2 = eeg_very_healty, visualizing = True)
+if __name__ == "__main__":
+    main()
 
 """
 stim_weight = 1
