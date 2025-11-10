@@ -1,10 +1,20 @@
 from tvb.simulator.lab import monitors, connectivity
+import numpy as np
 
-show_plots = True
-save_plots = True
+show_plots = False
+save_plots = False
 th = 0.08
 temp_avg_period = 1 #ms
 fig_folder = r'C:\Users\User\OneDrive - University of Pisa\Desktop\test_figures'
+struct_path = r'C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\structural_connectivities.npy'
+real_FC_data = r'C:\Users\User\OneDrive - University of Pisa\Desktop\TVB_tutorials\Dati_Healthy\fc_preview_ctr_alpha.npy'
+impaired_regions = [21,22,30,31,32,34,59,60,68,69,70,72]
+partitioning = 6
+eeg = True
+psd = True
+fc = True
+brain_activity = True
+skin_and_sensors = True
 
 def eeg_monitor_factory():
     """Factory che gestisce un monitor EEG con configurazione persistente."""
@@ -66,31 +76,6 @@ def connectivity_factory():
         return conn
 
     return create_connectivity
-
-def init_show_plots(**kwargs):
-    show_plot_value = kwargs.get('show_plot')
-    global show_plots
-    show_plots = show_plot_value
-
-def init_save_plots(**kwargs):
-    save_plot_value = kwargs.get('show_plot')
-    global save_plots
-    save_plots = save_plot_value
-
-def init_fc_th(**kwargs):
-    th_value = kwargs.get('threshold')
-    global th
-    th = th_value
-
-def init_temp_avg_period(**kwargs):
-    temp_avg_period_value = kwargs.get('period')
-    global temp_avg_period
-    temp_avg_period = temp_avg_period_value
-
-def init_fig_folder(**kwargs):
-    fig_folder_value = kwargs.get('path')
-    global fig_folder
-    fig_folder = fig_folder_value
 
 # Istanza globale unica — importabile ovunque
 get_eeg_monitor = eeg_monitor_factory()
