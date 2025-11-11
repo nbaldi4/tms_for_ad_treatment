@@ -1,11 +1,52 @@
 import numpy as np
+import argparse
 import matplotlib.pyplot as plt
 from data_analysis_utils import analyze_regular_data, analyze_reduced_data, simulation_vs_real_data_FC
 import global_variable_creation as gv
 
-analyze_regular_data(np.load(gv.real_FC_data))
-analyze_reduced_data(np.load(gv.real_FC_data))
-simulation_vs_real_data_FC(np.load(gv.real_FC_data))
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--real_data", action="store_true", help="Show real data FC (regular and reduced size) on screen")
+    parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
+    parser.add_argument("--fig_folder", type=str, help="Path to save figures")
+    parser.add_argument("--struct_conn", type=str, help="Path to structural connectivity file")
+    parser.add_argument("--sim_vs_real", action="store_true", help="Perform comparison between simulation and real data")
+    parser.add_argument("--th", type=float, help="Threshold for FC visualization")
+    parser.add_argument("--temp_avg_period", type=float, help="Average integration step")
+    parser.add_argument(
+        "--impaired_regions",
+        nargs="+",               # accepts one or more values
+        type=int,                # convert them to integers
+        help="List of impaired region indices"
+    )
+
+    args = parser.parse_args()
+    gv.real_data = args.real_data
+    gv.save_plots = args.save_plots
+    gv.sim_vs_real = args.sim_vs_real
+    gv.th = args.th
+    gv.temp_avg_period = args.temp_avg_period
+
+    if args.fig_folder:
+        gv.fig_folder = args.fig_folder
+
+    if args.struct_conn:
+        gv.struct_path = args.struct_conn
+
+    if args.impaired_regions:
+        gv.impaired_regions = args.impaired_regions
+
+    if gv.real_data == True:
+        analyze_regular_data(np.load(gv.real_FC_data))
+        analyze_reduced_data(np.load(gv.real_FC_data))
+
+    if gv.sim_vs_real == True:
+        simulation_vs_real_data_FC(np.load(gv.real_FC_data))
+
+if __name__ == "__main__":
+    main()
+
 
 """
 
