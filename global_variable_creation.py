@@ -2,7 +2,9 @@ from tvb.simulator.lab import monitors, connectivity
 import numpy as np
 
 show_plots = False
+real_data = False
 save_plots = False
+sim_vs_real = False
 th = 0.08
 temp_avg_period = 1 #ms
 fig_folder = r'C:\Users\User\OneDrive - University of Pisa\Desktop\test_figures'

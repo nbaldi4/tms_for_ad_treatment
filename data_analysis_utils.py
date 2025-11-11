@@ -1,7 +1,9 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
-import os
+
 from utils import simulate, preprocess, functional_connectivity, ev
 import global_variable_creation as gv
 
@@ -237,17 +239,14 @@ def simulation_vs_real_data_FC(fc_healty):
     """
     # Run TVB simulation
     ttavg, tavg, teeg, eeg = simulate(sim_time=20000, C_ep_values=[20.0], C_ip_values=[35.0], tau_e_values=[0.294], cip=0, cep=0, taue=0)
-    ttavg, tavg = preprocess(ttavg, tavg)
     teeg, eeg = preprocess(teeg, eeg)
-
-    # Compute FC
-    functional_connectivity(eeg, 'EEG')
-    functional_connectivity(tavg, 'TAVG')
 
     # Extract EEG correlation matrix
     tsr_corr = ev(eeg)
     corr_eeg = tsr_corr.array_data[..., 0, 0]
     corr_eeg -= np.eye(len(eeg[0, 0, :, 0]))
+    np.fill_diagonal(corr_eeg, 0.0)
+    corr_eeg = np.clip(corr_eeg, -0.999999, 0.999999)
 
     # Align and compute macro-level FC
     sub_fc_healty, com_fc_healty = [], []
@@ -258,16 +257,16 @@ def simulation_vs_real_data_FC(fc_healty):
     corr_eeg = matrix1
     sub_corr_eeg = macro_fc(corr_eeg)
     com_fc_healty = np.array(com_fc_healty)
+    com_fc_healty = np.clip(com_fc_healty, -0.999999, 0.999999)
 
     # --- Compute group-level statistics ---
     normal_corr_stack = np.stack(com_fc_healty, axis=0)
     normal_z_stack = np.arctanh(normal_corr_stack)
     normal_z_mean = np.mean(normal_z_stack, axis=0)
     normal_corr_mean = np.tanh(normal_z_mean)
-
     normal_mae = np.mean(np.abs(normal_corr_mean - corr_eeg))
 
-    # Normalize matrices to [-1, 1]
+    # Normalize matrices to [-1, 1] only for visualization purpose
     corr_eeg = 2 * (corr_eeg - np.min(corr_eeg)) / (np.max(corr_eeg) - np.min(corr_eeg)) - 1
     normal_corr_mean = 2 * (normal_corr_mean - np.min(normal_corr_mean)) / (np.max(normal_corr_mean) - np.min(normal_corr_mean)) - 1
 
@@ -279,11 +278,19 @@ def simulation_vs_real_data_FC(fc_healty):
     ax[1].set_title(f"Regular size real FC: MAE = {normal_mae:.3f}")
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
-    plt.tight_layout()
-    plt.show()
 
+    if gv.save_plots:
+        fig_name = "Sim_vs_real_regular_size.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+
+    np.fill_diagonal(sub_corr_eeg, 0.0)
+    sub_corr_eeg = np.clip(sub_corr_eeg, -0.999999, 0.999999)
     # --- Reduced (macro) resolution ---
     sub_fc_healty = np.array(sub_fc_healty)
+    sub_fc_healty = np.clip(sub_fc_healty, -0.999999, 0.999999)
     sub_corr_stack = np.stack(sub_fc_healty, axis=0)
     sub_z_stack = np.arctanh(sub_corr_stack)
     sub_z_mean = np.mean(sub_z_stack, axis=0)
@@ -302,8 +309,13 @@ def simulation_vs_real_data_FC(fc_healty):
     ax[1].set_title(f"Reduced size real FC: MAE = {reduced_mae:.3f}")
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
-    plt.tight_layout()
-    plt.show()
+
+    if gv.save_plots:
+        fig_name = "Sim_vs_real_reduced_size.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
 
 def analyze_regular_data(real_data):
     """
@@ -313,7 +325,6 @@ def analyze_regular_data(real_data):
     normal_matrices = np.array(real_data)
     normal_corr_stack = np.stack(normal_matrices, axis=0)
     normal_z_stack = np.arctanh(normal_corr_stack)
-
     normal_z_mean = np.mean(normal_z_stack, axis=0)
     normal_z_std = np.std(normal_z_stack, axis=0)
     mean_std = np.mean(normal_z_std)
@@ -328,8 +339,13 @@ def analyze_regular_data(real_data):
     ax[1].set_title(f"Regular size FC std (z-space): mean std = {mean_std:.3f}")
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
-    plt.tight_layout()
-    plt.show()
+
+    if gv.save_plots:
+        fig_name = "Regular_size_real_data.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
 
 def analyze_reduced_data(real_data):
     """
@@ -361,8 +377,13 @@ def analyze_reduced_data(real_data):
     ax[1].set_title("Reduced size FC std (z-space): mean std = " + str(sub_mean_std))
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
-    plt.tight_layout()
-    plt.show()
+
+    if gv.save_plots:
+        fig_name = "Reduced_size_real_data.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
 
 """
 def healty_parameters_grid_search(impaired_regions, struct_conn, conn, fc_healty, partitioning, tau_e_values, C_ip_values, C_ep_values):
