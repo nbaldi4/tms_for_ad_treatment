@@ -28,6 +28,16 @@ def main():
     gv.th = args.th
     gv.temp_avg_period = args.temp_avg_period
 
+    if args.th:
+        gv.th = args.th
+    else:
+        gv.th = 0.08
+
+    if args.temp_avg_period:
+        gv.temp_avg_period = args.temp_avg_period
+    else:
+        gv.temp_avg_period = 1
+
     if args.fig_folder:
         gv.fig_folder = args.fig_folder
 
