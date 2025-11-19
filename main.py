@@ -34,8 +34,14 @@ def main():
     gv.fc = args.FC
     gv.brain_activity = args.brain_activity
     gv.skin_and_sensors = args.skin_and_sensors
-    gv.th = args.th
-    gv.temp_avg_period = args.temp_avg_period
+
+    if args.th:
+        gv.th = args.th
+    else:
+        gv.th = 0.08
+
+    if args.temp_avg_period:
+        gv.temp_avg_period = args.temp_avg_period
 
     if args.fig_folder:
         gv.fig_folder = args.fig_folder
@@ -64,7 +70,7 @@ def main():
     psd_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
     matrix_path = psd_path + 'psd_ctr_preview.npy'
 
-    ttavg, tavg, teeg, eeg = simulate(sim_time = 20000, C_ep_values=[110.0], C_ip_values=[35.0], tau_e_values=[0.294], cip=0, cep=0,taue=0)
+    ttavg, tavg, teeg, eeg = simulate(sim_time = 20000, C_ep_values=[100.0], C_ip_values=[75.0], tau_e_values=[0.1], cip=0, cep=0,taue=0)
     ttavg, tavg = preprocess(ttavg, tavg)
     teeg, eeg = preprocess(teeg, eeg)
 

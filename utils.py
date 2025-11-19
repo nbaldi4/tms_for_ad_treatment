@@ -168,9 +168,9 @@ def eeg_visualization(datas, times, display_time=3000, chlist=[4, 13, 20, 23, 38
         if gv.show_plots:
             plt.show()
 
-def simulate(sim_time, noise=50e-3, cp=24, np_parameter=3,
-             g=1, velocity=np.inf, cip=1, cep=1, taue=1,
-             tau_e_values=np.linspace(0.270, 0.310, 2),
+def simulate(sim_time=2000, noise=50e-3, cp=24, np_parameter=3,
+             g=1, velocity=np.inf, cip=0, cep=1, taue=0,
+             tau_e_values=np.linspace(0.294, 0.2945, 2),
              C_ip_values=np.linspace(35, 10, 2),
              C_ep_values=np.linspace(110, 20, 2),
              stimulus=None):
@@ -241,6 +241,7 @@ def simulate(sim_time, noise=50e-3, cp=24, np_parameter=3,
 
     (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time)
     return ttavg, tavg, teeg, eeg
+
 
 def preprocess(times, time_serie, start_time=1000):
     """
@@ -495,3 +496,235 @@ def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, m
         plt.yticks(fontsize = 22)
         plt.legend(fontsize = 29)
         plt.show()
+
+def NSGA_simulate(sim_time, cp=0, np_parameter=3,
+             g=1,
+             velocity=1,
+             noise=1,
+             a=0,
+             b=0,
+             C_ip_values=np.linspace(33.75, 10, 10),
+             cip=0,
+             C_ep_values=np.linspace(108, 20, 10),
+             cep=0,
+             stimulus=None):
+    """
+    Run a simulation of brain activity based on the Jansen–Rit neural mass model.
+
+    Args:
+        sim_time (float): Simulation duration in ms.
+        structural_connectivities (np.ndarray): Structural connectivity matrices.
+        noise (float): Noise level for stochastic integration.
+        cp (int): Connectivity pattern index.
+        np_parameter (int): Neuroplasticity parameter index.
+        g (float): Global coupling strength.
+        velocity (float): Signal conduction velocity.
+        cip, cep, taue: Model parameters controlling inhibitory and excitatory coupling.
+        tau_e_values, C_ip_values, C_ep_values: Parameter grids for tuning.
+        impaired_regions (list): Brain regions to apply hypoinhibition.
+        stimulus (object): Optional external stimulus object.
+
+    Returns:
+        tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
+    """
+    conn = get_conn()
+    conn.weights = np.load(gv.struct_path)[cp, np_parameter, :, :]
+    conn.weights = conn.weights / np.max(conn.weights)
+    conn.weights *= g
+    conn.speed = np.array(velocity)
+    conn.configure()
+
+    # Model parameters (based on Jansen–Rit equations)
+    Cep_value = C_ep_values[cep]
+    Cip_value = C_ip_values[cip]
+    J_value = 128
+
+    model_pars = dict(
+        A=3.25, B=22, v0=6.0,
+        a=a, b=b, r=0.56,
+        nu_max=0.0025, J=J_value,
+        a_1=1.0, a_2=Cep_value / J_value,
+        a_3=0.25, a_4=Cip_value / J_value,
+        mu=0.22
+    )
+
+    # Add stochastic noise
+    nsig = np.zeros((8, 76, 1))
+    nsig[4] = model_pars['A'] * model_pars['a'] * (.320 - .120) * noise
+    noise = tvb.noise.Additive(nsig=nsig)
+
+    # Define monitors
+    mon_eeg = get_eeg_monitor()
+    print(">>> gv module path:", gv.__file__)
+    print(">>> gv.temp_avg_period =", getattr(gv, "temp_avg_period", "NON DEFINITO"))
+    mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
+
+    sim = simulator.Simulator(
+        connectivity=conn,
+        conduction_speed=float(conn.speed),
+        model=JRPSP(
+            variables_of_interest=("y0", "y1", "y2", "y3", "y4", "y5", "y6", "y7"),
+            **{k: np.array(v) for k, v in model_pars.items()}
+        ),
+        coupling=tvb.coupling.Linear(a=np.r_[a * 10]),
+        integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=noise),
+        stimulus=stimulus,
+        monitors=(mon_tavg, mon_eeg),
+        simulation_length=sim_time
+    )
+    sim.configure()
+
+    (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time)
+    return ttavg, tavg, teeg, eeg
+
+
+def NSGA_psd(time_series, lowcut=0.5, highcut=45, n_seg=2048, window='hamming'):
+    """
+    Compute and visualize the Power Spectral Density (PSD) of regional brain signals.
+
+    Args:
+        time_series (np.ndarray): Array [time, 1, regions, 1].
+        label (str): Dataset label for plotting.
+        lowcut (float): Lower cutoff frequency for filtering (Hz).
+        highcut (float): Upper cutoff frequency (Hz).
+        n_seg (int): Segment length for Welch method.
+        window (str): Window function name (e.g., 'hamming').
+
+    Notes:
+        - The PSD is computed via Welch’s method for each region.
+        - The mean and standard deviation across regions are plotted.
+    """
+    n_timepoints = time_series.shape[0]
+    n_regions = time_series.shape[2]
+    filtered_signals = np.zeros((n_timepoints, n_regions))
+
+    # Apply bandpass filter
+    for i in range(n_regions):
+        region_signal = time_series[:, 0, i, 0]
+        filtered_signals[:, i] = bandpass_filter(region_signal, lowcut, highcut, order=4)
+
+    # Compute PSD for each region
+    psd_all = []
+    for i in range(n_regions):
+        freqs, psd_vals = signal.welch(
+            filtered_signals[:, i],
+            fs=1 / (gv.temp_avg_period / 1000),
+            nperseg=min(n_seg, len(filtered_signals[:, i])),
+            noverlap=n_seg // 2,
+            window=window
+        )
+        psd_all.append(psd_vals)
+
+    psd_all = np.array(psd_all)
+    psd_mean = np.mean(psd_all, axis=0)
+
+    # Normalize
+    psd_mean /= np.max(psd_mean)
+
+    return freqs, psd_mean
+
+"""
+def NSGA_compare_matrix_and_computed_psd(path, time_series, n_bin=180, fs=100):
+    # PSD reale
+    matrix = np.load(path)
+    real_psd_mean = np.mean(matrix, axis=0)  # media su tutti i campioni
+
+    # PSD simulata
+    simulated_psd_mean = NSGA_psd(time_series=time_series, n_bin=n_bin, fs=fs)
+
+    # Assicurati che abbiano la stessa lunghezza
+    min_len = min(len(real_psd_mean), len(simulated_psd_mean))
+    real_psd_mean = real_psd_mean[:min_len]
+    simulated_psd_mean = simulated_psd_mean[:min_len]
+
+    # Differenze assolute per bin
+    diff_per_bin = np.abs(real_psd_mean - simulated_psd_mean)
+
+    # Somma totale delle differenze
+    total_diff = np.sum(diff_per_bin)
+
+    return total_diff
+"""
+    
+def plot_real_vs_simulated_psd_bar(path, time_series, n_bin=180, fs=100,
+                                   label_real="Experimental", label_sim="Simulated"):
+
+    # =========================
+    # PSD reale
+    # =========================
+    matrix = np.load(path)
+    real_psd_mean = np.mean(matrix, axis=0)
+
+    # Normalizzazione reale
+    real_psd_mean = real_psd_mean[:n_bin]
+    real_psd_mean /= np.max(real_psd_mean)
+
+    # Frequenze reali (uniformi)
+    freqs_uniform = np.linspace(0, 45, n_bin)
+
+    # =========================
+    # PSD simulata
+    # =========================
+    simulated_freqs, simulated_psd_mean = NSGA_psd(time_series=time_series)
+
+    # Taglio frequenze a 45 Hz
+    mask = simulated_freqs <= 45
+    simulated_freqs = simulated_freqs[mask]
+    simulated_psd_mean = simulated_psd_mean[mask]
+
+    # =========================
+    # Interpolazione simulata su 180 bin
+    # =========================
+    simulated_psd_resampled = np.interp(freqs_uniform, simulated_freqs, simulated_psd_mean)
+
+    # Normalizzazione simulata
+    simulated_psd_resampled /= np.max(simulated_psd_resampled)
+
+    psd_mae = np.sum(np.abs(simulated_psd_resampled-real_psd_mean))
+
+    # =========================
+    # Plot a barre affiancate
+    # =========================
+    width = (freqs_uniform[1] - freqs_uniform[0]) * 0.4  # due barre affiancate
+
+    """
+    plt.figure(figsize=(12, 6))
+
+    plt.bar(freqs_uniform - width/2, real_psd_mean,
+            width=width, label=label_real, alpha=0.7)
+
+    plt.bar(freqs_uniform + width/2, simulated_psd_resampled,
+            width=width, label=label_sim, alpha=0.7)
+
+    plt.title('PSD Comparison (bin-by-bin)', fontsize=20)
+    plt.ylim(0, 1.1)
+    plt.xlim(0, 45)
+    plt.xlabel('Frequency [Hz]', fontsize=16)
+    plt.ylabel('Normalized PSD', fontsize=16)
+    plt.legend(fontsize=14)
+    plt.grid(True)
+
+    plt.show()
+    """
+    return psd_mae
+
+
+def plot_real_psd_bar(path, time_series, n_bin=180, fs=100, label_real="Experimental", label_sim="Simulated"):
+
+    # PSD simulata
+    simulated_freqs, simulated_psd_mean = NSGA_psd(time_series=time_series)
+
+    # Plot
+    plt.figure(figsize=(10,4))
+    plt.plot(simulated_freqs, simulated_psd_mean, color='b', linewidth=2, label=label_sim)
+    plt.xlabel("Frequency [Hz]")
+    plt.ylabel("Normalized PSD")
+    plt.title("PSD: Real (bar) vs Simulated (line)")
+    plt.legend()
+    plt.show()
+
+#ttavg, tavg, teeg, eeg = simulate(sim_time = 20000, C_ep_values=[100.0], C_ip_values=[75.0], tau_e_values=[0.1], cip=0, cep=0,taue=0)
+#ttavg, tavg = preprocess(ttavg, tavg)
+#teeg, eeg = preprocess(teeg, eeg)
+
+#plot_real_vs_simulated_psd_bar(path=r"C:\Users\User\OneDrive - University of Pisa\Desktop\TVB_tutorials\Dati_Healthy\psd_ctr_preview.npy", time_series=eeg)
