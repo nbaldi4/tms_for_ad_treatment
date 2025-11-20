@@ -555,8 +555,6 @@ def NSGA_simulate(sim_time, cp=0, np_parameter=3,
 
     # Define monitors
     mon_eeg = get_eeg_monitor()
-    print(">>> gv module path:", gv.__file__)
-    print(">>> gv.temp_avg_period =", getattr(gv, "temp_avg_period", "NON DEFINITO"))
     mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
 
     sim = simulator.Simulator(
