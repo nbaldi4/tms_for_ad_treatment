@@ -238,7 +238,12 @@ def simulation_vs_real_data_FC(fc_healty):
     Displays comparison plots with MAE values.
     """
     # Run TVB simulation
-    ttavg, tavg, teeg, eeg = simulate(sim_time=20000, cip=0, cep=0, taue=0)
+    #ttavg, tavg, teeg, eeg = simulate(sim_time=20000, cip=0, cep=0, taue=0)
+    ttavg, tavg, teeg, eeg = NSGA_simulate(
+    sim_time=20000,
+    g=0.8878427506045561, velocity=18.28544432036172,
+    noise=1.4651305090928526, a=0.13175159036058282, b=0.02763094171398689
+    )
     teeg, eeg = preprocess(teeg, eeg)
 
     # Extract EEG correlation matrix
