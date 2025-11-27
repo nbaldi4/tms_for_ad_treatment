@@ -2,7 +2,7 @@ import numpy as np
 import argparse
 from tvb.simulator.lab import *
 
-from utils import skin_and_sensors_visualization, brain_activity_visualization, simulate, preprocess, eeg_visualization
+from utils import skin_and_sensors_visualization, brain_activity_visualization, simulate, preprocess, eeg_visualization, simulate_prova
 from utils import functional_connectivity, psd, functional_connectivity
 import global_variable_creation as gv
 
@@ -70,7 +70,8 @@ def main():
     psd_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
     matrix_path = psd_path + 'psd_ctr_preview.npy'
 
-    ttavg, tavg, teeg, eeg = simulate(sim_time = 20000, C_ep_values=[100.0], C_ip_values=[75.0], tau_e_values=[0.1], cip=0, cep=0,taue=0)
+    #ttavg, tavg, teeg, eeg = simulate(sim_time = 20000, C_ep_values=[100.0], C_ip_values=[75.0], tau_e_values=[0.1], cip=0, cep=0,taue=0)
+    ttavg, tavg, teeg, eeg = simulate_prova()
     ttavg, tavg = preprocess(ttavg, tavg)
     teeg, eeg = preprocess(teeg, eeg)
 

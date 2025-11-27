@@ -14,32 +14,26 @@ from pymoo.indicators.hv import HV
 from pymoo.core.termination import Termination
 
 # tue funzioni
-from utils import NSGA_simulate, plot_real_vs_simulated_psd_bar
+from utils import NSGA_simulate, plot_real_vs_simulated_psd_bar, preprocess
 from data_analysis_utils import NSGA_simulation_vs_real_data_FC
 import global_variable_creation as gv
 
 
 g_range = [0.1, 5]
-velocity_range = [1, 20]
-noise_range = [0.001, 2]
+velocity_range = [1, 2000]
+noise_range = [0.1, 5]
 a_range = [0.05, 0.150]
 b_range = [0.025, 0.075]
 
-pop_size = 20
-n_gen = 50
+pop_size = 25
+n_gen = 80
 ref_pt = np.array([2.0, 2.0, 30.0])
 max_to_improve = 5
 
 def evaluate_simulation(row, sim_time=20000):
     g, velocity, noise, a, b = row
 
-    ttavg, tavg, teeg, eeg = NSGA_simulate(
-        sim_time=sim_time,
-        g=g, velocity=velocity,
-        noise=noise, a=a, b=b
-    )
-
-    regular_mae, reduced_mae = NSGA_simulation_vs_real_data_FC(
+    regular_mae, reduced_mae, teeg, eeg = NSGA_simulation_vs_real_data_FC(
         fc_healty=np.load(gv.real_FC_data),
         sim_time=sim_time,
         g=g, velocity=velocity,
@@ -54,7 +48,7 @@ def evaluate_simulation(row, sim_time=20000):
     return regular_mae, reduced_mae, psd_mae
 
 
-class CorticalRealProblem(Problem):
+class EEGMetricProblem(Problem):
     def __init__(self, xl, xu, n_jobs=-1):
         super().__init__(n_var=5, n_obj=3, xl=xl, xu=xu)
         self.n_jobs = n_jobs
@@ -75,7 +69,7 @@ convergence_data = {
 
 def compute_spacing(F):
     """
-    Calcola la varianza della distanza minima tra i punti nel fronte.
+    Compute minimum distance between pareto front points.
     """
     if len(F) < 2:
         return 0.0
@@ -189,7 +183,7 @@ termination_condition = CombinedTermination(
 xl = np.array([g_range[0], velocity_range[0], noise_range[0], a_range[0], b_range[0]])
 xu = np.array([g_range[1], velocity_range[1], noise_range[1], a_range[1], b_range[1]])
 
-problem = CorticalRealProblem(xl=xl, xu=xu, n_jobs=-1)
+problem = EEGMetricProblem(xl=xl, xu=xu, n_jobs=-1)
 
 algorithm = NSGA2(pop_size=pop_size)
 
