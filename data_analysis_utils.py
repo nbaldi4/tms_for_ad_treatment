@@ -437,7 +437,7 @@ def NSGA_simulation_vs_real_data_FC(fc_healty, sim_time, g, velocity, noise, a, 
     sub_corr_mean = np.tanh(sub_z_mean)
     reduced_mae = np.mean(np.abs(sub_corr_mean - sub_corr_eeg))
 
-    return normal_mae, reduced_mae
+    return normal_mae, reduced_mae, teeg, eeg
 
 """
 def healty_parameters_grid_search(impaired_regions, struct_conn, conn, fc_healty, partitioning, tau_e_values, C_ip_values, C_ep_values):
