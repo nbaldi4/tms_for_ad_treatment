@@ -2,8 +2,9 @@ import numpy as np
 import argparse
 from tvb.simulator.lab import *
 
-from utils import skin_and_sensors_visualization, brain_activity_visualization, simulate, preprocess, eeg_visualization, simulate_prova
-from utils import functional_connectivity, psd, functional_connectivity
+from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot, analyze_regular_data
+from utils import functional_connectivity, psd, functional_connectivity, analyze_reduced_data
+from utils import real_vs_simulated_FC, real_vs_simulated_PSD
 import global_variable_creation as gv
 
 def main():
@@ -15,10 +16,16 @@ def main():
     parser.add_argument("--EEG", action="store_true", help="Perform eeg")
     parser.add_argument("--PSD", action="store_true", help="Perform psd")
     parser.add_argument("--FC", action="store_true", help="Perform fc")
-    parser.add_argument("--brain_activity", action="store_true", help="Compute brain activity")
-    parser.add_argument("--skin_and_sensors", action="store_true", help="Visualize skin and sensors positions")
+    parser.add_argument("--brain_act", action="store_true", help="Compute brain activity")
+    parser.add_argument("--skin_and_sens", action="store_true", help="Visualize skin and sensors positions")
     parser.add_argument("--th", type=float, help="Threshold for FC visualization")
     parser.add_argument("--temp_avg_period", type=float, help="Average integration step")
+    parser.add_argument("--sim_vs_real", action="store_true", help="Perform comparison between simulation and real data")
+    parser.add_argument("--g", type=float, help="Coupling")
+    parser.add_argument("--vel", type=float, help="Conduction velocity")
+    parser.add_argument("--noise", type=float, help="Noise")
+    parser.add_argument("--a", type=float, help="JR a parameter")
+    parser.add_argument("--b", type=float, help="JR b parameter")
     parser.add_argument(
         "--impaired_regions",
         nargs="+",               # accepts one or more values
@@ -32,8 +39,14 @@ def main():
     gv.eeg = args.EEG
     gv.psd = args.PSD
     gv.fc = args.FC
-    gv.brain_activity = args.brain_activity
-    gv.skin_and_sensors = args.skin_and_sensors
+    gv.brain_activity = args.brain_act
+    gv.skin_and_sensors = args.skin_and_sens
+    gv.sim_vs_real = args.sim_vs_real
+    gv.g = args.g
+    gv.velocity = args.vel
+    gv.noise = args.noise
+    gv.a = args.a
+    gv.b = args.b
 
     if args.th:
         gv.th = args.th
@@ -55,36 +68,23 @@ def main():
     """ L'idea è di scrivere un codice che possa replicare e confrontare segnali neurali (stimolati e non) dati una serie di parametri, l'interfaccia servirà quindi
     solo a inserire i parametri d'interesse e a scegliere se visualizzare o meno alcuni plots. Proprio a questo scopo ho messo degli hastag accanto agli elementi
     che voglio conservare in qualità di comandi per interfaccia"""
-    global_coupling_val = [1] #######################
-    velocity_val = [np.inf] #########################
-    noise_val = [50e-3] #############################
     time_index = 1000 ###############################
     skip_to_stim = False ############################
 
-    """Connettività struttura e dati sani esterni sono utili e quindi lasciamo la possibilità di inserirli
-    ma dovremo implementare un'interfaccia adeguata"""
-
-    struct_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/tms_for_ad_treatment/'
-    struct_conn = np.load(struct_path + 'structural_connectivities.npy')
-
-    psd_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
-    matrix_path = psd_path + 'psd_ctr_preview.npy'
-
-    #ttavg, tavg, teeg, eeg = simulate(sim_time = 20000, C_ep_values=[100.0], C_ip_values=[75.0], tau_e_values=[0.1], cip=0, cep=0,taue=0)
-    ttavg, tavg, teeg, eeg = simulate_prova()
+    ttavg, tavg, teeg, eeg = simulate(g=gv.g, velocity=gv.velocity, noise=gv.noise, a=gv.a, b=gv.b)
     ttavg, tavg = preprocess(ttavg, tavg)
     teeg, eeg = preprocess(teeg, eeg)
 
     datas = {'data_healthy': {'tavg': tavg, 'eeg': eeg, 'label': 'Healthy', 'color': 'blue'}}
 
     if gv.skin_and_sensors == True:
-        skin_and_sensors_visualization()
+        skin_and_sensors()
 
     if gv.brain_activity == True:
-        brain_activity_visualization(eeg=eeg[:,0,:,0], tavg=tavg[:,0,:,0])
+        brain_activity(eeg=eeg[:,0,:,0], tavg=tavg[:,0,:,0])
 
     if gv.eeg == True:
-        eeg_visualization(datas = datas, times = teeg)
+        eeg_plot(datas = datas, times = teeg)
 
     """il controllo sulla label della FC va migliorato, vorrei si potesse inserire da terminale, magari facendo si che alla tupla di parametri richiesti 
     venga associata una certa dicita (e.g. malato braak stage 2 - beta stage 1)"""
@@ -95,6 +95,14 @@ def main():
     if gv.psd == True:
         psd(eeg, 'EEG')
         psd(tavg, 'TAVG')
+
+    if gv.real_data == True:
+        analyze_regular_data(np.load(gv.real_FC_data))
+        analyze_reduced_data(np.load(gv.real_FC_data))
+
+    if gv.sim_vs_real == True:
+        real_vs_simulated_FC(np.load(gv.real_FC_data), eeg)
+        real_vs_simulated_PSD(np.load(gv.real_PSD_data), eeg)
 
     # In TVB the output for the JR (tavg or eeg) is a 4D object of dimensions [num_timestamps, num_modes, channels (or regions), 1] 
     # The interesting variables are stored in the first and third argument, in which you find the timeseries of channels (if you refer to eeg)

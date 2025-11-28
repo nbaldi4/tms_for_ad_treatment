@@ -14,13 +14,12 @@ from pymoo.indicators.hv import HV
 from pymoo.core.termination import Termination
 
 # tue funzioni
-from utils import NSGA_simulate, plot_real_vs_simulated_psd_bar, preprocess
-from data_analysis_utils import NSGA_simulation_vs_real_data_FC
+from utils import real_vs_simulated_PSD, preprocess, real_vs_simulated_FC, simulate
 import global_variable_creation as gv
 
 
-g_range = [0.1, 5]
-velocity_range = [1, 2000]
+g_range = [0.1, 1.1]
+velocity_range = [1, 300]
 noise_range = [0.1, 5]
 a_range = [0.05, 0.150]
 b_range = [0.025, 0.075]
@@ -33,16 +32,19 @@ max_to_improve = 5
 def evaluate_simulation(row, sim_time=20000):
     g, velocity, noise, a, b = row
 
-    regular_mae, reduced_mae, teeg, eeg = NSGA_simulation_vs_real_data_FC(
+    ttavg, tavg, teeg, eeg = simulate(sim_time=sim_time, g=g, velocity=velocity, noise=noise, a=a, b=b)
+    teeg, eeg = preprocess(teeg, eeg)
+
+    regular_mae, reduced_mae = real_vs_simulated_FC(
         fc_healty=np.load(gv.real_FC_data),
-        sim_time=sim_time,
-        g=g, velocity=velocity,
-        noise=noise, a=a, b=b
+        time_series=eeg,
+        return_value=True
     )
 
-    psd_mae = plot_real_vs_simulated_psd_bar(
+    psd_mae = real_vs_simulated_PSD(
         path=r"C:\Users\User\OneDrive - University of Pisa\Desktop\TVB_tutorials\Dati_Healthy\psd_ctr_preview.npy",
-        time_series=eeg
+        time_series=eeg,
+        return_value=True
     )
 
     return regular_mae, reduced_mae, psd_mae
@@ -113,7 +115,7 @@ class CombinedTermination(Termination):
                  ref_point,
                  max_gen=100,
                  patience=5,
-                 min_rel_improv=1e-3,
+                 min_rel_improv=1e-4,
                  min_abs_improv=None):
         super().__init__()
         self.ref_point = np.array(ref_point)
