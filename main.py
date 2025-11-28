@@ -4,7 +4,7 @@ from tvb.simulator.lab import *
 
 from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot, analyze_regular_data
 from utils import functional_connectivity, psd, functional_connectivity, analyze_reduced_data
-from utils import real_vs_simulated_FC, real_vs_simulated_PSD
+from utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGA2
 import global_variable_creation as gv
 
 def main():
@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--noise", type=float, help="Noise")
     parser.add_argument("--a", type=float, help="JR a parameter")
     parser.add_argument("--b", type=float, help="JR b parameter")
+    parser.add_argument("--best_mod", action="store_true", help="Model parameters optimization to maximize simulation similarity with data")
     parser.add_argument(
         "--impaired_regions",
         nargs="+",               # accepts one or more values
@@ -42,11 +43,21 @@ def main():
     gv.brain_activity = args.brain_act
     gv.skin_and_sensors = args.skin_and_sens
     gv.sim_vs_real = args.sim_vs_real
-    gv.g = args.g
-    gv.velocity = args.vel
-    gv.noise = args.noise
-    gv.a = args.a
-    gv.b = args.b
+
+    if args.g:
+        gv.coup = args.g
+ 
+    if args.vel:
+        gv.vel = args.vel
+    
+    if args.noise:
+        gv.noi = args.noise
+    
+    if args.a:
+        gv.aa = args.a
+    
+    if args.b:
+        gv.bb = args.b
 
     if args.th:
         gv.th = args.th
@@ -71,7 +82,7 @@ def main():
     time_index = 1000 ###############################
     skip_to_stim = False ############################
 
-    ttavg, tavg, teeg, eeg = simulate(g=gv.g, velocity=gv.velocity, noise=gv.noise, a=gv.a, b=gv.b)
+    ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb)
     ttavg, tavg = preprocess(ttavg, tavg)
     teeg, eeg = preprocess(teeg, eeg)
 
@@ -104,12 +115,14 @@ def main():
         real_vs_simulated_FC(np.load(gv.real_FC_data), eeg)
         real_vs_simulated_PSD(np.load(gv.real_PSD_data), eeg)
 
+    if args.best_mod == True:
+        NSGA2()
+
     # In TVB the output for the JR (tavg or eeg) is a 4D object of dimensions [num_timestamps, num_modes, channels (or regions), 1] 
     # The interesting variables are stored in the first and third argument, in which you find the timeseries of channels (if you refer to eeg)
     # or the timeseries of regions (if you refer to tavg)
 
     #FC_alpha_visualization(datas, FC_alpha_visualizing, mon_EEG, conn, period=period)
-
     #compare_matrix_and_computed_psd(path = matrix_path, values = eeg_healthy, values2 = eeg_very_healty, visualizing = True)
 
 

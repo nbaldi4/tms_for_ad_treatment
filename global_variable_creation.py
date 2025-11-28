@@ -18,11 +18,11 @@ psd = True
 fc = True
 brain_activity = True
 skin_and_sensors = True
-g=0.10245373952358368
-velocity=41.79385759129675
-noise=0.10045650478858126
-a=0.09806515133627744
-b=0.0680013974341444
+coup=0.10245373952358368
+vel=41.79385759129675
+noi=0.10045650478858126
+aa=0.09806515133627744
+bb=0.0680013974341444
 
 def eeg_monitor_factory():
     """Factory che gestisce un monitor EEG con configurazione persistente."""
