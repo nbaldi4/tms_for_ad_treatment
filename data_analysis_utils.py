@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 
-from utils import simulate, preprocess, functional_connectivity, ev, NSGA_simulate
+from utils import simulate, preprocess, functional_connectivity, ev
 import global_variable_creation as gv
 
 """Risultati salvati in 'results_figures/grid_search_results.csv'
@@ -239,11 +239,7 @@ def simulation_vs_real_data_FC(fc_healty):
     """
     # Run TVB simulation
     #ttavg, tavg, teeg, eeg = simulate(sim_time=20000, cip=0, cep=0, taue=0)
-    ttavg, tavg, teeg, eeg = NSGA_simulate(
-    sim_time=20000,
-    g=0.8878427506045561, velocity=18.28544432036172,
-    noise=1.4651305090928526, a=0.13175159036058282, b=0.02763094171398689
-    )
+    ttavg, tavg, teeg, eeg = simulate(g=0.10245373952358368, velocity=41.79385759129675,noise=0.10045650478858126,a=0.09806515133627744,b=0.0680013974341444)
     teeg, eeg = preprocess(teeg, eeg)
 
     # Extract EEG correlation matrix
@@ -391,21 +387,18 @@ def analyze_reduced_data(real_data):
     plt.show()
 
 
-def NSGA_simulation_vs_real_data_FC(fc_healty, sim_time, g, velocity, noise, a, b):
+def simulation_vs_real_data_FC(fc_healty, time_series):
     """
     Compares simulated functional connectivity (from TVB) with real EEG-based FC
     at both full and reduced (macro) resolution levels.
 
     Displays comparison plots with MAE values.
     """
-    # Run TVB simulation
-    ttavg, tavg, teeg, eeg = NSGA_simulate(sim_time=sim_time, cip=0, cep=0, g=g, velocity=velocity, noise=noise, a=a, b=b)
-    teeg, eeg = preprocess(teeg, eeg)
 
     # Extract EEG correlation matrix
-    tsr_corr = ev(eeg)
+    tsr_corr = ev(time_series)
     corr_eeg = tsr_corr.array_data[..., 0, 0]
-    corr_eeg -= np.eye(len(eeg[0, 0, :, 0]))
+    corr_eeg -= np.eye(len(time_series[0, 0, :, 0]))
     np.fill_diagonal(corr_eeg, 0.0)
     corr_eeg = np.clip(corr_eeg, -0.999999, 0.999999)
 
@@ -437,7 +430,7 @@ def NSGA_simulation_vs_real_data_FC(fc_healty, sim_time, g, velocity, noise, a, 
     sub_corr_mean = np.tanh(sub_z_mean)
     reduced_mae = np.mean(np.abs(sub_corr_mean - sub_corr_eeg))
 
-    return normal_mae, reduced_mae, teeg, eeg
+    return normal_mae, reduced_mae
 
 """
 def healty_parameters_grid_search(impaired_regions, struct_conn, conn, fc_healty, partitioning, tau_e_values, C_ip_values, C_ep_values):

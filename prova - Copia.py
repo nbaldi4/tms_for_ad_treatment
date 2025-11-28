@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from fooof import FOOOF
 import matplotlib.pyplot as plt
-from utils import NSGA_simulate, NSGA_psd, simulate_prova, preprocess, plot_real_vs_simulated_psd_bar
+from utils import NSGA_psd, simulate_prova, preprocess, plot_real_vs_simulated_psd_bar, simulate
 from data_analysis_utils import NSGA_simulation_vs_real_data_FC
 import global_variable_creation as gv
 
@@ -35,7 +35,7 @@ def fooof_distance_between_psd(freqs, psd1, psd2):
 
     return d_aperiodic + d_peaks
 
-ttavg, tavg, teeg, eeg = NSGA_simulate()
+ttavg, tavg, teeg, eeg = simulate(g=0.10245373952358368, velocity=41.79385759129675,noise=0.10045650478858126,a=0.09806515133627744,b=0.0680013974341444)
 ttavg, tavg = preprocess(ttavg, tavg)
 teeg, eeg = preprocess(teeg, eeg)
 psd_mae = plot_real_vs_simulated_psd_bar(

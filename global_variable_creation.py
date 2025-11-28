@@ -7,9 +7,10 @@ save_plots = False
 sim_vs_real = False
 th = 0.08
 temp_avg_period = 1.0 #ms
-fig_folder = r'C:\Users\User\OneDrive - University of Pisa\Desktop\test_figures'
+fig_folder = r'C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_tratment\results_figures'
 struct_path = r'C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\structural_connectivities.npy'
-real_FC_data = r'C:\Users\User\OneDrive - University of Pisa\Desktop\TVB_tutorials\Dati_Healthy\fc_preview_ctr_alpha.npy'
+real_FC_data = r'C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Dati_Healthy\fc_preview_ctr_alpha.npy'
+real_PSD_data = r'C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Dati_Healthy\psd_ctr_preview.npy'
 impaired_regions = [21,22,30,31,32,34,59,60,68,69,70,72]
 partitioning = 6
 eeg = True
@@ -17,6 +18,11 @@ psd = True
 fc = True
 brain_activity = True
 skin_and_sensors = True
+g=0.10245373952358368
+velocity=41.79385759129675
+noise=0.10045650478858126
+a=0.09806515133627744
+b=0.0680013974341444
 
 def eeg_monitor_factory():
     """Factory che gestisce un monitor EEG con configurazione persistente."""
