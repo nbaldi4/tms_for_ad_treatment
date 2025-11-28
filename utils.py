@@ -501,29 +501,6 @@ def psd(time_series, label, lowcut=0.5, highcut=45, n_seg=2048, window='hamming'
         plt.close()
     if return_psd:
         return freqs, psd_mean
-
-"""
-def NSGA_compare_matrix_and_computed_psd(path, time_series, n_bin=180, fs=100):
-    # PSD reale
-    matrix = np.load(path)
-    real_psd_mean = np.mean(matrix, axis=0)  # media su tutti i campioni
-
-    # PSD simulata
-    simulated_psd_mean = NSGA_psd(time_series=time_series, n_bin=n_bin, fs=fs)
-
-    # Assicurati che abbiano la stessa lunghezza
-    min_len = min(len(real_psd_mean), len(simulated_psd_mean))
-    real_psd_mean = real_psd_mean[:min_len]
-    simulated_psd_mean = simulated_psd_mean[:min_len]
-
-    # Differenze assolute per bin
-    diff_per_bin = np.abs(real_psd_mean - simulated_psd_mean)
-
-    # Somma totale delle differenze
-    total_diff = np.sum(diff_per_bin)
-
-    return total_diff
-"""
     
 def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
                                    label_real="Experimental", label_sim="Simulated", return_value = False):
@@ -989,3 +966,6 @@ def analyze_reduced_data(real_data):
         plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
 
     plt.show()
+
+def NSGA2():
+    print('Hello World')

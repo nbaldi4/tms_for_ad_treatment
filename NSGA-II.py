@@ -42,7 +42,7 @@ def evaluate_simulation(row, sim_time=20000):
     )
 
     psd_mae = real_vs_simulated_PSD(
-        path=r"C:\Users\User\OneDrive - University of Pisa\Desktop\TVB_tutorials\Dati_Healthy\psd_ctr_preview.npy",
+        matrix=np.load(gv.real_PSD_data),
         time_series=eeg,
         return_value=True
     )
