@@ -4,6 +4,21 @@ from tvb.simulator.lab import equations, connectivity, patterns
 from tvb.basic.neotraits.api import Attr, NArray, Final, List
 
 
+class MultiStimuliRegion(patterns.StimuliRegion):
+    connectivity = Attr(connectivity.Connectivity, required=False)
+    temporal = Attr(field_type=equations.TemporalApplicableEquation, required=False)
+    weight = NArray(required=False)
+    
+    def __init__(self, *stimuli):
+        super(MultiStimuliRegion, self).__init__()
+        self.stimuli = stimuli
+    def configure_space(self, *args, **kwds):
+        [stim.configure_space(*args, **kwds) for stim in self.stimuli]
+    def configure_time(self, *args, **kwds):
+        [stim.configure_time(*args, **kwds) for stim in self.stimuli]
+    def __call__(self, *args, **kwds):
+        return np.array([stim(*args, **kwds) for stim in self.stimuli]).sum(axis=0)
+
 class JRPSP(tvb.models.JansenRit):
     state_variable_range = Final(
         default={"y0": np.array([-1.0, 1.0]),
@@ -37,21 +52,3 @@ class JRPSP(tvb.models.JansenRit):
         dy[6] = y7
         dy[7] = self.A * a_d * sigm_y1_y2 - 2.0 * a_d * y7 - self.a**2 * y6
         return dy
-
-
-class MultiStimuliRegion(patterns.StimuliRegion):
-    connectivity = Attr(connectivity.Connectivity, required=False)
-    temporal = Attr(field_type=equations.TemporalApplicableEquation, required=False)
-    weight = NArray(required=False)
-    
-    def __init__(self, *stimuli):
-        super(MultiStimuliRegion, self).__init__()
-        self.stimuli = stimuli
-    def configure_space(self, *args, **kwds):
-        [stim.configure_space(*args, **kwds) for stim in self.stimuli]
-    def configure_time(self, *args, **kwds):
-        [stim.configure_time(*args, **kwds) for stim in self.stimuli]
-    def __call__(self, *args, **kwds):
-        return np.array([stim(*args, **kwds) for stim in self.stimuli]).sum(axis=0)
-    
-    
