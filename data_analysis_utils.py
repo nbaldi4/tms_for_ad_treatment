@@ -1,15 +1,302 @@
 import os
 
-import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
+import numpy as np
+import time
+import pandas as pd
+from sklearn.metrics import r2_score, mean_squared_error
+import tvb.simulator.lab as tvb
+from tvb.simulator.lab import *
+from scipy.stats import pearsonr, wasserstein_distance
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.optimize import minimize
+from pymoo.indicators.hv import HV
+from pymoo.core.termination import Termination
+from pymoo.core.problem import Problem
+from pymoo.indicators.hv import HV
+from joblib import Parallel, delayed
 
-from utils import simulate, preprocess, functional_connectivity, ev
+from global_variable_creation import get_eeg_monitor, get_conn
+from utils import psd, ev, preprocess, simulate
 import global_variable_creation as gv
 
-"""Risultati salvati in 'results_figures/grid_search_results.csv'
-Miglior regular triplet: [np.float64(0.27444444444444444), np.float64(18.0), np.float64(34.0)] (MAE=0.2086)
-Miglior reduced triplet: [np.float64(0.31), np.float64(18.0), np.float64(37.0)] (MAE=0.1112)"""
+    
+class EEGMetricProblem(Problem):
+    def __init__(self, xl, xu, n_jobs=-1):
+        super().__init__(n_var=5, n_obj=3, xl=xl, xu=xu)
+        self.n_jobs = n_jobs
+
+    def _evaluate(self, X, out, *args, **kwargs):
+        results = Parallel(n_jobs=self.n_jobs)(
+            delayed(evaluate_simulation)(row) for row in X
+        )
+        out["F"] = np.array(results)
+
+class CombinedTermination(Termination):
+    """
+    Termination based on:
+      - either max_gen (stop if generation >= max_gen)
+      - or hypervolume do not improve more than min_rel_improv (or min_abs_improv)
+        for 'patience' consecutive generations.
+    """
+    def __init__(self,
+                 ref_point,
+                 max_gen=100,
+                 patience=5,
+                 min_rel_improv=1e-4,
+                 min_abs_improv=None):
+        super().__init__()
+        self.ref_point = np.array(ref_point)
+        self.max_gen = int(max_gen)
+        self.patience = int(patience)
+        self.min_rel_improv = float(min_rel_improv) if min_rel_improv is not None else None
+        self.min_abs_improv = float(min_abs_improv) if min_abs_improv is not None else None
+
+        self.hv_history = []
+        self.no_improve_count = 0
+
+    def _update(self, algorithm):
+        gen = algorithm.n_gen
+        F = algorithm.pop.get("F")
+
+        try:
+            hv_now = HV(ref_point=self.ref_point)(F)
+        except Exception:
+            # if HV can't be computed (ex. empty F), consider hv_now = -inf
+            hv_now = -np.inf
+
+        self.hv_history.append(hv_now)
+
+        if gen >= self.max_gen:
+            print(f"[Termination] stop: reached max_gen = {self.max_gen} (gen={gen})")
+            return True
+
+        if len(self.hv_history) == 1:
+            return False
+
+        prev_best = max(self.hv_history[:-1])
+        delta = hv_now - prev_best
+
+        improved = False
+
+        if (self.min_abs_improv is not None) and (delta >= self.min_abs_improv):
+            improved = True
+
+        if (self.min_rel_improv is not None) and (abs(prev_best) > 0):
+            rel = delta / abs(prev_best)
+            if rel >= self.min_rel_improv:
+                improved = True
+
+        # update non-improving counter
+        if improved:
+            self.no_improve_count = 0
+        else:
+            self.no_improve_count += 1
+
+        if self.no_improve_count >= self.patience:
+            print(f"[Termination] stop: HV improvement below threshold for {self.patience} generations "
+                  f"(last delta={delta:.3e}, min_rel={self.min_rel_improv}, min_abs={self.min_abs_improv})")
+            return True
+
+        return False
+
+def evaluate_simulation(row, sim_time=20000):
+    g, velocity, noise, a, b = row
+
+    ttavg, tavg, teeg, eeg = simulate(sim_time=sim_time, g=g, velocity=velocity, noise=noise, a=a, b=b)
+    teeg, eeg = preprocess(teeg, eeg)
+
+    regular_mae, reduced_mae = real_vs_simulated_FC(
+        fc_healty=np.load(gv.real_FC_data),
+        time_series=eeg,
+        return_value=True
+    )
+
+    psd_mae = real_vs_simulated_PSD(
+        matrix=np.load(gv.real_PSD_data),
+        time_series=eeg,
+        return_value=True
+    )
+
+    return regular_mae, reduced_mae, psd_mae
+
+def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
+                                   label_real="Experimental", label_sim="Simulated", return_value = False):
+
+    # =========================
+    # PSD reale
+    # =========================
+    real_psd_mean = np.mean(matrix, axis=0)
+
+    # Taglio e normalizzazione reale
+    real_psd_mean = real_psd_mean[:n_bin].astype(float)
+
+    # Evito divisione per zero
+    if np.max(real_psd_mean) == 0:
+        real_psd_mean = real_psd_mean + 1e-12
+    real_psd_mean /= np.max(real_psd_mean)
+
+
+    # Frequenze reali (uniformi)
+    freqs_uniform = np.linspace(0, 45, n_bin)
+
+    # =========================
+    # PSD simulata
+    # =========================
+    simulated_freqs, simulated_psd_mean = psd(time_series=time_series, label='sim_psd', return_psd=True)
+
+    # Taglio frequenze a 45 Hz
+    mask = simulated_freqs <= 45
+    simulated_freqs = simulated_freqs[mask]
+    simulated_psd_mean = simulated_psd_mean[mask]
+
+    # =========================
+    # Interpolazione simulata su 180 bin
+    # =========================
+    simulated_psd_resampled = np.interp(freqs_uniform, simulated_freqs, simulated_psd_mean)
+
+    # Normalizzazione simulata
+    if np.max(simulated_psd_resampled) == 0:
+        simulated_psd_resampled = simulated_psd_resampled + 1e-12
+    simulated_psd_resampled /= np.max(simulated_psd_resampled)
+
+        # Normalizzo le PSD a distribuzioni di massa (somma = 1)
+    real_weights = real_psd_mean.astype(float)
+    sim_weights  = simulated_psd_resampled.astype(float)
+
+    s_real = np.sum(real_weights)
+    s_sim  = np.sum(sim_weights)
+    if s_real == 0:
+        real_weights = np.ones_like(real_weights) / len(real_weights)
+    else:
+        real_weights = real_weights / s_real
+
+    if s_sim == 0:
+        sim_weights = np.ones_like(sim_weights) / len(sim_weights)
+    else:
+        sim_weights = sim_weights / s_sim
+
+    emd_value = wasserstein_distance(u_values=freqs_uniform,
+                                    v_values=freqs_uniform,
+                                    u_weights=real_weights,
+                                    v_weights=sim_weights)
+    
+        # Plot
+    plt.figure(figsize=(10,4))
+    plt.plot(simulated_freqs, simulated_psd_mean, color='b', linewidth=2, label=label_sim)
+    plt.plot(freqs_uniform, real_psd_mean, color='r', linewidth=2, label=label_real)
+    plt.xlabel("Frequency [Hz]")
+    plt.ylabel("Normalized PSD")
+    plt.title("PSD: Real (bar) vs Simulated (line)")
+    plt.legend()
+    if gv.save_plots:
+        fig_name = f"sim_vs_real_PSD.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    if return_value:
+        return emd_value
+    
+def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
+    """
+    Compares simulated functional connectivity (from TVB) with real EEG-based FC
+    at both full and reduced (macro) resolution levels.
+
+    Displays comparison plots with MAE values.
+    """
+
+    # Extract EEG correlation matrix
+    tsr_corr = ev(time_series)
+    corr_eeg = tsr_corr.array_data[..., 0, 0]
+    corr_eeg -= np.eye(len(time_series[0, 0, :, 0]))
+    np.fill_diagonal(corr_eeg, 0.0)
+    corr_eeg = np.clip(corr_eeg, -0.999999, 0.999999)
+
+    # Align and compute macro-level FC
+    sub_fc_healty, com_fc_healty = [], []
+    for i in range(len(fc_healty[:, 0, 0])):
+        matrix1, matrix2 = to_common_indices(corr_eeg, fc_healty[i, :, :])
+        com_fc_healty.append(matrix2)
+        sub_fc_healty.append(macro_fc(matrix2))
+    corr_eeg = matrix1
+    sub_corr_eeg = macro_fc(corr_eeg)
+    com_fc_healty = np.array(com_fc_healty)
+    com_fc_healty = np.clip(com_fc_healty, -0.999999, 0.999999)
+
+    # --- Compute group-level statistics ---
+    normal_corr_stack = np.stack(com_fc_healty, axis=0)
+    normal_z_stack = np.arctanh(normal_corr_stack)
+    normal_z_mean = np.mean(normal_z_stack, axis=0)
+    normal_corr_mean = np.tanh(normal_z_mean)
+    normal_mae = np.mean(np.abs(normal_corr_mean - corr_eeg))
+
+    # Normalize matrices to [-1, 1] only for visualization purpose
+    corr_eeg = 2 * (corr_eeg - np.min(corr_eeg)) / (np.max(corr_eeg) - np.min(corr_eeg)) - 1
+    normal_corr_mean = 2 * (normal_corr_mean - np.min(normal_corr_mean)) / (np.max(normal_corr_mean) - np.min(normal_corr_mean)) - 1
+
+    # Plot comparison (regular scale)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    im1 = ax[0].imshow(corr_eeg, cmap='bwr', vmin=-1, vmax=1)
+    ax[0].set_title("Regular size simulated FC")
+    im2 = ax[1].imshow(normal_corr_mean, cmap='bwr', vmin=-1, vmax=1)
+    ax[1].set_title(f"Regular size real FC: MAE = {normal_mae:.3f}")
+    plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
+    plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
+
+    if gv.save_plots:
+        fig_name = "Sim_vs_real_regular_size.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    sub_corr_eeg = np.clip(sub_corr_eeg, -0.999999, 0.999999)
+    # --- Reduced (macro) resolution ---
+    sub_fc_healty = np.array(sub_fc_healty)
+    sub_fc_healty = np.clip(sub_fc_healty, -0.999999, 0.999999)
+    sub_corr_stack = np.stack(sub_fc_healty, axis=0)
+    sub_z_stack = np.arctanh(sub_corr_stack)
+    sub_z_mean = np.mean(sub_z_stack, axis=0)
+    sub_corr_mean = np.tanh(sub_z_mean)
+    reduced_mae = np.mean(np.abs(sub_corr_mean - sub_corr_eeg))
+
+
+    # Normalize for visualization
+    sub_corr_eeg = 2 * (sub_corr_eeg - np.min(sub_corr_eeg)) / (np.max(sub_corr_eeg) - np.min(sub_corr_eeg)) - 1
+    sub_corr_mean = 2 * (sub_corr_mean - np.min(sub_corr_mean)) / (np.max(sub_corr_mean) - np.min(sub_corr_mean)) - 1
+
+    # Plot comparison (reduced scale)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    im1 = ax[0].imshow(sub_corr_eeg, cmap='bwr', vmin=-1, vmax=1)
+    ax[0].set_title("Reduced size simulated FC")
+    im2 = ax[1].imshow(sub_corr_mean, cmap='bwr', vmin=-1, vmax=1)
+    ax[1].set_title(f"Reduced size real FC: MAE = {reduced_mae:.3f}")
+    plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
+    plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
+
+    if gv.save_plots:
+        fig_name = "Sim_vs_real_reduced_size.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+
+    if gv.save_plots:
+        fig_name = f"sim_vs_real_PSD.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    if return_value:
+        return normal_mae, reduced_mae
 
 def to_common_indices(tvb_matrix, real_matrix):
     """
@@ -230,94 +517,6 @@ def macro_fc(matrix):
             macro_fc[i - 1, j - 1] = np.mean(submatrix)
     return macro_fc
 
-def simulation_vs_real_data_FC(fc_healty):
-    """
-    Compares simulated functional connectivity (from TVB) with real EEG-based FC
-    at both full and reduced (macro) resolution levels.
-
-    Displays comparison plots with MAE values.
-    """
-    # Run TVB simulation
-    #ttavg, tavg, teeg, eeg = simulate(sim_time=20000, cip=0, cep=0, taue=0)
-    ttavg, tavg, teeg, eeg = simulate(g=0.10245373952358368, velocity=41.79385759129675,noise=0.10045650478858126,a=0.09806515133627744,b=0.0680013974341444)
-    teeg, eeg = preprocess(teeg, eeg)
-
-    # Extract EEG correlation matrix
-    tsr_corr = ev(eeg)
-    corr_eeg = tsr_corr.array_data[..., 0, 0]
-    corr_eeg -= np.eye(len(eeg[0, 0, :, 0]))
-    np.fill_diagonal(corr_eeg, 0.0)
-    corr_eeg = np.clip(corr_eeg, -0.999999, 0.999999)
-
-    # Align and compute macro-level FC
-    sub_fc_healty, com_fc_healty = [], []
-    for i in range(len(fc_healty[:, 0, 0])):
-        matrix1, matrix2 = to_common_indices(corr_eeg, fc_healty[i, :, :])
-        com_fc_healty.append(matrix2)
-        sub_fc_healty.append(macro_fc(matrix2))
-    corr_eeg = matrix1
-    sub_corr_eeg = macro_fc(corr_eeg)
-    com_fc_healty = np.array(com_fc_healty)
-    com_fc_healty = np.clip(com_fc_healty, -0.999999, 0.999999)
-
-    # --- Compute group-level statistics ---
-    normal_corr_stack = np.stack(com_fc_healty, axis=0)
-    normal_z_stack = np.arctanh(normal_corr_stack)
-    normal_z_mean = np.mean(normal_z_stack, axis=0)
-    normal_corr_mean = np.tanh(normal_z_mean)
-    normal_mae = np.mean(np.abs(normal_corr_mean - corr_eeg))
-
-    # Normalize matrices to [-1, 1] only for visualization purpose
-    corr_eeg = 2 * (corr_eeg - np.min(corr_eeg)) / (np.max(corr_eeg) - np.min(corr_eeg)) - 1
-    normal_corr_mean = 2 * (normal_corr_mean - np.min(normal_corr_mean)) / (np.max(normal_corr_mean) - np.min(normal_corr_mean)) - 1
-
-    # Plot comparison (regular scale)
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-    im1 = ax[0].imshow(corr_eeg, cmap='bwr', vmin=-1, vmax=1)
-    ax[0].set_title("Regular size simulated FC")
-    im2 = ax[1].imshow(normal_corr_mean, cmap='bwr', vmin=-1, vmax=1)
-    ax[1].set_title(f"Regular size real FC: MAE = {normal_mae:.3f}")
-    plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
-    plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
-
-    if gv.save_plots:
-        fig_name = "Sim_vs_real_regular_size.png"
-        os.makedirs(gv.fig_folder, exist_ok=True)
-        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
-
-    plt.show()
-
-    sub_corr_eeg = np.clip(sub_corr_eeg, -0.999999, 0.999999)
-    # --- Reduced (macro) resolution ---
-    sub_fc_healty = np.array(sub_fc_healty)
-    sub_fc_healty = np.clip(sub_fc_healty, -0.999999, 0.999999)
-    sub_corr_stack = np.stack(sub_fc_healty, axis=0)
-    sub_z_stack = np.arctanh(sub_corr_stack)
-    sub_z_mean = np.mean(sub_z_stack, axis=0)
-    sub_corr_mean = np.tanh(sub_z_mean)
-    reduced_mae = np.mean(np.abs(sub_corr_mean - sub_corr_eeg))
-
-
-    # Normalize for visualization
-    sub_corr_eeg = 2 * (sub_corr_eeg - np.min(sub_corr_eeg)) / (np.max(sub_corr_eeg) - np.min(sub_corr_eeg)) - 1
-    sub_corr_mean = 2 * (sub_corr_mean - np.min(sub_corr_mean)) / (np.max(sub_corr_mean) - np.min(sub_corr_mean)) - 1
-
-    # Plot comparison (reduced scale)
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-    im1 = ax[0].imshow(sub_corr_eeg, cmap='bwr', vmin=-1, vmax=1)
-    ax[0].set_title("Reduced size simulated FC")
-    im2 = ax[1].imshow(sub_corr_mean, cmap='bwr', vmin=-1, vmax=1)
-    ax[1].set_title(f"Reduced size real FC: MAE = {reduced_mae:.3f}")
-    plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
-    plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
-
-    if gv.save_plots:
-        fig_name = "Sim_vs_real_reduced_size.png"
-        os.makedirs(gv.fig_folder, exist_ok=True)
-        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
-
-    plt.show()
-
 def analyze_regular_data(real_data):
     """
     Computes the mean and standard deviation of real EEG FC matrices
@@ -346,7 +545,10 @@ def analyze_regular_data(real_data):
         os.makedirs(gv.fig_folder, exist_ok=True)
         plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
 
-    plt.show()
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
 
 def analyze_reduced_data(real_data):
     """
@@ -384,213 +586,161 @@ def analyze_reduced_data(real_data):
         os.makedirs(gv.fig_folder, exist_ok=True)
         plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
 
-    plt.show()
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
 
-
-def simulation_vs_real_data_FC(fc_healty, time_series):
+def compute_spacing(F):
     """
-    Compares simulated functional connectivity (from TVB) with real EEG-based FC
-    at both full and reduced (macro) resolution levels.
-
-    Displays comparison plots with MAE values.
+    Compute minimum distance between pareto front points.
     """
+    if len(F) < 2:
+        return 0.0
 
-    # Extract EEG correlation matrix
-    tsr_corr = ev(time_series)
-    corr_eeg = tsr_corr.array_data[..., 0, 0]
-    corr_eeg -= np.eye(len(time_series[0, 0, :, 0]))
-    np.fill_diagonal(corr_eeg, 0.0)
-    corr_eeg = np.clip(corr_eeg, -0.999999, 0.999999)
+    distances = []
+    for i in range(len(F)):
+        # minimum distance between i and all other points
+        others = np.delete(F, i, axis=0)
+        d = np.min(np.linalg.norm(F[i] - others, axis=1))
+        distances.append(d)
 
-    # Align and compute macro-level FC
-    sub_fc_healty, com_fc_healty = [], []
-    for i in range(len(fc_healty[:, 0, 0])):
-        matrix1, matrix2 = to_common_indices(corr_eeg, fc_healty[i, :, :])
-        com_fc_healty.append(matrix2)
-        sub_fc_healty.append(macro_fc(matrix2))
-    corr_eeg = matrix1
-    sub_corr_eeg = macro_fc(corr_eeg)
-    com_fc_healty = np.array(com_fc_healty)
-    com_fc_healty = np.clip(com_fc_healty, -0.999999, 0.999999)
+    distances = np.array(distances)
+    mean_d = np.mean(distances)
 
-    # --- Compute group-level statistics ---
-    normal_corr_stack = np.stack(com_fc_healty, axis=0)
-    normal_z_stack = np.arctanh(normal_corr_stack)
-    normal_z_mean = np.mean(normal_z_stack, axis=0)
-    normal_corr_mean = np.tanh(normal_z_mean)
-    normal_mae = np.mean(np.abs(normal_corr_mean - corr_eeg))
+    return np.sqrt(np.mean((distances - mean_d) ** 2))
 
-    sub_corr_eeg = np.clip(sub_corr_eeg, -0.999999, 0.999999)
-    # --- Reduced (macro) resolution ---
-    sub_fc_healty = np.array(sub_fc_healty)
-    sub_fc_healty = np.clip(sub_fc_healty, -0.999999, 0.999999)
-    sub_corr_stack = np.stack(sub_fc_healty, axis=0)
-    sub_z_stack = np.arctanh(sub_corr_stack)
-    sub_z_mean = np.mean(sub_z_stack, axis=0)
-    sub_corr_mean = np.tanh(sub_z_mean)
-    reduced_mae = np.mean(np.abs(sub_corr_mean - sub_corr_eeg))
+def nsga_callback(algorithm):
+    F = algorithm.pop.get("F")
 
-    return normal_mae, reduced_mae
+    # a ref_point is needed to define the worst possible value in metrics space
+    hv = HV(ref_point=gv.ref_PT)(F)
+    spacing = compute_spacing(F)
+    n_nd = len(F)
 
-"""
-def healty_parameters_grid_search(impaired_regions, struct_conn, conn, fc_healty, partitioning, tau_e_values, C_ip_values, C_ep_values):
+    convergence_data = {
+        "generation": [],
+        "hypervolume": [],
+        "spacing": [],
+        "n_nd": []
+    }
 
-    # === Crea la cartella di output se non esiste ===
-    output_dir = "results_figures"
-    os.makedirs(output_dir, exist_ok=True)
+    convergence_data["generation"].append(algorithm.n_gen)
+    convergence_data["hypervolume"].append(hv)
+    convergence_data["spacing"].append(spacing)
+    convergence_data["n_nd"].append(n_nd)
 
-    results = []  # ogni elemento sarà [tau_e, C_e, C_i, regular_mae, reduced_mae]
-    smallest_regular_mae = 52*52
-    smallest_reduced_mae = 6*6
-    for i in range(len(tau_e_values)):
-        for j in range(len(C_ep_values)):
-            for k in range(len(C_ip_values)):
-                ttavg, tavg, teeg, eeg = Simulate_Niccolò(impaired_regions = impaired_regions, 
-                                                          structural_connectivities = struct_conn, 
-                                                          cp = 16, lp = 28, np_parameter = 3,
-                                                          g=1, velocity=np.inf, noise=50e-3, sim_time = 20000, 
-                                                          taue=i, cep=j, cip=k, tau_e_values=tau_e_values, 
-                                                          C_ip_values=C_ip_values, C_ep_values=C_ep_values)
-                ttavg, tavg, teeg, eeg = preprocess(ttavg, tavg, teeg, eeg)
-                corr_eeg, corr_eeg_th = functional_connectivity(eeg, conn)
-                com_fc_healty = []
-                sub_fc_healty = []
-                for l in range(len(fc_healty[:,0,0])):
-                    matrix1, matrix2 = to_common_indices(corr_eeg, fc_healty[l,:,:])
-                    com_fc_healty.append(matrix2)
-                    sub_fc_healty.append(macro_fc(matrix2, partitioning))
-                corr_eeg = matrix1
+    print(f"[Gen {algorithm.n_gen}] HV={hv:.4f} | Spacing={spacing:.4f} | ND={n_nd}")
 
-                sub_corr_eeg = macro_fc(corr_eeg, partitioning)
-                sub_corr_eeg /= (np.max(sub_corr_eeg) - np.min(sub_corr_eeg))
-                sub_corr_eeg -= np.mean(sub_corr_eeg)
-                corr_eeg /= (np.max(corr_eeg) - np.min(corr_eeg))
-                corr_eeg -= np.mean(corr_eeg)
-                com_fc_healty = np.array(com_fc_healty)
-                sub_fc_healty = np.array(sub_fc_healty)
-                # Per calcolare media e deviazione standard passo allo z-score
-                # Stack into a 3D array: shape = (n_subjects, n_regions, n_regions)
-                normal_corr_stack = np.stack(com_fc_healty, axis=0)
-                    # --- Fisher z-transform ---
-                normal_z_stack = np.arctanh(normal_corr_stack)
+def NSGAII(g_range = [0.1, 1.1],
+          velocity_range = [1, 300],
+          noise_range = [0.1, 5],
+          a_range = [0.05, 0.150],
+          b_range = [0.025, 0.075],
+          pop_size = 8,
+          n_gen = 1,
+          ref_pt = gv.ref_PT,
+          max_to_improve = 5
+          ):
 
-                    # --- Compute mean and std in z-space ---
-                normal_z_mean = np.mean(normal_z_stack, axis=0)
+    convergence_data = {
+        "generation": [],
+        "hypervolume": [],
+        "spacing": [],
+        "n_nd": []
+    }
 
-                    # --- Convert mean back to correlation space ---
-                normal_corr_mean = np.tanh(normal_z_mean)
-                
-                #normal_corr_mean /= (np.max(normal_corr_mean) - np.min(normal_corr_mean))
-                #normal_corr_mean -= np.mean(normal_corr_mean)
-                normal_mae = np.mean(np.abs(normal_corr_mean - corr_eeg))
+    termination_condition = CombinedTermination(
+        ref_point=ref_pt,
+        max_gen=n_gen,
+        patience=max_to_improve,
+        # you choose relative or absolute value
+        min_rel_improv=1e-3,
+        min_abs_improv=None
+    )
 
-                if normal_mae < smallest_regular_mae:
-                    smallest_regular_mae = normal_mae
-                    best_regular_triplet = [tau_e_values[i], C_ep_values[j], C_ip_values[k]]
+    xl = np.array([g_range[0], velocity_range[0], noise_range[0], a_range[0], b_range[0]])
+    xu = np.array([g_range[1], velocity_range[1], noise_range[1], a_range[1], b_range[1]])
 
-                fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-                im1 = ax[0].imshow(corr_eeg, cmap='bwr', vmin=-1, vmax=1)
-                ax[0].set_title("Regular size simulated FC")
-                im2 = ax[1].imshow(normal_corr_mean, cmap='bwr', vmin=-1, vmax=1)
-                ax[1].set_title("Regular size real FC: mae = " + str(normal_mae))
-                plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
-                plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
-                plt.tight_layout()
-                
-                # === Salva la figura ===
-                fig_name = f"FC_full__tau_e{tau_e_values[i]}__C_e{C_ep_values[j]}__C_i{C_ip_values[k]}.png"
-                fig_path = os.path.join(output_dir, fig_name)
-                plt.savefig(fig_path, dpi=200)
-                plt.close(fig)
+    problem = EEGMetricProblem(xl=xl, xu=xu, n_jobs=-1)
 
-                    # Per calcolare media e deviazione standard passo allo z-score
-                # Stack into a 3D array: shape = (n_subjects, n_regions, n_regions)
-                sub_corr_stack = np.stack(sub_fc_healty, axis=0)
-                    # --- Fisher z-transform ---
-                sub_z_stack = np.arctanh(sub_corr_stack)
+    algorithm = NSGA2(pop_size=pop_size)
 
-                    # --- Compute mean and std in z-space ---
-                sub_z_mean = np.mean(sub_z_stack, axis=0)
+    res = minimize(
+        problem=problem,
+        algorithm=algorithm,
+        seed=1,
+        termination=termination_condition,
+        callback=nsga_callback,
+        verbose=True,
+        save_history=True
+    )
 
-                    # --- Convert mean back to correlation space ---
-                sub_corr_mean = np.tanh(sub_z_mean)
-                
-                #sub_corr_mean= analyze_reduced_data(real_data, partitioning, visualizing = False)
-                #sub_corr_mean = macro_fc(normal_corr_mean, partitioning)
-                #sub_corr_mean /= (np.max(sub_corr_mean) - np.min(sub_corr_mean))
-                #sub_corr_mean -= np.mean(sub_corr_mean)
-                reduced_mae = np.mean(np.abs(sub_corr_mean - sub_corr_eeg))
+    pareto = pd.DataFrame(
+        np.hstack([res.X, res.F]),
+        columns=["g","velocity","noise","a","b","M1","M2","M3"]
+    )
+    pareto.to_csv("pareto_front_nsga2.csv", index=False)
+    pd.DataFrame(convergence_data).to_csv("nsga2_convergence_metrics.csv", index=False)
+    plot_convergence(convergence_data)
 
-                
-                if reduced_mae < smallest_reduced_mae:
-                    smallest_reduced_mae = reduced_mae
-                    best_reduced_triplet = [tau_e_values[i], C_ep_values[j], C_ip_values[k]]
-                
-                fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-                im1 = ax[0].imshow(sub_corr_eeg, cmap='bwr', vmin=-1, vmax=1)
-                ax[0].set_title("Reduced size simulated FC")
-                im2 = ax[1].imshow(sub_corr_mean, cmap='bwr', vmin=-1, vmax=1)
-                ax[1].set_title("Reduced size real FC: mae = " + str(reduced_mae))
-                plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
-                plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
-                plt.tight_layout()
+    print("Pareto front saved in pareto_front_nsga2.csv")
+    print("Convergence metrics saved in nsga2_convergence_metrics.csv")
+    print("Plots saved: hypervolume_convergence.png, spacing_convergence.png, nondominated_convergence.png")
 
-                # === Salva la figura ===
-                fig_name = f"FC_reduced__tau_e{tau_e_values[i]}__C_e{C_ep_values[j]}__C_i{C_ip_values[k]}.png"
-                fig_path = os.path.join(output_dir, fig_name)
-                plt.savefig(fig_path, dpi=200)
-                plt.close(fig)
+def plot_convergence(convergence):
+    gen = convergence["generation"]
 
-                # --- Salva nel vettore risultati ---
-                results.append([
-                    tau_e_values[i],
-                    C_ep_values[j],
-                    C_ip_values[k],
-                    normal_mae,
-                    reduced_mae
-                ])
+    # ---- Hypervolume ----
+    plt.figure(figsize=(8,5))
+    plt.plot(gen, convergence["hypervolume"], marker="o")
+    plt.xlabel("Generation")
+    plt.ylabel("Hypervolume")
+    plt.title("Hypervolume convergence")
+    plt.grid(True)
 
-    results = np.array(results)
-    np.savetxt(os.path.join(output_dir, "grid_search_results.csv"),
-               results,
-               delimiter=",",
-               header="tau_e,C_e,C_i,regular_mae,reduced_mae",
-               comments='')
+    if gv.save_plots:
+        fig_name = "hypervolume_convergence.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
     
-    # NPY (più compatto e veloce da ricaricare in Python)
-    np.save(os.path.join(output_dir, "grid_search_results.npy"), results)
-
-    print("Risultati salvati in 'results_figures/grid_search_results.csv'")
-    print(f"Miglior regular triplet: {best_regular_triplet} (MAE={smallest_regular_mae:.4f})")
-    print(f"Miglior reduced triplet: {best_reduced_triplet} (MAE={smallest_reduced_mae:.4f})")
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
 
 
-your_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/'
-struct_conn = np.load(your_path + 'structural_connectivities.npy')
-impaired_regions = [21,22,30,31,32,34,59,60,68,69,70,72]
-conn =  connectivity.Connectivity.from_file('connectivity_76.zip')
-your_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
-fc_healty = np.load(your_path + 'fc_preview_ctr_alpha.npy')
-healty_parameters_grid_search(impaired_regions, struct_conn, conn, fc_healty, partitioning=6, tau_e_values = np.linspace(0.270,0.310,10), C_ip_values = np.linspace(37,10,10), C_ep_values = np.linspace(110,18,20))
+    # ---- Spacing ----
+    plt.figure(figsize=(8,5))
+    plt.plot(gen, convergence["spacing"], marker="o")
+    plt.xlabel("Generation")
+    plt.ylabel("Spacing (Diversity)")
+    plt.title("Diversity convergence (Spacing)")
+    plt.grid(True)
 
+    if gv.save_plots:
+        fig_name = "spacing_convergence.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
 
+    # ---- Numero ND ----
+    plt.figure(figsize=(8,5))
+    plt.plot(gen, convergence["n_nd"], marker="o")
+    plt.xlabel("Generation")
+    plt.ylabel("# non dominated solutions")
+    plt.title("Non dominated solutions")
 
-
-ttavg, tavg, teeg, eeg = Simulate_Niccolò(impaired_regions = impaired_regions, structural_connectivities = struct_conn, cp = 16, lp = 28, np_parameter = 3,
-                                  g=1, velocity=np.inf, noise=50e-3, sim_time = 20000)
-
-your_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/'
-struct_conn = np.load(your_path + 'structural_connectivities.npy')
-impaired_regions = [21,22,30,31,32,34,59,60,68,69,70,72]
-ttavg, tavg, teeg, eeg = Simulate(impaired_regions = impaired_regions, structural_connectivities = struct_conn, cp = 0, lp = 0, np_parameter = 3,
-                                  g=1, velocity=np.inf, noise=50e-3, sim_time = 20)
-#ttavg, tavg, teeg, eeg = preprocess(ttavg, tavg, teeg, eeg)
-tavg /= (np.max(tavg,0) - np.min(tavg,0 ))
-eeg /= (np.max(eeg,0) - np.min(eeg,0 ))
-
-corr, corr_th = functional_connectivity(eeg, conn=conn)
-your_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
-fc_healty = np.load(your_path + 'fc_preview_ctr_alpha.npy')
-#A, B = to_common_indices(corr, fc_healty[1,:,:])
-simulation_vs_real_data_FC(impaired_regions, struct_conn, conn, fc_healty, 6)
-"""
+    if gv.save_plots:
+        fig_name = "nondominated_convergence.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()

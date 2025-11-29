@@ -2,9 +2,9 @@ import numpy as np
 import argparse
 from tvb.simulator.lab import *
 
-from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot, analyze_regular_data
-from utils import functional_connectivity, psd, functional_connectivity, analyze_reduced_data
-from utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGA2
+from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot
+from utils import functional_connectivity, psd, functional_connectivity
+from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data
 import global_variable_creation as gv
 
 def main():
@@ -116,7 +116,7 @@ def main():
         real_vs_simulated_PSD(np.load(gv.real_PSD_data), eeg)
 
     if args.best_mod == True:
-        NSGA2()
+        NSGAII()
 
     # In TVB the output for the JR (tavg or eeg) is a 4D object of dimensions [num_timestamps, num_modes, channels (or regions), 1] 
     # The interesting variables are stored in the first and third argument, in which you find the timeseries of channels (if you refer to eeg)

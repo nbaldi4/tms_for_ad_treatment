@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import global_variable_creation as gv
+from mpl_toolkits.mplot3d import Axes3D
 from global_variable_creation import get_conn
 
 
@@ -10,22 +11,44 @@ print(metrics)
 mean_metrics1 = np.mean(metrics[:,0])
 mean_metrics2 = np.mean(metrics[:,1])
 mean_metrics3 = np.mean(metrics[:,2])
-print(mean_metrics1)
-print(mean_metrics2)
-print(mean_metrics3)
-metrics_deviations = metrics
+#print(mean_metrics1)
+#print(mean_metrics2)
+#print(mean_metrics3)
+metrics_deviations = np.ones(metrics.shape)
 metrics_deviations[:,0] = (metrics[:,0] - np.ones(len(metrics[:,0]))*mean_metrics1)/mean_metrics1
 metrics_deviations[:,1] = (metrics[:,1] - np.ones(len(metrics[:,1]))*mean_metrics2)/mean_metrics2
 metrics_deviations[:,2] = (metrics[:,2] - np.ones(len(metrics[:,2]))*mean_metrics3)/mean_metrics3
-print(metrics_deviations)
+#print(metrics_deviations)
+print(r'/n/n')
+print(metrics)
 
-rank_matrics = metrics_deviations[:,0] + metrics_deviations[:,1] + metrics_deviations[:,2]
+
+# Figura
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+# Scatter 3D
+ax.scatter(metrics[:,0], metrics[:,1], metrics[:,2], c='royalblue', s=40)
+
+# Etichette (opzionali)
+ax.set_xlabel('Regular FC')
+ax.set_ylabel('Reduced FC')
+ax.set_zlabel('PSD')
+
+plt.show()
+"""
+
+
+rank_matrics = metrics_deviations[:,0] + metrics_deviations[:,1] + 2*metrics_deviations[:,2]
 print(rank_matrics)
 idx = np.argmin(rank_matrics)
 print(idx)
 print(np.min(rank_matrics))
 print(pareto_front[idx, :])
-"""
+
+idx = np.argmin(mean_metrics2)
+print(idx)
+
 matrix = np.load(gv.struct_path)[:, :, :, :]
 conn = get_conn()
 mm = matrix[0, 3, :, :]

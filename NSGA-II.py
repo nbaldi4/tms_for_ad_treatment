@@ -14,20 +14,21 @@ from pymoo.indicators.hv import HV
 from pymoo.core.termination import Termination
 
 # tue funzioni
-from utils import real_vs_simulated_PSD, preprocess, real_vs_simulated_FC, simulate
+from utils import preprocess, simulate
+from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD
 import global_variable_creation as gv
 
 
-g_range = [0.1, 1.1]
+g_range = [0.1, 2] #[0.1, 1.1]
 velocity_range = [1, 300]
-noise_range = [0.1, 5]
+noise_range = [0.01, 5] #[0.1, 5]
 a_range = [0.05, 0.150]
 b_range = [0.025, 0.075]
 
-pop_size = 25
-n_gen = 80
+pop_size = 100
+n_gen = 200
 ref_pt = np.array([2.0, 2.0, 30.0])
-max_to_improve = 5
+max_to_improve = 20
 
 def evaluate_simulation(row, sim_time=20000):
     g, velocity, noise, a, b = row
@@ -115,7 +116,7 @@ class CombinedTermination(Termination):
                  ref_point,
                  max_gen=100,
                  patience=5,
-                 min_rel_improv=1e-4,
+                 min_rel_improv=1e-8,
                  min_abs_improv=None):
         super().__init__()
         self.ref_point = np.array(ref_point)
@@ -177,7 +178,7 @@ termination_condition = CombinedTermination(
     max_gen=n_gen,
     patience=max_to_improve,
     # you choose relative or absolute value
-    min_rel_improv=1e-3,
+    min_rel_improv=1e-8,
     min_abs_improv=None
 )
 
