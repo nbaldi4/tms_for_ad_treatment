@@ -144,6 +144,7 @@ def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
     # PSD simulata
     # =========================
     simulated_freqs, simulated_psd_mean = psd(time_series=time_series, label='sim_psd', return_psd=True)
+    peak_freq = simulated_freqs[np.argmax(simulated_psd_mean)]
 
     # Taglio frequenze a 45 Hz
     mask = simulated_freqs <= 45
@@ -159,6 +160,8 @@ def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
     if np.max(simulated_psd_resampled) == 0:
         simulated_psd_resampled = simulated_psd_resampled + 1e-12
     simulated_psd_resampled /= np.max(simulated_psd_resampled)
+
+    psd_mae = np.sum(np.abs(simulated_psd_resampled-real_psd_mean))
 
         # Normalizzo le PSD a distribuzioni di massa (somma = 1)
     real_weights = real_psd_mean.astype(float)
@@ -187,8 +190,9 @@ def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
     plt.plot(freqs_uniform, real_psd_mean, color='r', linewidth=2, label=label_real)
     plt.xlabel("Frequency [Hz]")
     plt.ylabel("Normalized PSD")
-    plt.title("PSD: Real (bar) vs Simulated (line)")
+    plt.title(f"PSD: MAE = {psd_mae:.3f}")
     plt.legend()
+    plt.grid()
     if gv.save_plots:
         fig_name = f"sim_vs_real_PSD.png"
         os.makedirs(gv.fig_folder, exist_ok=True)
@@ -199,8 +203,8 @@ def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
         plt.close()
 
     if return_value:
-        return emd_value
-    
+        return psd_mae, peak_freq 
+
 def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
     """
     Compares simulated functional connectivity (from TVB) with real EEG-based FC
