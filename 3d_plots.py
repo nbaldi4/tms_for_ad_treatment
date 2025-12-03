@@ -7,20 +7,13 @@ from global_variable_creation import get_conn
 
 pareto_front = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\pareto_front_nsga2.csv", delimiter=",", skiprows=1)
 metrics = pareto_front[:, -3:]
-print(metrics)
 mean_metrics1 = np.mean(metrics[:,0])
 mean_metrics2 = np.mean(metrics[:,1])
 mean_metrics3 = np.mean(metrics[:,2])
-#print(mean_metrics1)
-#print(mean_metrics2)
-#print(mean_metrics3)
 metrics_deviations = np.ones(metrics.shape)
 metrics_deviations[:,0] = (metrics[:,0] - np.ones(len(metrics[:,0]))*mean_metrics1)/mean_metrics1
 metrics_deviations[:,1] = (metrics[:,1] - np.ones(len(metrics[:,1]))*mean_metrics2)/mean_metrics2
 metrics_deviations[:,2] = (metrics[:,2] - np.ones(len(metrics[:,2]))*mean_metrics3)/mean_metrics3
-#print(metrics_deviations)
-print(r'/n/n')
-print(metrics)
 
 
 # Figura
@@ -34,42 +27,36 @@ ax.scatter(metrics[:,0], metrics[:,1], metrics[:,2], c='royalblue', s=40)
 ax.set_xlabel('Regular FC')
 ax.set_ylabel('Reduced FC')
 ax.set_zlabel('PSD')
+plt.title("Pareto front")
 
 plt.show()
-"""
-
 
 rank_matrics = metrics_deviations[:,0] + metrics_deviations[:,1] + 2*metrics_deviations[:,2]
-print(rank_matrics)
 idx = np.argmin(rank_matrics)
-print(idx)
-print(np.min(rank_matrics))
-print(pareto_front[idx, :])
+print('best solution is: ', idx, '; with parameters values: ', np.array2string(pareto_front[idx, :5], precision=20, suppress_small=False))
 
-idx = np.argmin(mean_metrics2)
-print(idx)
+all_evaluations = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\all_evaluated_quintets_with_peak.csv", delimiter=",", skiprows=1)
+g = all_evaluations[:, 0]
+a = all_evaluations[:, 3]
+b = all_evaluations[:, 4]
+peak = all_evaluations[:, -1]
 
-matrix = np.load(gv.struct_path)[:, :, :, :]
-conn = get_conn()
-mm = matrix[0, 3, :, :]
-mm2 = matrix[0, 4, :, :]
-cp=15
+fig = plt.figure(figsize=(8,6))
+ax = fig.add_subplot(111, projection='3d')
 
-for j in range (len(matrix[0,3,:,0])):
-    for k in range (len(matrix[0,3,0,:])):
-        plt.plot(matrix[15,:,j,k]/matrix[15,0,j,k])
+scatter = ax.scatter(
+    g, a, b,
+    c=peak,               # colore basato sulla 4ª colonna
+    cmap='viridis',    # mappa colori a scelta
+    s=60               # dimensione punti
+)
 
-plt.xlabel('np values')
-plt.ylabel('Cij/Cij(cp=0)')
-plt.title('Relative connectivity weights variations')
+cb = fig.colorbar(scatter, ax=ax)
+cb.set_label("Peak frequence distribution")
+
+ax.set_xlabel("g")
+ax.set_ylabel("a")
+ax.set_zlabel("b")
+
+plt.title("Grafico 3D con 4ª variabile come colore")
 plt.show()
-
-
-print("CONNECTIVITY TVB", conn.weights)
-print("CONNECTIVITY LORE", mm)
-
-print("DIFFERENCE", mm2 - mm)
-"""
-#np.savetxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\conn_lore.txt", mm, fmt="%.3f")
-#np.savetxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\conn_tvb.txt", conn.weights, fmt="%.3f")
-#np.savetxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\conn_diff.txt", conn.weights - mm, fmt="%.3f")

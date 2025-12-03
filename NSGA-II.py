@@ -19,9 +19,9 @@ from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD
 import global_variable_creation as gv
 
 
-g_range = [0.1, 2] #[0.1, 1.1]
+g_range = [0.1, 10] #[0.1, 1.1]
 velocity_range = [1, 300]
-noise_range = [0.01, 5] #[0.1, 5]
+noise_range = [0.1, 5] #[0.1, 5]
 a_range = [0.05, 0.150]
 b_range = [0.025, 0.075]
 
@@ -42,14 +42,16 @@ def evaluate_simulation(row, sim_time=20000):
         return_value=True
     )
 
-    psd_mae = real_vs_simulated_PSD(
+    psd_mae, peak_freq = real_vs_simulated_PSD(
         matrix=np.load(gv.real_PSD_data),
         time_series=eeg,
         return_value=True
     )
 
-    return regular_mae, reduced_mae, psd_mae
+    # Ritorna tutte e 4 le metriche
+    return regular_mae, reduced_mae, psd_mae, peak_freq
 
+all_results = []
 
 class EEGMetricProblem(Problem):
     def __init__(self, xl, xu, n_jobs=-1):
@@ -57,10 +59,17 @@ class EEGMetricProblem(Problem):
         self.n_jobs = n_jobs
 
     def _evaluate(self, X, out, *args, **kwargs):
-        results = Parallel(n_jobs=self.n_jobs)(
+        results_with_peak = Parallel(n_jobs=self.n_jobs)(
             delayed(evaluate_simulation)(row) for row in X
         )
-        out["F"] = np.array(results)
+        
+        # Per NSGA-II prendiamo solo le prime 3 metriche
+        F = np.array([res[:3] for res in results_with_peak])
+        out["F"] = F
+
+        # Salviamo quintetto + metriche + frequenza di picco
+        for x, res in zip(X, results_with_peak):
+            all_results.append(list(x) + list(res))  # ora res ha 4 valori
 
 
 convergence_data = {
@@ -241,6 +250,10 @@ def plot_convergence(convergence):
     plt.savefig("nondominated_convergence.png", dpi=150)
     plt.close()
 
+columns = ["g","velocity","noise","a","b","M1","M2","M3","peak_freq"]
+pareto_all = pd.DataFrame(all_results, columns=columns)
+pareto_all.to_csv("all_evaluated_quintets_with_peak.csv", index=False)
+print("Tutti i quintetti valutati salvati in all_evaluated_quintets_with_peak.csv")
 
 plot_convergence(convergence_data)
 
