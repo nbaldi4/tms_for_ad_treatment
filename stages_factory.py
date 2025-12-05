@@ -5,6 +5,7 @@ import numpy as np
 import math
 
 from global_variable_creation import get_conn
+import global_variable_creation as gv
 
 Abeta_stage_0 = []
 
@@ -111,72 +112,106 @@ for i in Abeta_stage_3:
     stage_4_a[i] = a_hc + a_variations*deg_perc[2]
     stage_5_a[i] = a_hc + a_variations*deg_perc[3]
 
-a_stages = np.array([stage_0_a, stage_1_a, stage_2_a, stage_3_a, stage_4_a, stage_5_a])
-
 for i in tau_stage_1:
-    tau_matrix_1[i,:] = tau_matrix_0[i,:] * (1-deg_perc[1]*w_ij_delta)
-    tau_matrix_1[:,i] = tau_matrix_0[:,i] * (1-deg_perc[1]*w_ij_delta)
-    tau_matrix_1[i,i] = tau_matrix_0[i,i] * (1-deg_perc[1]*w_ii_delta)
     stage_1_b[i] = b_hc + b_variations*deg_perc[1]
-    tau_matrix_2[i,:] = tau_matrix_0[i,:] * (1-deg_perc[2]*w_ij_delta)
-    tau_matrix_2[:,i] = tau_matrix_0[:,i] * (1-deg_perc[2]*w_ij_delta)
-    tau_matrix_2[i,i] = tau_matrix_0[i,i] * (1-deg_perc[2]*w_ii_delta)
     stage_2_b[i] = b_hc + b_variations*deg_perc[2]
-    tau_matrix_3[i,:] = tau_matrix_0[i,:] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_3[:,i] = tau_matrix_0[:,i] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_3[i,i] = tau_matrix_0[i,i] * (1-deg_perc[3]*w_ii_delta)
     stage_3_b[i] = b_hc + b_variations*deg_perc[3]
-    tau_matrix_4[i,:] = tau_matrix_0[i,:] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_4[:,i] = tau_matrix_0[:,i] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_4[i,i] = tau_matrix_0[i,i] * (1-deg_perc[3]*w_ii_delta)
     stage_4_b[i] = b_hc + b_variations*deg_perc[3]
-    tau_matrix_5[i,:] = tau_matrix_0[i,:] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_5[:,i] = tau_matrix_0[:,i] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_5[i,i] = tau_matrix_0[i,i] * (1-deg_perc[3]*w_ii_delta)
     stage_5_b[i] = b_hc + b_variations*deg_perc[3]
-
 for i in tau_stage_2:    
-    tau_matrix_2[i,:] = tau_matrix_0[i,:] * (1-deg_perc[1]*w_ij_delta)
-    tau_matrix_2[:,i] = tau_matrix_0[:,i] * (1-deg_perc[1]*w_ij_delta)
-    tau_matrix_2[i,i] = tau_matrix_0[i,i] * (1-deg_perc[1]*w_ii_delta)
     stage_2_b[i] = b_hc + b_variations*deg_perc[1]
-    tau_matrix_3[i,:] = tau_matrix_0[i,:] * (1-deg_perc[2]*w_ij_delta)
-    tau_matrix_3[:,i] = tau_matrix_0[:,i] * (1-deg_perc[2]*w_ij_delta)
-    tau_matrix_3[i,i] = tau_matrix_0[i,i] * (1-deg_perc[2]*w_ii_delta)
     stage_3_b[i] = b_hc + b_variations*deg_perc[2]
-    tau_matrix_4[i,:] = tau_matrix_0[i,:] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_4[:,i] = tau_matrix_0[:,i] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_4[i,i] = tau_matrix_0[i,i] * (1-deg_perc[3]*w_ii_delta)
     stage_4_b[i] = b_hc + b_variations*deg_perc[3]
-    tau_matrix_5[i,:] = tau_matrix_0[i,:] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_5[:,i] = tau_matrix_0[:,i] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_5[i,i] = tau_matrix_0[i,i] * (1-deg_perc[3]*w_ii_delta)
+    stage_5_b[i] = b_hc + b_variations*deg_perc[3]
+for i in tau_stage_3:
+    stage_3_b[i] = b_hc + b_variations*deg_perc[1]
+    stage_4_b[i] = b_hc + b_variations*deg_perc[2]
     stage_5_b[i] = b_hc + b_variations*deg_perc[3]
 
-for i in tau_stage_3:
-    tau_matrix_3[i,:] = tau_matrix_0[i,:] * (1-deg_perc[1]*w_ij_delta)
-    tau_matrix_3[:,i] = tau_matrix_0[:,i] * (1-deg_perc[1]*w_ij_delta)
-    tau_matrix_3[i,i] = tau_matrix_0[i,i] * (1-deg_perc[1]*w_ii_delta)
-    stage_3_b[i] = b_hc + b_variations*deg_perc[1]
-    tau_matrix_4[i,:] = tau_matrix_0[i,:] * (1-deg_perc[2]*w_ij_delta)
-    tau_matrix_4[:,i] = tau_matrix_0[:,i] * (1-deg_perc[2]*w_ij_delta)
-    tau_matrix_4[i,i] = tau_matrix_0[i,i] * (1-deg_perc[2]*w_ii_delta)
-    stage_4_b[i] = b_hc + b_variations*deg_perc[2]
-    tau_matrix_5[i,:] = tau_matrix_0[i,:] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_5[:,i] = tau_matrix_0[:,i] * (1-deg_perc[3]*w_ij_delta)
-    tau_matrix_5[i,i] = tau_matrix_0[i,i] * (1-deg_perc[3]*w_ii_delta)
-    stage_5_b[i] = b_hc + b_variations*deg_perc[3]
+def compute_stage_matrix(matrix, stage1 = [], stage2= [], stage3= [], deg_perc = [0, 0.05, 0.25, 0.45], w_ij_delta = 1, w_ii_delta = 1, lonely = 1/1.33):
+    matrix2 = matrix.copy()
+    stages = np.concatenate((stage1, stage2, stage3)).astype(int)
+    for i in stages:
+        for j in range(matrix.shape[0]):
+            if (i in stage1) and (j not in stages):
+                matrix[i,j] = matrix2[i,j]*(1-(deg_perc[1] + deg_perc[1]) * w_ii_delta * lonely)
+                matrix[j,i] = matrix2[j,i]*(1-(deg_perc[1] + deg_perc[1]) * w_ii_delta * lonely)
+            if (i in stage2) and (j not in stages):
+                matrix[i,j] = matrix2[i,j]*(1-(deg_perc[2] + deg_perc[2]) * w_ii_delta * lonely)
+                matrix[j,i] = matrix2[j,i]*(1-(deg_perc[2] + deg_perc[2]) * w_ii_delta * lonely)
+            if (i in stage3) and (j not in stages):
+                matrix[i,j] = matrix2[i,j]*(1-(deg_perc[3] + deg_perc[3]) * w_ii_delta * lonely)
+                matrix[j,i] = matrix2[j,i]*(1-(deg_perc[3] + deg_perc[3]) * w_ii_delta * lonely)
+            if (i in stage1) and (j in stage1):
+                if i == j:
+                    matrix[i,j] = matrix2[i,j]*(1-(deg_perc[1] + deg_perc[1]) * w_ii_delta)
+                if i != j:
+                    matrix[i,j] = matrix2[i,j]*(1-(deg_perc[1] + deg_perc[1]) * w_ij_delta)
+                    matrix[j,i] = matrix2[j,i]*(1-(deg_perc[1] + deg_perc[1]) * w_ij_delta)
+            if (i in stage2) and (j in stage2):
+                if i == j:
+                    matrix[i,j] = matrix2[i,j]*(1-(deg_perc[2] + deg_perc[2]) * w_ii_delta)
+                if i != j:
+                    matrix[i,j] = matrix2[i,j]*(1-(deg_perc[2] + deg_perc[2]) * w_ij_delta)
+                    matrix[j,i] = matrix2[j,i]*(1-(deg_perc[2] + deg_perc[2]) * w_ij_delta)
+            if (i in stage3) and (j in stage3):
+                if i == j:
+                    matrix[i,j] = matrix2[i,j]*(1-(deg_perc[3] + deg_perc[3]) * w_ii_delta)
+                if i != j:
+                    matrix[i,j] = matrix2[i,j]*(1-(deg_perc[3] + deg_perc[3]) * w_ij_delta)
+                    matrix[j,i] = matrix2[j,i]*(1-(deg_perc[3] + deg_perc[3]) * w_ij_delta)
+            if (i in stage1) and (j in stage2):
+                matrix[i,j] = matrix2[i,j]*(1-(deg_perc[1] + deg_perc[2]) * w_ij_delta)
+                matrix[j,i] = matrix2[j,i]*(1-(deg_perc[1] + deg_perc[2]) * w_ij_delta)
+            if (i in stage1) and (j in stage3):
+                matrix[i,j] = matrix2[i,j]*(1-(deg_perc[1] + deg_perc[3]) * w_ij_delta)
+                matrix[j,i] = matrix2[j,i]*(1-(deg_perc[1] + deg_perc[3]) * w_ij_delta)
+            if (i in stage2) and (j in stage3):
+                matrix[i,j] = matrix2[i,j]*(1-(deg_perc[2] + deg_perc[3]) * w_ij_delta)
+                matrix[j,i] = matrix2[j,i]*(1-(deg_perc[2] + deg_perc[3]) * w_ij_delta)
+    return matrix
+
+tau_stage_1 = np.array(tau_stage_1).astype(int)
+tau_stage_2 = np.array(tau_stage_2).astype(int)
+tau_stage_3 = np.array(tau_stage_3).astype(int)
+
+matrix = get_conn()
+tau_matrix_0 = matrix.weights.copy()
+tau_matrix_1 = matrix.weights.copy()
+tau_matrix_2 = matrix.weights.copy()
+tau_matrix_3 = matrix.weights.copy()
+tau_matrix_4 = matrix.weights.copy()
+tau_matrix_5 = matrix.weights.copy()
+
+tau_matrix_5 = compute_stage_matrix(
+    tau_matrix_5, 
+    stage3 = np.concatenate((tau_stage_1, tau_stage_2, tau_stage_3)).astype(int),
+    )
+tau_matrix_4 = compute_stage_matrix(
+    tau_matrix_4, 
+    stage3 = np.concatenate((tau_stage_1, tau_stage_2)).astype(int), 
+    stage2 = tau_stage_3
+    )
+tau_matrix_3 = compute_stage_matrix(
+    tau_matrix_3, 
+    stage3 = tau_stage_1, 
+    stage2 = tau_stage_2, 
+    stage1 = tau_stage_3
+    )
+tau_matrix_2 = compute_stage_matrix(
+    tau_matrix_2, 
+    stage2 = tau_stage_1, 
+    stage1 = tau_stage_2
+    )
+tau_matrix_1 = compute_stage_matrix(
+    tau_matrix_1, 
+    stage1 = tau_stage_1
+    )
 
 tau_matrices = np.array([tau_matrix_0, tau_matrix_1, tau_matrix_2, tau_matrix_3, tau_matrix_4, tau_matrix_5])
 b_stages = np.array([stage_0_b, stage_1_b, stage_2_b, stage_3_b, stage_4_b, stage_5_b])
+a_stages = np.array([stage_0_a, stage_1_a, stage_2_a, stage_3_a, stage_4_a, stage_5_a])
 
-# Controllo
-for i, m in enumerate(tau_matrices, 1):
-    print(f"tau_matrix_{i-1}:\n{m[61:70, 61:70]}\n")
-
-for i, m in enumerate(a_stages, 1):
-    print(f"a_stage{i-1}:\n{m[61:70]}\n")
-
-for i, m in enumerate(b_stages, 1):
-    print(f"b_stage{i-1}:\n{m[61:70]}\n")
-
+np.save("a_stages.npy", a_stages)
+np.save("b_stages.npy", b_stages)
+np.save("tau_matrices.npy", tau_matrices)
