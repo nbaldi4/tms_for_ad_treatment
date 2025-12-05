@@ -2,7 +2,7 @@ import numpy as np
 import argparse
 from tvb.simulator.lab import *
 
-from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot
+from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot, simulate_test
 from utils import functional_connectivity, psd, functional_connectivity
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data
 import global_variable_creation as gv
@@ -82,6 +82,8 @@ def main():
     time_index = 1000 ###############################
     skip_to_stim = False ############################
 
+    # Carica i valori e fai reshape a colonna
+    b_values = np.load(gv.b_path)[5]  # shape (76,1)
     ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb)
     ttavg, tavg = preprocess(ttavg, tavg)
     teeg, eeg = preprocess(teeg, eeg)
@@ -112,8 +114,8 @@ def main():
         analyze_reduced_data(np.load(gv.real_FC_data))
 
     if gv.sim_vs_real == True:
-        real_vs_simulated_FC(np.load(gv.real_FC_data), eeg)
-        real_vs_simulated_PSD(np.load(gv.real_PSD_data), eeg)
+        real_vs_simulated_FC(np.load(gv.MCI_FC_data), eeg)
+        real_vs_simulated_PSD(np.load(gv.MCI_PSD_data), eeg)
 
     if args.best_mod == True:
         NSGAII()

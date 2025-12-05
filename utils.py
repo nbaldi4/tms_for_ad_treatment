@@ -8,7 +8,6 @@ This module provides a set of helper functions for:
 - Preprocessing EEG and region-based signals
 - Computing and plotting functional connectivity and power spectral density (PSD)
 """
-
 import os
 
 import matplotlib.pyplot as plt
@@ -31,7 +30,7 @@ from pymoo.optimize import minimize
 from pymoo.indicators.hv import HV
 from pymoo.core.termination import Termination
 
-from classes import JRPSP
+from classes import JRPSP, JRPSP_test
 from global_variable_creation import get_eeg_monitor, get_conn
 import global_variable_creation as gv
 
@@ -364,12 +363,13 @@ def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, m
         plt.legend(fontsize = 29)
         plt.show()
 
-def simulate(sim_time=20000, cp=0, np_parameter=3,
-             g=1,
-             velocity=10,
-             noise=0.05,
-             a=0.1,
-             b=0.05,
+def simulate(sim_time=20000,
+             cp=0, np_parameter=3,
+             g=0.10004127233208432,
+             velocity=10.374658598387436,
+             noise=0.14480848489827142,
+             a=0.0728044836955774,
+             b=0.06293568322880852,
              C_ip_values=np.linspace(33.75, 10, 10),
              cip=0,
              C_ep_values=np.linspace(108, 20, 10),
@@ -406,9 +406,11 @@ def simulate(sim_time=20000, cp=0, np_parameter=3,
     Cip_value = C_ip_values[cip]
     J_value = 128
 
+    a_array = a
+    b_array = b
     model_pars = dict(
         A=3.25, B=22, v0=6.0,
-        a=a, b=b, r=0.56,
+        a=a_array, b=b_array, r=0.56,
         nu_max=0.0025, J=J_value,
         a_1=1.0, a_2=Cep_value / J_value,
         a_3=0.25, a_4=Cip_value / J_value,
@@ -441,6 +443,88 @@ def simulate(sim_time=20000, cp=0, np_parameter=3,
 
     (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time)
     return ttavg, tavg, teeg, eeg
+
+def simulate_test(sim_time=20000,
+             cp=0, np_parameter=3,
+             g=0.10004127233208432,
+             velocity=10.374658598387436,
+             noise=0.14480848489827142,
+             a=0.0728044836955774,
+             b=0.06293568322880852,
+             C_ip_values=np.linspace(33.75, 10, 10),
+             cip=0,
+             C_ep_values=np.linspace(108, 20, 10),
+             cep=0,
+             stimulus=None):
+    """
+    Run a simulation of brain activity based on the Jansen–Rit neural mass model.
+
+    Args:
+        sim_time (float): Simulation duration in ms.
+        structural_connectivities (np.ndarray): Structural connectivity matrices.
+        noise (float): Noise level for stochastic integration.
+        cp (int): Connectivity pattern index.
+        np_parameter (int): Neuroplasticity parameter index.
+        g (float): Global coupling strength.
+        velocity (float): Signal conduction velocity.
+        cip, cep, taue: Model parameters controlling inhibitory and excitatory coupling.
+        tau_e_values, C_ip_values, C_ep_values: Parameter grids for tuning.
+        impaired_regions (list): Brain regions to apply hypoinhibition.
+        stimulus (object): Optional external stimulus object.
+
+    Returns:
+        tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
+    """
+    conn = get_conn()
+    conn.weights = np.load(gv.struct_path)[cp, np_parameter, :, :]
+    conn.weights = conn.weights / np.max(conn.weights)
+    conn.weights *= g
+    conn.speed = np.array(velocity)
+    conn.configure()
+
+    # Model parameters (based on Jansen–Rit equations)
+    Cep_value = C_ep_values[cep]
+    Cip_value = C_ip_values[cip]
+    J_value = 128
+
+    a_array = np.ones((76,1))*a
+    b_array = np.ones((76))*b
+    model_pars = dict(
+        A=3.25, B=22, v0=6.0,
+        a=a_array, b=b_array, r=0.56,
+        nu_max=0.0025, J=J_value,
+        a_1=1.0, a_2=Cep_value / J_value,
+        a_3=0.25, a_4=Cip_value / J_value,
+        mu=0.22
+    )
+
+    # Add stochastic noise
+    nsig = np.zeros((8, 76, 1))
+    nsig[4] = model_pars['A'] * model_pars['a'] * (.320 - .120) * noise
+    noise = tvb.noise.Additive(nsig=nsig)
+
+    # Define monitors
+    mon_eeg = get_eeg_monitor()
+    mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
+
+    sim = simulator.Simulator(
+        connectivity=conn,
+        conduction_speed=float(conn.speed),
+        model=JRPSP_test(
+            variables_of_interest=("y0", "y1", "y2", "y3", "y4", "y5", "y6", "y7"),
+            **{k: np.array(v) for k, v in model_pars.items()}
+        ),
+        coupling=tvb.coupling.Linear(a=np.r_[a * 10]),
+        integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=noise),
+        stimulus=stimulus,
+        monitors=(mon_tavg, mon_eeg),
+        simulation_length=sim_time
+    )
+    sim.configure()
+
+    (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time)
+    return ttavg, tavg, teeg, eeg
+
 
 def psd(time_series, label, lowcut=0.5, highcut=45, n_seg=2048, window='hamming', return_psd=False):
     """

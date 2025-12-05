@@ -25,10 +25,10 @@ noise_range = [0.1, 5] #[0.1, 5]
 a_range = [0.05, 0.150]
 b_range = [0.025, 0.075]
 
-pop_size = 100
-n_gen = 200
+pop_size = 10
+n_gen = 20
 ref_pt = np.array([2.0, 2.0, 30.0])
-max_to_improve = 20
+max_to_improve = 2
 
 def evaluate_simulation(row, sim_time=20000):
     g, velocity, noise, a, b = row
@@ -37,13 +37,13 @@ def evaluate_simulation(row, sim_time=20000):
     teeg, eeg = preprocess(teeg, eeg)
 
     regular_mae, reduced_mae = real_vs_simulated_FC(
-        fc_healty=np.load(gv.real_FC_data),
+        fc_healty=np.load(gv.MCI_FC_data),
         time_series=eeg,
         return_value=True
     )
 
     psd_mae, peak_freq = real_vs_simulated_PSD(
-        matrix=np.load(gv.real_PSD_data),
+        matrix=np.load(gv.MCI_PSD_data),
         time_series=eeg,
         return_value=True
     )
