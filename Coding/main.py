@@ -2,7 +2,7 @@ import numpy as np
 import argparse
 from tvb.simulator.lab import *
 
-from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot, simulate_test
+from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot
 from utils import functional_connectivity, psd, functional_connectivity
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data
 import global_variable_creation as gv

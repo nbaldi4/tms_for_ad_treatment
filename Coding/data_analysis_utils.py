@@ -748,3 +748,173 @@ def plot_convergence(convergence):
         plt.show()
     else:
         plt.close()
+
+def real_vs_simulated_PSD_single_value(matrix, time_series, index, n_bin=180, fs=100,
+                                   label_real="Experimental", label_sim="Simulated", return_value = False):
+
+    # =========================
+    # PSD reale
+    # =========================
+    real_psd_mean = matrix[index, :]
+
+    # Taglio e normalizzazione reale
+    real_psd_mean = real_psd_mean[:n_bin].astype(float)
+
+    # Evito divisione per zero
+    if np.max(real_psd_mean) == 0:
+        real_psd_mean = real_psd_mean + 1e-12
+    real_psd_mean /= np.max(real_psd_mean)
+
+
+    # Frequenze reali (uniformi)
+    freqs_uniform = np.linspace(0, 45, n_bin)
+
+    # =========================
+    # PSD simulata
+    # =========================
+    simulated_freqs, simulated_psd_mean = psd(time_series=time_series, label='sim_psd', return_psd=True)
+    peak_freq = simulated_freqs[np.argmax(simulated_psd_mean)]
+
+    # Taglio frequenze a 45 Hz
+    mask = simulated_freqs <= 45
+    simulated_freqs = simulated_freqs[mask]
+    simulated_psd_mean = simulated_psd_mean[mask]
+
+    # =========================
+    # Interpolazione simulata su 180 bin
+    # =========================
+    simulated_psd_resampled = np.interp(freqs_uniform, simulated_freqs, simulated_psd_mean)
+
+    # Normalizzazione simulata
+    if np.max(simulated_psd_resampled) == 0:
+        simulated_psd_resampled = simulated_psd_resampled + 1e-12
+    simulated_psd_resampled /= np.max(simulated_psd_resampled)
+
+    psd_mae = np.sum(np.abs(simulated_psd_resampled-real_psd_mean))
+
+        # Normalizzo le PSD a distribuzioni di massa (somma = 1)
+    real_weights = real_psd_mean.astype(float)
+    sim_weights  = simulated_psd_resampled.astype(float)
+
+    s_real = np.sum(real_weights)
+    s_sim  = np.sum(sim_weights)
+    if s_real == 0:
+        real_weights = np.ones_like(real_weights) / len(real_weights)
+    else:
+        real_weights = real_weights / s_real
+
+    if s_sim == 0:
+        sim_weights = np.ones_like(sim_weights) / len(sim_weights)
+    else:
+        sim_weights = sim_weights / s_sim
+
+    emd_value = wasserstein_distance(u_values=freqs_uniform,
+                                    v_values=freqs_uniform,
+                                    u_weights=real_weights,
+                                    v_weights=sim_weights)
+    
+        # Plot
+    plt.figure(figsize=(10,4))
+    plt.plot(simulated_freqs, simulated_psd_mean, color='b', linewidth=2, label=label_sim)
+    plt.plot(freqs_uniform, real_psd_mean, color='r', linewidth=2, label=label_real)
+    plt.xlabel("Frequency [Hz]")
+    plt.ylabel("Normalized PSD")
+    plt.title(f"PSD: MAE = {psd_mae:.3f}")
+    plt.legend()
+    plt.grid()
+    if gv.save_plots:
+        fig_name = f"sim_vs_real_PSD.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    if return_value:
+        return psd_mae, peak_freq 
+
+def real_vs_simulated_FC_single_value(fc_healty, time_series, index, return_value=False):
+    """
+    Compares simulated functional connectivity (from TVB) with real EEG-based FC
+    at both full and reduced (macro) resolution levels.
+
+    Displays comparison plots with MAE values.
+    """
+
+    # Extract EEG correlation matrix
+    tsr_corr = ev(time_series)
+    corr_eeg = tsr_corr.array_data[..., 0, 0]
+    corr_eeg -= np.eye(len(time_series[0, 0, :, 0]))
+    np.fill_diagonal(corr_eeg, 0.0)
+    corr_eeg = np.clip(corr_eeg, -0.999999, 0.999999)
+
+    # Align and compute macro-level FC
+    matrix1, matrix2 = to_common_indices(corr_eeg, fc_healty[index, :, :])
+    com_fc_healty = matrix2
+    sub_fc_healty = macro_fc(matrix2)
+    corr_eeg = matrix1
+    sub_corr_eeg = macro_fc(corr_eeg)
+    com_fc_healty = np.clip(com_fc_healty, -0.999999, 0.999999)
+
+    # --- Compute group-level statistics ---
+    normal_mae = np.mean(np.abs(com_fc_healty - corr_eeg))
+
+    # Normalize matrices to [-1, 1] only for visualization purpose
+    corr_eeg = 2 * (corr_eeg - np.min(corr_eeg)) / (np.max(corr_eeg) - np.min(corr_eeg)) - 1
+    com_fc_healty = 2 * (com_fc_healty - np.min(com_fc_healty)) / (np.max(com_fc_healty) - np.min(com_fc_healty)) - 1
+
+    # Plot comparison (regular scale)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    im1 = ax[0].imshow(corr_eeg, cmap='bwr', vmin=-1, vmax=1)
+    ax[0].set_title("Regular size simulated FC")
+    im2 = ax[1].imshow(com_fc_healty, cmap='bwr', vmin=-1, vmax=1)
+    ax[1].set_title(f"Regular size real FC: MAE = {normal_mae:.3f}")
+    plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
+    plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
+
+    if gv.save_plots:
+        fig_name = "Sim_vs_real_regular_size.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    sub_corr_eeg = np.clip(sub_corr_eeg, -0.999999, 0.999999)
+    # --- Reduced (macro) resolution ---)
+    reduced_mae = np.mean(np.abs(sub_fc_healty - sub_corr_eeg))
+
+
+    # Normalize for visualization
+    sub_corr_eeg = 2 * (sub_corr_eeg - np.min(sub_corr_eeg)) / (np.max(sub_corr_eeg) - np.min(sub_corr_eeg)) - 1
+    sub_fc_healty = 2 * (sub_fc_healty - np.min(sub_fc_healty)) / (np.max(sub_fc_healty) - np.min(sub_fc_healty)) - 1
+
+    # Plot comparison (reduced scale)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    im1 = ax[0].imshow(sub_corr_eeg, cmap='bwr', vmin=-1, vmax=1)
+    ax[0].set_title("Reduced size simulated FC")
+    im2 = ax[1].imshow(sub_fc_healty, cmap='bwr', vmin=-1, vmax=1)
+    ax[1].set_title(f"Reduced size real FC: MAE = {reduced_mae:.3f}")
+    plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
+    plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
+
+    if gv.save_plots:
+        fig_name = "Sim_vs_real_reduced_size.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+
+    if gv.save_plots:
+        fig_name = f"sim_vs_real_PSD.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    if return_value:
+        return normal_mae, reduced_mae
+
