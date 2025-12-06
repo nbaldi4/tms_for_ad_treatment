@@ -364,7 +364,7 @@ def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, m
         plt.show()
 
 def simulate(sim_time=20000,
-             tau_stage=0,
+             tau_stage=5,
              g=0.10004127233208432,
              velocity=10.374658598387436,
              noise=0.14480848489827142,
