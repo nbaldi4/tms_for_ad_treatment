@@ -364,7 +364,7 @@ def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, m
         plt.show()
 
 def simulate(sim_time=20000,
-             cp=0, np_parameter=3,
+             tau_stage=0,
              g=0.10004127233208432,
              velocity=10.374658598387436,
              noise=0.14480848489827142,
@@ -395,7 +395,7 @@ def simulate(sim_time=20000,
         tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
     """
     conn = get_conn()
-    conn.weights = np.load(gv.struct_path)[cp, np_parameter, :, :]
+    conn.weights = np.load(gv.struct_path)[tau_stage, :, :]
     conn.weights = conn.weights / np.max(conn.weights)
     conn.weights *= g
     conn.speed = np.array(velocity)
