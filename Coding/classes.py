@@ -18,7 +18,7 @@ class MultiStimuliRegion(patterns.StimuliRegion):
         [stim.configure_time(*args, **kwds) for stim in self.stimuli]
     def __call__(self, *args, **kwds):
         return np.array([stim(*args, **kwds) for stim in self.stimuli]).sum(axis=0)
-
+    
 class JRPSP(tvb.models.JansenRit):
     state_variable_range = Final(
         default={"y0": np.array([-1.0, 1.0]),
@@ -44,17 +44,29 @@ class JRPSP(tvb.models.JansenRit):
         n = state_variables.shape[1]
         dy = np.zeros((8, n, 1))
 
-        dy[:6] = super().dfun(state_variables[:6], coupling, local_coupling)
-
         y0, y1, y2, y3, y4, y5, y6, y7 = state_variables
+        lrc = coupling[0, :]
+        short_range_coupling = local_coupling*(y1 - y2)
 
         # --- CORREZIONE: tutte colonne (n,1) ---
         a_d = np.asarray(self.a).reshape(-1,1) / 3.0
         a_d_2 = np.asarray(self.a).reshape(-1,1)
+        b_d = np.asarray(self.b).reshape(-1,1)
+        J_d = np.asarray(self.J).reshape(-1,1)
         sigm_y1_y2 = 2 * self.nu_max / (1 + np.exp(self.r * (self.v0 - (y1 - y2))))    
         sigm_y1_y2 = sigm_y1_y2.reshape(-1,1)
+        sigm_y0_1  = 2 * self.nu_max / (1 + np.exp(self.r * (self.v0 - (self.a_1 * J_d * y0))))
+        sigm_y0_1 = sigm_y0_1.reshape(-1,1)
+        sigm_y0_3  = 2 * self.nu_max / (1 + np.exp(self.r * (self.v0 - (self.a_3 * J_d * y0))))
+        sigm_y0_3 = sigm_y0_3.reshape(-1,1)
 
         # ora tutte le variabili hanno shape coerente
+        dy[0] = y3
+        dy[1] = y4
+        dy[2] = y5
+        dy[3] = self.A * a_d_2 * sigm_y1_y2 - 2.0 * a_d_2 * y3 - a_d_2 ** 2 * y0
+        dy[4] = self.A * a_d_2 * (self.mu + self.a_2 * J_d * sigm_y0_1 + lrc + short_range_coupling) - 2.0 * a_d_2 * y4 - a_d_2 ** 2 * y1
+        dy[5] = self.B * b_d * (self.a_4 * J_d * sigm_y0_3) - 2.0 * b_d * y5 - b_d ** 2 * y2
         dy[6] = y7
         dy[7] = self.A * a_d * sigm_y1_y2 - 2*a_d*y7 - (a_d_2**2)*y6
 

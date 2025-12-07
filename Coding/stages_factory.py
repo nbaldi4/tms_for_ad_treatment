@@ -100,30 +100,26 @@ for i in Abeta_stage_1:
     stage_3_a[i] = a_hc + a_variations*deg_perc[3]
     stage_4_a[i] = a_hc + a_variations*deg_perc[3]
     stage_5_a[i] = a_hc + a_variations*deg_perc[3]
+    stage_1_b[i] = b_hc + b_variations*deg_perc[1]
+    stage_2_b[i] = b_hc + b_variations*deg_perc[2]
+    stage_3_b[i] = b_hc + b_variations*deg_perc[3]
+    stage_4_b[i] = b_hc + b_variations*deg_perc[3]
+    stage_5_b[i] = b_hc + b_variations*deg_perc[3]
 
 for i in Abeta_stage_2:
     stage_2_a[i] = a_hc + a_variations*deg_perc[1]
     stage_3_a[i] = a_hc + a_variations*deg_perc[2]
     stage_4_a[i] = a_hc + a_variations*deg_perc[3]
     stage_5_a[i] = a_hc + a_variations*deg_perc[3]
+    stage_2_b[i] = b_hc + b_variations*deg_perc[1]
+    stage_3_b[i] = b_hc + b_variations*deg_perc[2]
+    stage_4_b[i] = b_hc + b_variations*deg_perc[3]
+    stage_5_b[i] = b_hc + b_variations*deg_perc[3]
 
 for i in Abeta_stage_3:
     stage_3_a[i] = a_hc + a_variations*deg_perc[1]
     stage_4_a[i] = a_hc + a_variations*deg_perc[2]
     stage_5_a[i] = a_hc + a_variations*deg_perc[3]
-
-for i in tau_stage_1:
-    stage_1_b[i] = b_hc + b_variations*deg_perc[1]
-    stage_2_b[i] = b_hc + b_variations*deg_perc[2]
-    stage_3_b[i] = b_hc + b_variations*deg_perc[3]
-    stage_4_b[i] = b_hc + b_variations*deg_perc[3]
-    stage_5_b[i] = b_hc + b_variations*deg_perc[3]
-for i in tau_stage_2:    
-    stage_2_b[i] = b_hc + b_variations*deg_perc[1]
-    stage_3_b[i] = b_hc + b_variations*deg_perc[2]
-    stage_4_b[i] = b_hc + b_variations*deg_perc[3]
-    stage_5_b[i] = b_hc + b_variations*deg_perc[3]
-for i in tau_stage_3:
     stage_3_b[i] = b_hc + b_variations*deg_perc[1]
     stage_4_b[i] = b_hc + b_variations*deg_perc[2]
     stage_5_b[i] = b_hc + b_variations*deg_perc[3]
