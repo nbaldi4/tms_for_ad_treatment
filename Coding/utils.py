@@ -429,15 +429,15 @@ def simulate(sim_time=20000,
     ])
 
     for i in tau_stage_1:
-        J_stages[i] = 0.95
+        J_stages[i] = 0.05
 
     
     for i in tau_stage_2:
-        J_stages[i] = 0.95
+        J_stages[i] = 0.05
 
     
     for i in tau_stage_3:
-        J_stages[i] = 0.95
+        J_stages[i] = 0.05
 
 
     a_array = np.ones((76,1))*a
