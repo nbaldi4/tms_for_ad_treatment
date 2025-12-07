@@ -405,13 +405,47 @@ def simulate(sim_time=20000,
     Cep_value = C_ep_values[cep]
     Cip_value = C_ip_values[cip]
     J_value = 128
+    J_stages = np.ones((76))
+    tau_stage_1 = np.array([
+        24, 62   # PHC
+    ])
+
+    tau_stage_2 = np.array([
+        9, 47,       # Temporal allocortex / hippocampal limbic III -> HC
+        31, 69,      # TCI
+        30, 68,      # TCC
+        34, 72       # TCV
+    ])
+
+    tau_stage_3 = np.array([
+        18, 56,   # PFCDL
+        17, 55,   # PFCCL
+        19, 57,   # PFCDM
+        12, 50,   # M1
+        28, 66,   # S1
+        29, 67,   # S2
+        35, 73,   # V1 
+        36, 74    # V2
+    ])
+
+    for i in tau_stage_1:
+        J_stages[i] = 0.95
+
+    
+    for i in tau_stage_2:
+        J_stages[i] = 0.95
+
+    
+    for i in tau_stage_3:
+        J_stages[i] = 0.95
+
 
     a_array = np.ones((76,1))*a
     b_array = np.ones((76))*b
     model_pars = dict(
         A=3.25, B=22, v0=6.0,
         a=a_array, b=b_array, r=0.56,
-        nu_max=0.0025, J=J_value,
+        nu_max=0.0025, J=J_value*J_stages,
         a_1=1.0, a_2=Cep_value / J_value,
         a_3=0.25, a_4=Cip_value / J_value,
         mu=0.22
