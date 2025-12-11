@@ -59,6 +59,12 @@ tau_stage_3 = np.array([
     36, 74    # V2
 ])
 
+tau_stage_all = np.array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 14, 15, 16, 20, 21, 22, 23, 25, 26, 27, 32, 33, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 48, 49, 51, 52, 53, 54, 58, 59, 60, 61, 63, 64, 65, 70, 71, 75
+])
+
+impaired_regions = np.array([21,22,30,31,32,34,59,60,68,69,70,72])
+
 # Stage definitions
 tau_stages = np.array([tau_stage_1, tau_stage_2, tau_stage_3], dtype=object)
 w_ij_stages = [0.28, 0.78, 0.95]
@@ -124,7 +130,7 @@ for i in Abeta_stage_3:
     stage_4_b[i] = b_hc + b_variations*deg_perc[2]
     stage_5_b[i] = b_hc + b_variations*deg_perc[3]
 
-def compute_stage_matrix(matrix, stage1 = [], stage2= [], stage3= [], deg_perc = [0, 0.05, 0.25, 0.45], w_ij_delta = 1, w_ii_delta = 1, lonely = 1/1.33):
+def compute_stage_matrix(matrix, stage1 = [], stage2= [], stage3= [], deg_perc = [0, 0.05, 0.25, 0.45], w_ij_delta = 0.0134/0.0192, w_ii_delta = 0.0127/0.0181, lonely = 1/1.33):
     matrix2 = matrix.copy()
     stages = np.concatenate((stage1, stage2, stage3)).astype(int)
     for i in stages:
@@ -170,6 +176,7 @@ def compute_stage_matrix(matrix, stage1 = [], stage2= [], stage3= [], deg_perc =
 tau_stage_1 = np.array(tau_stage_1).astype(int)
 tau_stage_2 = np.array(tau_stage_2).astype(int)
 tau_stage_3 = np.array(tau_stage_3).astype(int)
+tau_stage_all = np.array(tau_stage_all).astype(int)
 
 matrix = get_conn()
 tau_matrix_0 = matrix.weights.copy()
@@ -181,11 +188,11 @@ tau_matrix_5 = matrix.weights.copy()
 
 tau_matrix_5 = compute_stage_matrix(
     tau_matrix_5, 
-    stage3 = np.concatenate((tau_stage_1, tau_stage_2, tau_stage_3)).astype(int),
+    stage3 = np.concatenate((tau_stage_1, tau_stage_2, tau_stage_3)).astype(int)
     )
 tau_matrix_4 = compute_stage_matrix(
     tau_matrix_4, 
-    stage3 = np.concatenate((tau_stage_1, tau_stage_2)).astype(int), 
+    stage3 = np.concatenate((tau_stage_1, tau_stage_2)).astype(int),
     stage2 = tau_stage_3
     )
 tau_matrix_3 = compute_stage_matrix(
@@ -208,6 +215,6 @@ tau_matrices = np.array([tau_matrix_0, tau_matrix_1, tau_matrix_2, tau_matrix_3,
 b_stages = np.array([stage_0_b, stage_1_b, stage_2_b, stage_3_b, stage_4_b, stage_5_b])
 a_stages = np.array([stage_0_a, stage_1_a, stage_2_a, stage_3_a, stage_4_a, stage_5_a])
 
-np.save("a_stages.npy", a_stages)
-np.save("b_stages.npy", b_stages)
-np.save("tau_matrices.npy", tau_matrices)
+np.save(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Degeneration_data\a_stages.npy", a_stages)
+np.save(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Degeneration_data\b_stages.npy", b_stages)
+np.save(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Degeneration_data\tau_matrices.npy", tau_matrices)
