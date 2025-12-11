@@ -49,7 +49,7 @@ abeta_AD_standard = Abeta_patients[maschera_AD_standard]
 # A. Max Tau (Solo Tau)
 idx_tau = -1
 if len(indici_solo_tau) > 0:
-    idx_rel = np.argmin(tau_solo_tau)
+    idx_rel = np.argmax(tau_solo_tau)
     idx_tau = indici_solo_tau[idx_rel]
 
 # B. Min Abeta (Solo Abeta)
@@ -61,7 +61,7 @@ if len(indici_solo_abeta) > 0:
 # C. Min Abeta (AD Riemen-schneider)
 idx_abeta_AD = -1
 if len(indici_AD_standard) > 0:
-    idx_rel_AD = np.argmax(abeta_AD_standard)
+    idx_rel_AD = np.argmin(abeta_AD_standard)
     idx_abeta_AD = indici_AD_standard[idx_rel_AD]
 
 # --- 4. FUNZIONE DI PLOTTING ---
@@ -116,7 +116,7 @@ if idx_tau != -1:
     print(f"### Paziente SOLO Tau con Tau MAX (Indice: {idx_tau})")
     print(f"Valori: Abeta={Abeta_val:.1f}, Tau={tau_val:.1f}")
     
-    plot_fc_matrix(idx_tau, "FC Paziente SOLO Tau con Tau MIN", Abeta_val, tau_val)
+    plot_fc_matrix(idx_tau, "FC Paziente SOLO Tau con Tau MAX", Abeta_val, tau_val)
 else:
     print("Nessun paziente SOLO Tau trovato.")
 
@@ -129,7 +129,7 @@ if idx_abeta != -1:
     print(f"### Paziente SOLO Abeta con Abeta MIN (Indice: {idx_abeta})")
     print(f"Valori: Abeta={Abeta_val:.1f}, Tau={tau_val:.1f}")
     
-    plot_fc_matrix(idx_abeta, "FC Paziente SOLO Abeta con Abeta MAX", Abeta_val, tau_val)
+    plot_fc_matrix(idx_abeta, "FC Paziente SOLO Abeta con Abeta MIN", Abeta_val, tau_val)
 else:
     print("Nessun paziente SOLO Abeta trovato.")
 
