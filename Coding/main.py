@@ -3,7 +3,7 @@ import argparse
 from tvb.simulator.lab import *
 
 from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot
-from utils import functional_connectivity, psd, functional_connectivity
+from utils import functional_connectivity, psd, functional_connectivity_band
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data
 import global_variable_creation as gv
 
@@ -26,6 +26,8 @@ def main():
     parser.add_argument("--noise", type=float, help="Noise")
     parser.add_argument("--a", type=float, help="JR a parameter")
     parser.add_argument("--b", type=float, help="JR b parameter")
+    parser.add_argument("--tau", type=int, help="Tau stage (from 0 to 5)")
+    parser.add_argument("--abeta", type=int, help="Beta Amyloid stage (from 0 to 5)")
     parser.add_argument("--best_mod", action="store_true", help="Model parameters optimization to maximize simulation similarity with data")
     parser.add_argument(
         "--impaired_regions",
@@ -64,6 +66,16 @@ def main():
     else:
         gv.th = 0.08
 
+    if args.tau:
+        gv.tau_stage = args.tau
+    else:
+        gv.tau_stage = 0
+    
+    if args.abeta:
+        gv.abeta_stage = args.abeta
+    else:
+        gv.abeta_stage = 0
+
     if args.temp_avg_period:
         gv.temp_avg_period = args.temp_avg_period
 
@@ -83,8 +95,7 @@ def main():
     skip_to_stim = False ############################
 
     # Carica i valori e fai reshape a colonna
-    b_values = np.load(gv.b_path)[5]  # shape (76,1)
-    ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb)
+    ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
     ttavg, tavg = preprocess(ttavg, tavg)
     teeg, eeg = preprocess(teeg, eeg)
 
@@ -102,6 +113,12 @@ def main():
     """il controllo sulla label della FC va migliorato, vorrei si potesse inserire da terminale, magari facendo si che alla tupla di parametri richiesti 
     venga associata una certa dicita (e.g. malato braak stage 2 - beta stage 1)"""
     if gv.fc == True:
+        functional_connectivity_band(eeg, 'EEG alpha band (8-14)Hz', lowcut=8, highcut=14)
+        functional_connectivity_band(eeg, 'EEG theta band (4-8)Hz', lowcut=4, highcut=8)
+        functional_connectivity_band(eeg, 'EEG delta band (0.5-4)Hz', lowcut=0.5, highcut=4)
+        functional_connectivity_band(tavg, 'TAVG alpha band (8-14)Hz', lowcut=8, highcut=14)
+        functional_connectivity_band(tavg, 'TAVG theta band (4-8)Hz', lowcut=4, highcut=8)
+        functional_connectivity_band(tavg, 'TAVG delta band (0.5-4)Hz', lowcut=0.5, highcut=4)
         functional_connectivity(eeg, 'EEG')
         functional_connectivity(tavg, 'TAVG')
 
