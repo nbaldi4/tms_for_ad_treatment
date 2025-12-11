@@ -217,8 +217,9 @@ def bandpass_filter(data, lowcut, highcut, fs=1000.0, order=4):
     y = filtfilt(b, a, data)
     return y
 
-def ev(time_series):
+def ev(time_series_original):
     conn = get_conn()
+    time_series = time_series_original.copy()
     tsr = TimeSeriesRegion(connectivity=conn,
                        data=time_series,                            #in TVB 4D format
                        sample_period=gv.temp_avg_period) #in ms
@@ -237,15 +238,18 @@ def ev(time_series):
     
     return corr_coeff
 
-def functional_connectivity(time_series, label):
+def functional_connectivity(time_series_original, label):
 
     conn = get_conn()
+    time_series = time_series_original.copy()
     #time_series = time_series[np.isnan(time_series)]
     tsr_corr = ev(time_series)
 
     corr= tsr_corr.array_data[..., 0, 0]
     
     corr -= np.eye(len(time_series[0,0,:,0]))
+    abs_corr_mean = np.mean(np.abs(corr))
+    corr_mean = np.mean(corr)
 
     #Define a threshold for connections
     corr_th = (corr) > gv.th
@@ -272,7 +276,7 @@ def functional_connectivity(time_series, label):
     ax1.set_yticklabels(conn.region_labels, fontsize=12)
     ax1.set_xticks(np.arange(len(conn.region_labels)))
     ax1.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
-    ax1.set_title(label+' FC', fontsize=29)
+    ax1.set_title(f"{label} FC mean = {corr_mean:.4f}, ({abs_corr_mean:.4f})", fontsize=15)
 
     # Plot corr_tavg_th
     im2 = ax2.imshow(corr_th, interpolation='nearest', cmap='bwr')
@@ -280,7 +284,7 @@ def functional_connectivity(time_series, label):
     ax2.set_yticklabels(conn.region_labels, fontsize=12)
     ax2.set_xticks(np.arange(len(conn.region_labels)))
     ax2.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
-    ax2.set_title(label+' FC w/ threshold', fontsize=29)
+    ax2.set_title(label+' FC w/ threshold', fontsize=15)
 
     # Colorbar
     cax = fig.add_axes([ax2.get_position().x1 + 0.01, ax2.get_position().y0, 0.02, ax2.get_position().height])
@@ -293,7 +297,71 @@ def functional_connectivity(time_series, label):
     if gv.show_plots:
         plt.show()
 
-def functional_connectivity_alpha(time_series, label):
+def functional_connectivity_band(time_series_original, label, lowcut, highcut):
+
+    conn = get_conn()
+    #time_series = time_series[np.isnan(time_series)]
+    time_series = time_series_original.copy()
+
+    for i in range(len(time_series[0,0,:,0])):
+        time_series[:,0,i,0] = bandpass_filter(time_series[:,0,i,0], lowcut=lowcut, highcut=highcut)
+
+    tsr_corr = ev(time_series)
+
+    corr= tsr_corr.array_data[..., 0, 0]
+    
+    corr -= np.eye(len(time_series[0,0,:,0]))
+    abs_corr_mean = np.mean(np.abs(corr))
+    corr_mean = np.mean(corr)
+
+    #Define a threshold for connections
+    corr_th = (corr) > gv.th
+
+    pmatrix = np.zeros((len(time_series[0,0,:,0]),len(time_series[0,0,:,0])))
+
+    for i in range(len(time_series[0,0,:,0])):
+        for j in range(len(time_series[0,0,:,0])):
+            
+            region_A = time_series[:,0, i, 0]
+            region_B = time_series[:,0, j, 0]
+            
+            pmatrix[i][j] = pearsonr(region_A, region_B)[1]
+
+    pmatrix_th = pmatrix < 0.05
+
+    corr_th_significance = np.multiply(corr_th, pmatrix_th)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
+
+    # Plot corr_tavg
+    im1 = ax1.imshow(corr, interpolation='nearest', cmap='bwr')
+    ax1.set_yticks(np.arange(len(conn.region_labels)))
+    ax1.set_yticklabels(conn.region_labels, fontsize=12)
+    ax1.set_xticks(np.arange(len(conn.region_labels)))
+    ax1.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
+    ax1.set_title(f"{label} FC mean = {corr_mean:.4f}, ({abs_corr_mean:.4f})", fontsize=15)
+
+    # Plot corr_tavg_th
+    im2 = ax2.imshow(corr_th, interpolation='nearest', cmap='bwr')
+    ax2.set_yticks(np.arange(len(conn.region_labels)))
+    ax2.set_yticklabels(conn.region_labels, fontsize=12)
+    ax2.set_xticks(np.arange(len(conn.region_labels)))
+    ax2.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
+    ax2.set_title(label+' FC w/ threshold', fontsize=15)
+
+    # Colorbar
+    cax = fig.add_axes([ax2.get_position().x1 + 0.01, ax2.get_position().y0, 0.02, ax2.get_position().height])
+    cbar = plt.colorbar(im2, cax=cax)
+
+    if gv.save_plots:
+        fig_name = f"Functional_connectivity_{label}.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+
+
+#def functional_connectivity_alpha(time_series, label, lowcut, highcut):
     """
     Compute the alpha-band (8–13 Hz) functional connectivity matrix.
 
@@ -306,9 +374,35 @@ def functional_connectivity_alpha(time_series, label):
     Returns:
         np.ndarray: Alpha-band functional connectivity matrix.
     """
+"""
+    time_series = bandpass_filter(time_series, lowcut=lowcut, highcut=highcut)
 
-    time_series = bandpass_filter(time_series, lowcut=8, highcut=13)
-    return functional_connectivity(time_series, label)
+    n_timepoints = time_series.shape[0]
+    n_regions = time_series.shape[2]
+    filtered_signals = np.zeros((n_timepoints, n_regions))
+
+    # Apply bandpass filter
+    for i in range(n_regions):
+        region_signal = time_series[:, 0, i, 0]
+        filtered_signals[:, i] = bandpass_filter(region_signal, lowcut, highcut, order=4)
+
+    # Compute PSD for each region
+    psd_all = []
+    for i in range(n_regions):
+        freqs, psd_vals = signal.welch(
+            filtered_signals[:, i],
+            fs=1 / (gv.temp_avg_period / 1000),
+            nperseg=min(n_seg, len(filtered_signals[:, i])),
+            noverlap=n_seg // 2,
+            window=window
+        )
+        psd_all.append(psd_vals)
+
+    psd_all = np.array(psd_all)
+    psd_mean = np.mean(psd_all, axis=0)
+    psd_std = np.std(psd_all, axis=0)
+    functional_connectivity(time_series, label)
+"""
 
 def make_train(node_idx, node_weights, **params):
     conn = get_conn()
@@ -364,7 +458,8 @@ def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, m
         plt.show()
 
 def simulate(sim_time=20000,
-             tau_stage=5,
+             tau_stage=0,
+             abeta_stage=0,
              g=0.10004127233208432,
              velocity=10.374658598387436,
              noise=0.14480848489827142,
@@ -416,7 +511,7 @@ def simulate(sim_time=20000,
         30, 68,      # TCC
         34, 72       # TCV
     ])
-
+    impaired_regions = np.array([21,22,30,31,32,34,59,60,68,69,70,72])
     tau_stage_3 = np.array([
         18, 56,   # PFCDL
         17, 55,   # PFCCL
@@ -427,18 +522,28 @@ def simulate(sim_time=20000,
         35, 73,   # V1 
         36, 74    # V2
     ])
+    tau_stage_all = np.array([
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 14, 15, 16, 20, 21, 22, 23, 25, 26, 27, 32, 33, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 48, 49, 51, 52, 53, 54, 58, 59, 60, 61, 63, 64, 65, 70, 71, 75
+    ])
+
+    degeneration = [0, 0, 0, 0.28, 0.78, 0.95, 0.95, 0.95]
+
+    J_delta = 0.0134/0.0192
 
     for i in tau_stage_1:
-        J_stages[i] = 0.05
-
+        J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
     
     for i in tau_stage_2:
-        J_stages[i] = 0.05
+        J_stages[i] = 1 - degeneration[tau_stage + 1]*J_delta
 
-    
     for i in tau_stage_3:
-        J_stages[i] = 0.05
+        J_stages[i] = 1 - degeneration[tau_stage]*J_delta
 
+    #for i in impaired_regions:
+    #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta
+
+    #for i in tau_stage_all:
+    #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta
 
     a_array = np.ones((76,1))*a
     b_array = np.ones((76))*b
@@ -479,7 +584,7 @@ def simulate(sim_time=20000,
     return ttavg, tavg, teeg, eeg
 
 
-def psd(time_series, label, lowcut=0.5, highcut=45, n_seg=2048, window='hamming', return_psd=False):
+def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window='hamming', return_psd=False):
     """
     Compute and visualize the Power Spectral Density (PSD) of regional brain signals.
 
@@ -495,6 +600,7 @@ def psd(time_series, label, lowcut=0.5, highcut=45, n_seg=2048, window='hamming'
         - The PSD is computed via Welch’s method for each region.
         - The mean and standard deviation across regions are plotted.
     """
+    time_series = time_series_original.copy()
     n_timepoints = time_series.shape[0]
     n_regions = time_series.shape[2]
     filtered_signals = np.zeros((n_timepoints, n_regions))
