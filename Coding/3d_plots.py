@@ -5,7 +5,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from global_variable_creation import get_conn
 
 
-pareto_front = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\pareto_front_nsga2.csv", delimiter=",", skiprows=1)
+pareto_front = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Best_results_so_far\MAE\pareto_front_nsga2.csv", delimiter=",", skiprows=1)
 metrics = pareto_front[:, -3:]
 mean_metrics1 = np.mean(metrics[:,0])
 mean_metrics2 = np.mean(metrics[:,1])
@@ -35,7 +35,7 @@ rank_matrics = metrics_deviations[:,0] + metrics_deviations[:,1] + 2*metrics_dev
 idx = np.argmin(rank_matrics)
 print('best solution is: ', idx, '; with parameters values: ', np.array2string(pareto_front[idx, :5], precision=20, suppress_small=False))
 
-all_evaluations = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\all_evaluated_quintets_with_peak.csv", delimiter=",", skiprows=1)
+all_evaluations = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Best_results_so_far\MAE\all_evaluated_quintets_with_peak.csv", delimiter=",", skiprows=1)
 g = all_evaluations[:, 0]
 a = all_evaluations[:, 3]
 b = all_evaluations[:, 4]
