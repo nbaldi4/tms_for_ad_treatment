@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import glob
 import pandas as pd
 from sklearn.metrics import r2_score, mean_squared_error
 import tvb.simulator.lab as tvb
@@ -917,4 +918,18 @@ def real_vs_simulated_FC_single_value(fc_healty, time_series, index, return_valu
 
     if return_value:
         return normal_mae, reduced_mae
-
+    
+def load_simulation_results(sim_id):
+    # ... [il corpo della funzione è lo stesso] ...
+    ts_data_dir = os.path.join(gv.data_folder, f"{sim_id}")
+    try:
+        ttavg = np.load(os.path.join(ts_data_dir, f"ttavg_{sim_id}.npy"))
+        tavg = np.load(os.path.join(ts_data_dir, f"tavg_{sim_id}.npy"))
+        teeg = np.load(os.path.join(ts_data_dir, f"teeg_{sim_id}.npy"))
+        eeg = np.load(os.path.join(ts_data_dir, f"eeg_{sim_id}.npy"))
+        print(f"Dati per simulazione '{sim_id}' caricati con successo.")
+        return ttavg, tavg, teeg, eeg
+    except FileNotFoundError as e:
+        print(f"ERRORE: Impossibile trovare i file per sim_id '{sim_id}'.")
+        print(f"Percorso cercato: {e.filename}")
+        return None, None, None, None

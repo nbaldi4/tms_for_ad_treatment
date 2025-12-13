@@ -4,12 +4,13 @@ from tvb.simulator.lab import *
 
 from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot
 from utils import functional_connectivity, psd, functional_connectivity_band
-from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data
+from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data, load_simulation_results
 import global_variable_creation as gv
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--show_plots", action="store_true", help="Show plots on screen")
+    parser.add_argument("--no_sim", action="store_true", help="Search for simulated data")
     parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
     parser.add_argument("--fig_folder", type=str, help="Path to save figures")
     parser.add_argument("--struct_conn", type=str, help="Path to structural connectivity file")
@@ -28,6 +29,7 @@ def main():
     parser.add_argument("--b", type=float, help="JR b parameter")
     parser.add_argument("--tau", type=int, help="Tau stage (from 0 to 5)")
     parser.add_argument("--abeta", type=int, help="Beta Amyloid stage (from 0 to 5)")
+    parser.add_argument("--st", type=int, help="simulation time")
     parser.add_argument("--best_mod", action="store_true", help="Model parameters optimization to maximize simulation similarity with data")
     parser.add_argument(
         "--impaired_regions",
@@ -35,7 +37,9 @@ def main():
         type=int,                # convert them to integers
         help="List of impaired region indices"
     )
+################
 
+################
     args = parser.parse_args()
     gv.show_plots = args.show_plots
     gv.save_plots = args.save_plots
@@ -48,6 +52,9 @@ def main():
 
     if args.g:
         gv.coup = args.g
+
+    if args.st:
+        gv.sim_time = args.st
  
     if args.vel:
         gv.vel = args.vel
@@ -93,11 +100,17 @@ def main():
     che voglio conservare in qualità di comandi per interfaccia"""
     time_index = 1000 ###############################
     skip_to_stim = False ############################
+    if args.no_sim:
+        sim_id = f"tau{args.tau}_abeta{args.abeta}_a{args.a:.4f}_b{args.b:.4f}_g{args.g:.4f}_v{args.vel:.2f}_n{args.noise:.4f}_simtime{args.st}"
+        # 2. data loading
+        ttavg, tavg, teeg, eeg = load_simulation_results(sim_id)
+        ttavg, tavg = preprocess(ttavg, tavg)
+        teeg, eeg = preprocess(teeg, eeg)
 
-    # Carica i valori e fai reshape a colonna
-    ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
-    ttavg, tavg = preprocess(ttavg, tavg)
-    teeg, eeg = preprocess(teeg, eeg)
+    if not args.no_sim:
+        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        ttavg, tavg = preprocess(ttavg, tavg)
+        teeg, eeg = preprocess(teeg, eeg)
 
     datas = {'data_healthy': {'tavg': tavg, 'eeg': eeg, 'label': 'Healthy', 'color': 'blue'}}
 

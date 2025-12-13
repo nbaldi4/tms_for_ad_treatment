@@ -268,6 +268,22 @@ def functional_connectivity(time_series_original, label):
 
     corr_th_significance = np.multiply(corr_th, pmatrix_th)
 
+    # FC data
+    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+    os.makedirs(data_save_dir, exist_ok=True)
+
+    # p-values matrix
+    np.save(os.path.join(data_save_dir, f"PValue_matrix_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npy"), pmatrix)
+    
+    # binary FC
+    np.save(os.path.join(data_save_dir, f"FC_significant_binary_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npy"), corr_th_significance)
+    
+    with open(os.path.join(data_save_dir, f"FC_means_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.txt"), "w") as f:
+        f.write(f"Label: {label}\n")
+        f.write(f"Mean Correlation (raw): {corr_mean:.6f}\n")
+        f.write(f"Mean Absolute Correlation: {abs_corr_mean:.6f}\n")
+        f.write(f"Threshold (gv.th): {gv.th}\n")
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
 
     # Plot corr_tavg
@@ -291,7 +307,7 @@ def functional_connectivity(time_series_original, label):
     cbar = plt.colorbar(im2, cax=cax)
 
     if gv.save_plots:
-        fig_name = f"Functional_connectivity_{label}.png"
+        fig_name = f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.png"
         os.makedirs(gv.fig_folder, exist_ok=True)
         plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
     if gv.show_plots:
@@ -331,6 +347,23 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut):
 
     corr_th_significance = np.multiply(corr_th, pmatrix_th)
 
+    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+    os.makedirs(data_save_dir, exist_ok=True)
+    # FC data
+    np.save(os.path.join(data_save_dir, f"FC_matrix_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.npy"), corr)
+    
+    # p-values matrix
+    np.save(os.path.join(data_save_dir, f"PValue_matrix_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.npy"), pmatrix)
+    
+    # binary FC
+    np.save(os.path.join(data_save_dir, f"FC_significant_binary_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.npy"), corr_th_significance)
+    
+    with open(os.path.join(data_save_dir, f"FC_means_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.txt"), "w") as f:
+        f.write(f"Label: {label}\n")
+        f.write(f"Mean Correlation (raw): {corr_mean:.6f}\n")
+        f.write(f"Mean Absolute Correlation: {abs_corr_mean:.6f}\n")
+        f.write(f"Threshold (gv.th): {gv.th}\n")
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
 
     # Plot corr_tavg
@@ -354,7 +387,7 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut):
     cbar = plt.colorbar(im2, cax=cax)
 
     if gv.save_plots:
-        fig_name = f"Functional_connectivity_{label}.png"
+        fig_name = f"FC_matrix_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.png"
         os.makedirs(gv.fig_folder, exist_ok=True)
         plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
     if gv.show_plots:
@@ -559,7 +592,7 @@ def simulate(sim_time=20000,
     # Add stochastic noise
     nsig = np.zeros((8, 76, 1))
     nsig[4] = model_pars['A'] * model_pars['a'] * (.320 - .120) * noise
-    noise = tvb.noise.Additive(nsig=nsig)
+    tvb_noise = tvb.noise.Additive(nsig=nsig)
 
     # Define monitors
     mon_eeg = get_eeg_monitor()
@@ -573,7 +606,7 @@ def simulate(sim_time=20000,
             **{k: np.array(v) for k, v in model_pars.items()}
         ),
         coupling=tvb.coupling.Linear(a=np.r_[a * 10]),
-        integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=noise),
+        integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=tvb_noise),
         stimulus=stimulus,
         monitors=(mon_tavg, mon_eeg),
         simulation_length=sim_time
@@ -581,6 +614,19 @@ def simulate(sim_time=20000,
     sim.configure()
 
     (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time)
+
+    # 1. Crea un nome univoco basato sui parametri chiave
+    sim_id = f"tau{tau_stage}_abeta{abeta_stage}_a{a:.4f}_b{b:.4f}_g{g:.4f}_v{velocity:.2f}_n{noise:.4f}_simtime{sim_time}"
+
+    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+    os.makedirs(data_save_dir, exist_ok=True)
+    
+    # 3. Salva i quattro array (Time Vector e Time Series)
+    np.save(os.path.join(data_save_dir, f"ttavg_{sim_id}.npy"), ttavg)
+    np.save(os.path.join(data_save_dir, f"tavg_{sim_id}.npy"), tavg)
+    np.save(os.path.join(data_save_dir, f"teeg_{sim_id}.npy"), teeg)
+    np.save(os.path.join(data_save_dir, f"eeg_{sim_id}.npy"), eeg)
+
     return ttavg, tavg, teeg, eeg
 
 
@@ -612,10 +658,11 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
 
     # Compute PSD for each region
     psd_all = []
+    fs_welch = 1 / (gv.temp_avg_period / 1000)
     for i in range(n_regions):
         freqs, psd_vals = signal.welch(
             filtered_signals[:, i],
-            fs=1 / (gv.temp_avg_period / 1000),
+            fs=fs_welch,
             nperseg=min(n_seg, len(filtered_signals[:, i])),
             noverlap=n_seg // 2,
             window=window
@@ -627,8 +674,29 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     psd_std = np.std(psd_all, axis=0)
 
     # Normalize
-    psd_mean /= np.max(psd_mean)
-    psd_std /= np.max(psd_mean)
+    normalization_factor = np.max(psd_mean)
+    psd_mean /= normalization_factor
+    psd_std /= normalization_factor
+
+    # psd_all array dimensions are [n_regions, n_freqs]
+    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+    os.makedirs(data_save_dir, exist_ok=True)
+    np.save(os.path.join(data_save_dir, f"PSD_regional_values_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npy"), psd_all)
+    
+    # frequency vector
+    np.save(os.path.join(data_save_dir, f"PSD_frequencies_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npy"), freqs)
+    
+    # 3. Salva la media e la deviazione standard per riferimento
+    np.save(os.path.join(data_save_dir, f"PSD_mean_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npy"), psd_mean)
+    np.save(os.path.join(data_save_dir, f"PSD_std_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npy"), psd_std)
+    
+    # normalization factor
+    with open(os.path.join(data_save_dir, f"PSD_info_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.txt"), "w") as f:
+        f.write(f"Label: {label}\n")
+        f.write(f"Sampling Frequency (fs): {fs_welch:.2f} Hz\n")
+        f.write(f"Normalization Factor (max mean PSD): {normalization_factor:.6e}\n")
+        f.write(f"Bandpass Filter: {lowcut}-{highcut} Hz\n")
+        f.write(f"NPERSEG (Welch): {n_seg}\n")
 
     # Plot
     plt.figure(figsize=(10, 6))
