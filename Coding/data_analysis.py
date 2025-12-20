@@ -1,13 +1,15 @@
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
-from data_analysis_utils import analyze_regular_data, analyze_reduced_data, simulation_vs_real_data_FC
+from data_analysis_utils import analyze_regular_data, analyze_reduced_data, real_vs_simulated_FC, real_vs_simulated_PSD
 import global_variable_creation as gv
+from utils import simulate
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--real_data", action="store_true", help="Show real data FC (regular and reduced size) on screen")
+    parser.add_argument("--show_plots", action="store_true", help="Show plots on screen")
     parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
     parser.add_argument("--fig_folder", type=str, help="Path to save figures")
     parser.add_argument("--struct_conn", type=str, help="Path to structural connectivity file")
@@ -22,6 +24,7 @@ def main():
     )
 
     args = parser.parse_args()
+    gv.show_plots = args.show_plots
     gv.real_data = args.real_data
     gv.save_plots = args.save_plots
     gv.sim_vs_real = args.sim_vs_real
@@ -48,11 +51,13 @@ def main():
         gv.impaired_regions = args.impaired_regions
 
     if gv.real_data == True:
-        analyze_regular_data(np.load(gv.real_FC_data))
-        analyze_reduced_data(np.load(gv.real_FC_data))
+        analyze_regular_data(np.load(gv.HC_FC_data))
+        analyze_reduced_data(np.load(gv.HC_FC_data))
 
     if gv.sim_vs_real == True:
-        simulation_vs_real_data_FC(np.load(gv.real_FC_data))
+        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        real_vs_simulated_FC(np.load(gv.HC_FC_data), eeg)
+        real_vs_simulated_PSD(np.load(gv.HC_PSD_data), eeg)
 
 if __name__ == "__main__":
     main()

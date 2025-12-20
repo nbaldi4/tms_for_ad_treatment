@@ -108,7 +108,7 @@ def main():
         teeg, eeg = preprocess(teeg, eeg)
 
     if not args.no_sim:
-        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
         ttavg, tavg = preprocess(ttavg, tavg)
         teeg, eeg = preprocess(teeg, eeg)
 
@@ -144,8 +144,8 @@ def main():
         analyze_reduced_data(np.load(gv.real_FC_data))
 
     if gv.sim_vs_real == True:
-        real_vs_simulated_FC(np.load(gv.MCI_FC_data), eeg)
-        real_vs_simulated_PSD(np.load(gv.MCI_PSD_data), eeg)
+        real_vs_simulated_FC(np.load(gv.HC_FC_data), eeg)
+        real_vs_simulated_PSD(np.load(gv.HC_PSD_data), eeg)
 
     if args.best_mod == True:
         NSGAII()

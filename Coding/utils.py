@@ -626,15 +626,13 @@ def simulate(sim_time=20000,
 
     for i in tau_stage_3:
         J_stages[i] = 1 - degeneration[tau_stage]*J_delta
-
     #for i in impaired_regions:
     #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta
 
     #for i in tau_stage_all:
     #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta
-
-    a_array = np.ones((76,1))*a
-    b_array = np.ones((76))*b
+    a_array = np.load(gv.a_path)[abeta_stage, np.newaxis].T
+    b_array = np.load(gv.b_path)[abeta_stage, np.newaxis].T
     model_pars = dict(
         A=3.25, B=22, v0=6.0,
         a=a_array, b=b_array, r=0.56,
@@ -669,32 +667,32 @@ def simulate(sim_time=20000,
     sim.configure()
 
     (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time)
+    if gv.save_plots == True:
+        # 1. Crea un nome univoco basato sui parametri chiave
+        sim_id = f"tau{tau_stage}_abeta{abeta_stage}_a{a:.4f}_b{b:.4f}_g{g:.4f}_v{velocity:.2f}_n{noise:.4f}_simtime{sim_time}"
 
-    # 1. Crea un nome univoco basato sui parametri chiave
-    sim_id = f"tau{tau_stage}_abeta{abeta_stage}_a{a:.4f}_b{b:.4f}_g{g:.4f}_v{velocity:.2f}_n{noise:.4f}_simtime{sim_time}"
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+        os.makedirs(data_save_dir, exist_ok=True)
 
-    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
-    os.makedirs(data_save_dir, exist_ok=True)
+        output_file_name = f"times_and_eeg_{sim_id}.npz"
+        output_file_path = os.path.join(data_save_dir, output_file_name)
 
-    output_file_name = f"times_and_eeg_{sim_id}.npz"
-    output_file_path = os.path.join(data_save_dir, output_file_name)
+        # 3. Salva i quattro array (Time Vector e Time Series) in un unico file compresso
+        np.savez_compressed(
+            output_file_path,
+            teeg=teeg,  # Sarà accessibile come 'ttavg'
+            eeg=eeg,    # Sarà accessibile come 'tavg'
+        )
 
-    # 3. Salva i quattro array (Time Vector e Time Series) in un unico file compresso
-    np.savez_compressed(
-        output_file_path,
-        teeg=teeg,  # Sarà accessibile come 'ttavg'
-        eeg=eeg,    # Sarà accessibile come 'tavg'
-    )
+        output_file_name = f"times_and_tavg_{sim_id}.npz"
+        output_file_path = os.path.join(data_save_dir, output_file_name)
 
-    output_file_name = f"times_and_tavg_{sim_id}.npz"
-    output_file_path = os.path.join(data_save_dir, output_file_name)
-
-    # 3. Salva i quattro array (Time Vector e Time Series) in un unico file compresso
-    np.savez_compressed(
-        output_file_path,
-        ttavg=ttavg,  # Sarà accessibile come 'ttavg'
-        tavg=tavg,    # Sarà accessibile come 'tavg'
-    )
+        # 3. Salva i quattro array (Time Vector e Time Series) in un unico file compresso
+        np.savez_compressed(
+            output_file_path,
+            ttavg=ttavg,  # Sarà accessibile come 'ttavg'
+            tavg=tavg,    # Sarà accessibile come 'tavg'
+        )
 
             
     return ttavg, tavg, teeg, eeg

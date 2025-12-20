@@ -145,7 +145,7 @@ def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
     # =========================
     # PSD simulata
     # =========================
-    simulated_freqs, simulated_psd_mean = psd(time_series=time_series, label='sim_psd', return_psd=True)
+    simulated_freqs, simulated_psd_mean = psd(time_series_original=time_series, label='sim_psd', return_psd=True)
     peak_freq = simulated_freqs[np.argmax(simulated_psd_mean)]
 
     # Taglio frequenze a 45 Hz
