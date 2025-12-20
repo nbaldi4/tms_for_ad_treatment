@@ -1,0 +1,4 @@
+Label: TAVG delta band (0.5-4)Hz
+Mean Correlation (raw): 0.013285
+Mean Absolute Correlation: 0.706570
+Threshold (gv.th): 0.08
