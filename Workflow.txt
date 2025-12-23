@@ -3,3 +3,7 @@ Eravamo arrivati a definire il set di parametri ottimale che permetteva di ripro
 Abbiamo cercato di far ammalare il cervello definito da questo set di parametri usando la degenerazione del network causata dalla proteina tau. Non abbiamo osservato l'atteso shift in frequenza verso frequenze basse. 
 Abbiamo provato anche a far ammalare un cervello definito da un set di parametri non ottimale. Questi riproducevano il picco in alpha in modo molto più smarmellato, ma in compenso avevano un picco in frequenze delta. Abbiamo notato che in questo caso il cervello riusciva ad ammalarsi in maniera adeguata.
 Dato ciò riteniamo che riprodurre sia il picco in alpha che quello in delta sia fondamentale al fine di vedere una degenerazione dello spettro in frequenza. Sospettiamo che questi due picchi siano da imputare a regioni che oscillano a frequenze diverse anche nel caso sano. Abbiamo quindi deciso di far variare il parametro a del modello jansen-rit linearmente nella direzione sagittale.
+
+Nei file provenienti dal secondo algoritmo di tipo NSGA-II (contrassegnati come xx_with_factor) aggiungiamo un sesto parametro da ottimizzare, che sarà sostanzialmente la pendenza della retta con la quale facciamo decrescere a andando in direzione negativa rispetto all'asse y nel cranio. 
+
+Nella cartella "best_solution_with_factor" caricichiamo PSD e FC della soluzione migliore secondo il giro di NSGA 2. Nella cartella "best_PSD_with_factor" invece carichiamo PSD e FC della soluzione che restituisce la migliore PSD.
