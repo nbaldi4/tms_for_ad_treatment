@@ -1,0 +1,4 @@
+Label: TAVG delta band (0.5-4)Hz
+Mean Correlation (raw): nan
+Mean Absolute Correlation: nan
+Threshold (gv.th): 0.08
