@@ -37,13 +37,13 @@ def evaluate_simulation(row, sim_time=20000):
     teeg, eeg = preprocess(teeg, eeg)
 
     regular_mae, reduced_mae = real_vs_simulated_FC(
-        fc_healty=np.load(gv.MCI_FC_data),
+        fc_healty=np.load(gv.HC_FC_data),
         time_series=eeg,
         return_value=True
     )
 
     psd_mae, peak_freq = real_vs_simulated_PSD(
-        matrix=np.load(gv.MCI_PSD_data),
+        matrix=np.load(gv.HC_PSD_data),
         time_series=eeg,
         return_value=True
     )

@@ -188,7 +188,7 @@ tau_matrix_5 = matrix.weights.copy()
 
 tau_matrix_5 = compute_stage_matrix(
     tau_matrix_5, 
-    stage3 = np.concatenate((tau_stage_1, tau_stage_2, tau_stage_3)).astype(int)
+    stage3 = np.concatenate((tau_stage_1, tau_stage_2, tau_stage_3)).astype(int),
     )
 tau_matrix_4 = compute_stage_matrix(
     tau_matrix_4, 

@@ -416,8 +416,7 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut):
 
     if gv.save_plots:
         fig_name = f"FC_matrix_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.png"
-        os.makedirs(gv.fig_folder, exist_ok=True)
-        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+        plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)        
     if gv.show_plots:
         plt.show()
 
@@ -553,6 +552,7 @@ def simulate(sim_time=20000,
              noise=0.14480848489827142,
              a=0.0728044836955774,
              b=0.06293568322880852,
+             factor=0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
              C_ip_values=np.linspace(33.75, 10, 10),
              cip=0,
              C_ep_values=np.linspace(108, 20, 10),
@@ -579,7 +579,7 @@ def simulate(sim_time=20000,
     """
     conn = get_conn()
     conn.weights = np.load(gv.struct_path)[tau_stage, :, :]
-    conn.weights = conn.weights / np.max(conn.weights)
+    conn.weights = conn.weights / 3 #np.max(conn.weights) #########################################################################################à
     conn.weights *= g
     conn.speed = np.array(velocity)
     conn.configure()
@@ -616,23 +616,42 @@ def simulate(sim_time=20000,
 
     degeneration = [0, 0, 0, 0.28, 0.78, 0.95, 0.95, 0.95]
 
-    J_delta = 0.0134/0.0192
+    b_delta = 0.3133/0.0593
+
+    a_array = np.ones((76,1))*a
+    b_array = np.ones((76,1))*b*(1+b_delta*0.01*tau_stage)
+    
+    regions_centers = conn.centres
+    distance = np.ones((76,1))
+    wide_y = np.max(regions_centers[:,1]) - np.min(regions_centers[:,1])
+    for i in range(len(regions_centers[:,1])):
+        region_coordinate_y = regions_centers[i,1]
+        distance[i] = (region_coordinate_y - np.max(regions_centers[:,1]))/wide_y
+        #a_array[i] = a*(1 + distance[i]*factor)
+        #b_array[i] = b*(1 + distance[i]*factor)
+
+    J_delta = 1 #0.0134/0.0192
 
     for i in tau_stage_1:
         J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
+        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage + 2])
     
     for i in tau_stage_2:
         J_stages[i] = 1 - degeneration[tau_stage + 1]*J_delta
+        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage + 1])
 
     for i in tau_stage_3:
         J_stages[i] = 1 - degeneration[tau_stage]*J_delta
+        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage])
     #for i in impaired_regions:
     #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta
 
     #for i in tau_stage_all:
     #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta
-    a_array = np.load(gv.a_path)[abeta_stage, np.newaxis].T
-    b_array = np.load(gv.b_path)[abeta_stage, np.newaxis].T
+    #a_array = np.load(gv.a_path)[abeta_stage, np.newaxis].T
+
+
+    #b_array = np.load(gv.b_path)[abeta_stage, np.newaxis].T
     model_pars = dict(
         A=3.25, B=22, v0=6.0,
         a=a_array, b=b_array, r=0.56,
@@ -673,7 +692,7 @@ def simulate(sim_time=20000,
 
         data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
         os.makedirs(data_save_dir, exist_ok=True)
-
+        """
         output_file_name = f"times_and_eeg_{sim_id}.npz"
         output_file_path = os.path.join(data_save_dir, output_file_name)
 
@@ -693,7 +712,7 @@ def simulate(sim_time=20000,
             ttavg=ttavg,  # Sarà accessibile come 'ttavg'
             tavg=tavg,    # Sarà accessibile come 'tavg'
         )
-
+        """
             
     return ttavg, tavg, teeg, eeg
 
@@ -768,10 +787,11 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     psd_std /= normalization_factor
 
     # psd_all array dimensions are [n_regions, n_freqs]
-    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
-    os.makedirs(data_save_dir, exist_ok=True)
-    fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
-    os.makedirs(fig_save_dir, exist_ok=True)
+    if gv.save_plots == True:
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+        os.makedirs(data_save_dir, exist_ok=True)
+        fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+        os.makedirs(fig_save_dir, exist_ok=True)
 
     if len(filtered_signals[0, :]) > 75:
         psd_affected = []
@@ -795,16 +815,16 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
         non_affected_normalization_factor = np.max(psd_non_affected_mean)
         psd_non_affected_mean /= non_affected_normalization_factor
         psd_non_affected_std /= non_affected_normalization_factor
+        if gv.save_plots == True:
+            output_non_affected = os.path.join(data_save_dir, 
+                f"PSD_NON_AFFECTED_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
 
-        output_non_affected = os.path.join(data_save_dir, 
-            f"PSD_NON_AFFECTED_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
-
-        np.savez_compressed(
-            output_non_affected,
-            freqs=freqs_non_affected,
-            psd_mean=psd_non_affected_mean,
-            psd_std=psd_non_affected_std
-        )
+            np.savez_compressed(
+                output_non_affected,
+                freqs=freqs_non_affected,
+                psd_mean=psd_non_affected_mean,
+                psd_std=psd_non_affected_std
+            )
 
         plt.figure(figsize=(10, 6))
         plt.plot(freqs_non_affected, psd_non_affected_mean, label=label+' non affected', linewidth=3)
@@ -845,16 +865,16 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
         affected_normalization_factor = np.max(psd_affected_mean)
         psd_affected_mean /= affected_normalization_factor
         psd_affected_std /= affected_normalization_factor
+        if gv.save_plots == True:
+            output_affected = os.path.join(data_save_dir, 
+                    f"PSD_AFFECTED_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
 
-        output_affected = os.path.join(data_save_dir, 
-            f"PSD_AFFECTED_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
-
-        np.savez_compressed(
-            output_affected,
-            freqs=freqs_affected,
-            psd_mean=psd_affected_mean,
-            psd_std=psd_affected_std
-        )
+            np.savez_compressed(
+                output_affected,
+                freqs=freqs_affected,
+                psd_mean=psd_affected_mean,
+                psd_std=psd_affected_std
+            )
 
         plt.figure(figsize=(10, 6))
         plt.plot(freqs_affected, psd_affected_mean, label=label+' affected', linewidth=3)
@@ -876,26 +896,27 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
         else:
             plt.close()
     
-    output_all = os.path.join(data_save_dir, 
-        f"PSD_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
+    if gv.save_plots:
+        output_all = os.path.join(data_save_dir, 
+            f"PSD_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
 
-    np.savez_compressed(
-        output_all,
-        freqs=freqs,
-        psd_mean=psd_mean,
-        psd_std=psd_std
-    )
-    
-    # normalization factor
-    with open(os.path.join(data_save_dir, f"PSD_info_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.txt"), "w") as f:
-        f.write(f"Label: {label}\n")
-        f.write(f"Sampling Frequency (fs): {fs_welch:.2f} Hz\n")
-        f.write(f"Normalization Factor (max mean PSD): {normalization_factor:.6e}\n")
-        if len(filtered_signals[0, :]) > 75:  
-            f.write(f"Normalization Factor affected regions (max mean PSD): {affected_normalization_factor:.6e}\n")
-            f.write(f"Normalization Factor non affected regions (max mean PSD): {non_affected_normalization_factor:.6e}\n")
-        f.write(f"Bandpass Filter: {lowcut}-{highcut} Hz\n")
-        f.write(f"NPERSEG (Welch): {n_seg}\n")
+        np.savez_compressed(
+            output_all,
+            freqs=freqs,
+            psd_mean=psd_mean,
+            psd_std=psd_std
+        )
+        
+        # normalization factor
+        with open(os.path.join(data_save_dir, f"PSD_info_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.txt"), "w") as f:
+            f.write(f"Label: {label}\n")
+            f.write(f"Sampling Frequency (fs): {fs_welch:.2f} Hz\n")
+            f.write(f"Normalization Factor (max mean PSD): {normalization_factor:.6e}\n")
+            if len(filtered_signals[0, :]) > 75:  
+                f.write(f"Normalization Factor affected regions (max mean PSD): {affected_normalization_factor:.6e}\n")
+                f.write(f"Normalization Factor non affected regions (max mean PSD): {non_affected_normalization_factor:.6e}\n")
+            f.write(f"Bandpass Filter: {lowcut}-{highcut} Hz\n")
+            f.write(f"NPERSEG (Welch): {n_seg}\n")
 
     # Plot
     plt.figure(figsize=(10, 6))

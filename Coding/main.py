@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import argparse
 from tvb.simulator.lab import *
@@ -31,6 +33,7 @@ def main():
     parser.add_argument("--abeta", type=int, help="Beta Amyloid stage (from 0 to 5)")
     parser.add_argument("--st", type=int, help="simulation time")
     parser.add_argument("--best_mod", action="store_true", help="Model parameters optimization to maximize simulation similarity with data")
+    parser.add_argument("--fact", type=float, help="diminutive factor in a values")
     parser.add_argument(
         "--impaired_regions",
         nargs="+",               # accepts one or more values
@@ -50,8 +53,15 @@ def main():
     gv.skin_and_sensors = args.skin_and_sens
     gv.sim_vs_real = args.sim_vs_real
 
+    if args.save_plots:
+        os.makedirs(gv.data_folder, exist_ok=True)
+        os.makedirs(gv.fig_folder, exist_ok=True)
+
     if args.g:
         gv.coup = args.g
+
+    if args.fact:
+        gv.factor = args.fact
 
     if args.st:
         gv.sim_time = args.st
@@ -108,7 +118,7 @@ def main():
         teeg, eeg = preprocess(teeg, eeg)
 
     if not args.no_sim:
-        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
         ttavg, tavg = preprocess(ttavg, tavg)
         teeg, eeg = preprocess(teeg, eeg)
 

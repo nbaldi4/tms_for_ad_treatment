@@ -9,8 +9,8 @@ th = 0.08
 tau_stage = 0
 abeta_stage = 0
 temp_avg_period = 1.0 #ms
-fig_folder = r'..\Results_figures'
-data_folder = r'..\Results_data'
+fig_folder = r'..\Results_figures\b_augmented_in_all_regions'
+data_folder = r'..\Results_data\b_augmented_in_all_regions'
 struct_path = r'..\Degeneration_data\tau_matrices.npy'
 a_path = r'..\Degeneration_data\a_stages.npy'
 b_path = r'..\Degeneration_data\b_stages.npy'
@@ -31,6 +31,7 @@ vel=10.374658598387436#41.79385759129675
 noi=0.14480848489827142#0.10045650478858126
 aa=0.0728044836955774#0.09806515133627744
 bb=0.06293568322880852#0.0680013974341444
+factor = 0
 ref_PT=np.array([2.0, 2.0, 30.0])
 
 def eeg_monitor_factory():
