@@ -14,7 +14,7 @@ def main():
     parser.add_argument("--show_plots", action="store_true", help="Show plots on screen")
     parser.add_argument("--no_sim", action="store_true", help="Search for simulated data")
     parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
-    parser.add_argument("--fig_folder", type=str, help="Path to save figures")
+    parser.add_argument("--save_folder", type=str, help="Folder to save figures and data")
     parser.add_argument("--struct_conn", type=str, help="Path to structural connectivity file")
     parser.add_argument("--EEG", action="store_true", help="Perform eeg")
     parser.add_argument("--PSD", action="store_true", help="Perform psd")
@@ -52,10 +52,6 @@ def main():
     gv.brain_activity = args.brain_act
     gv.skin_and_sensors = args.skin_and_sens
     gv.sim_vs_real = args.sim_vs_real
-
-    if args.save_plots:
-        os.makedirs(gv.data_folder, exist_ok=True)
-        os.makedirs(gv.fig_folder, exist_ok=True)
 
     if args.g:
         gv.coup = args.g
@@ -96,8 +92,13 @@ def main():
     if args.temp_avg_period:
         gv.temp_avg_period = args.temp_avg_period
 
-    if args.fig_folder:
-        gv.fig_folder = args.fig_folder
+    if args.save_folder:
+        gv.fig_folder = os.path.join(gv.fig_folder, args.save_folder)
+        gv.data_folder = os.path.join(gv.data_folder, args.save_folder)
+
+    if args.save_plots:
+        os.makedirs(gv.data_folder, exist_ok=True)
+        os.makedirs(gv.fig_folder, exist_ok=True)
 
     if args.struct_conn:
         gv.struct_path = args.struct_conn

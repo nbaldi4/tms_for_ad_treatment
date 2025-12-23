@@ -619,7 +619,7 @@ def simulate(sim_time=20000,
     b_delta = 0.3133/0.0593
 
     a_array = np.ones((76,1))*a
-    b_array = np.ones((76,1))*b*(1+b_delta*0.01*tau_stage)
+    b_array = np.ones((76,1))*b #*(1+b_delta*0.01*tau_stage)
     
     regions_centers = conn.centres
     distance = np.ones((76,1))
