@@ -7,3 +7,14 @@ Dato ciò riteniamo che riprodurre sia il picco in alpha che quello in delta sia
 Nei file provenienti dal secondo algoritmo di tipo NSGA-II (contrassegnati come xx_with_factor) aggiungiamo un sesto parametro da ottimizzare, che sarà sostanzialmente la pendenza della retta con la quale facciamo decrescere a andando in direzione negativa rispetto all'asse y nel cranio. 
 
 Nella cartella "best_solution_with_factor" caricichiamo PSD e FC della soluzione migliore secondo il giro di NSGA 2. Nella cartella "best_PSD_with_factor" invece carichiamo PSD e FC della soluzione che restituisce la migliore PSD.
+
+Abbiamo visto che sembra meglio far variare anche b oltre che a. Non sappiamo se il coefficiente angolare è lo stesso.
+A questo punto voglio vedere cosa succede a FC e PSD se a partire dai parametri di best_solution_with_factor e best_PSD_with_factor facciamo variare anche b. 
+Salvo i risultati sempre nelle stesse cartelle ma aggiungo ab_variation nel titolo dei grafici.
+
+A questo punto siccome non funziona facciamo un passo indietro.
+
+Vediamo dalla pagina GitHub che plotta la frequenza del picco principale in funzione di a e b, che aumentando b andiamo incontro a una diminuzione del picco. Fino ad adesso avevamo lasciato b costante imputando l'effetto solo a tau; ma l'aumento di b è in realtà dovuto sia a tau che a abeta. Quindi decidiamo di far variare b nelle regioni colpite. Questo non porta nessuno shift significativo in frequenza né nel caso in cui J venga ridotto nelle regioni colpite, né nel caso in cui J venga lasciato al valore standard.
+
+Abbiamo provato a giocare con le percentuali di degenerazione dei valori di J e di w_ij, w_ii. Notiamo che si ottiene un aumento del picco nelle frequenze delta quando delta_J = 1. Il risultato viene ulteriormente migliorato quando i valori di b vengono aumentati a b*2.5 volte nelle regioni colpite da tau stage 3 e a 1.2*b nelle regioni non colpite. I valori sono stati scelti con la seguente logica: b nel corso della malattia aumenta fino a diventare 5 volte il suo valore iniziale. Siccome però questo effetto è dovuto sia a tau che a abeta, abbiamo deciso di far aumentare il valore di b di 2.5 negli stadi di tau e degli altri 2.5 negli stadi di beta.
+Abbiamo deciso inoltre di far aumentare il valore di b a 1.2*b nelle regioni non colpite, pari allo 0.5% del suo aumento massimo relativo alla sola tau.
