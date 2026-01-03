@@ -95,6 +95,10 @@ def main():
     if args.save_folder:
         gv.fig_folder = os.path.join(gv.fig_folder, args.save_folder)
         gv.data_folder = os.path.join(gv.data_folder, args.save_folder)
+        if len(gv.fig_folder) > 160:
+            raise AttributeError(
+                "file directory has to be shorter."
+            )
 
     if args.save_plots:
         os.makedirs(gv.data_folder, exist_ok=True)

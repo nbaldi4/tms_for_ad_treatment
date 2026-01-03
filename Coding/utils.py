@@ -552,7 +552,7 @@ def simulate(sim_time=20000,
              noise=0.14480848489827142,
              a=0.0728044836955774,
              b=0.06293568322880852,
-             factor=0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
+             factor=0,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
              C_ip_values=np.linspace(33.75, 10, 10),
              cip=0,
              C_ep_values=np.linspace(108, 20, 10),
@@ -627,7 +627,7 @@ def simulate(sim_time=20000,
     for i in range(len(regions_centers[:,1])):
         region_coordinate_y = regions_centers[i,1]
         distance[i] = (region_coordinate_y - np.max(regions_centers[:,1]))/wide_y
-        #a_array[i] = a*(1 + distance[i]*factor)
+        a_array[i] = a*(1 + distance[i]*factor)
         #b_array[i] = b*(1 + distance[i]*factor)
 
     J_delta = 1 #0.0134/0.0192
