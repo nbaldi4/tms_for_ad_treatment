@@ -1,0 +1,5 @@
+Label: sim_psd
+Sampling Frequency (fs): 1000.00 Hz
+Normalization Factor (max mean PSD): 6.918218e-03
+Bandpass Filter: 0.5-45 Hz
+NPERSEG (Welch): 2048
