@@ -1,24 +1,14 @@
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from sklearn.metrics import r2_score, mean_squared_error
-import time
 import os
-import seaborn as sns
 import matplotlib.pyplot as plt
-
-# pymoo
-from pymoo.core.problem import Problem
-from pymoo.algorithms.moo.nsga2 import NSGA2
-from pymoo.optimize import minimize
-from pymoo.indicators.hv import HV
-from pymoo.core.termination import Termination
 
 # tue funzioni
 from utils import preprocess, simulate
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD
 import global_variable_creation as gv
-from matplotlib import cm
+
 
 factor_range = [-0.4,0.4]
 a_range = [0.06, 0.085]
@@ -74,87 +64,7 @@ def grid_search(factor_set=factor_values, a_set=a_values):
                       index=False, 
                       header=not file_exists)
 
-def plot_3d_surface(file_path=r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\grid_search_2D_results - Copia.csv"):
-    values = np.loadtxt(file_path, delimiter=",", skiprows=1)
-    values = np.array(values)
-
-    fact = values[:, 0]
-    a = values[:, 1]
-    m1 = values[:, -4]
-    m2 = values[:, -3]
-    m3 = values[:, -2]
-
-    m_matrix = np.zeros((int(len(fact)/len(a)), int(len(a)/len(fact)))) #rows --> fact, columns --> a
-        
-
-    z_matrix = values[:, 4].reshape(len(fact), len(a)).T
-
-    fig, ax = plt.subplots(figsize=(10, 8))
-    
-    # Extremal axis values
-    # [x_min, x_max, y_min, y_max]
-    extent = [fact.min(), fact.max(), a.min(), a.max()]
-    
-    im = ax.imshow(z_matrix, cmap='bwr', origin='lower', 
-                   extent=extent, aspect='auto') 
-    
-    ax.set_xlabel('Factor')
-    ax.set_ylabel('a value')
-    ax.set_title("Grid Search Analysis", fontsize=15)
-    
-    fig.colorbar(im, ax=ax, label='Error')
-    plt.show()
-
-def plot_heatmap_robust(file_path="grid_search_2D_results.csv", metric="M3_PSD_MAE"):
-    # 1. Carica i dati con Pandas
-    df = pd.read_csv(file_path)
-
-    # 2. Rimuovi i duplicati (opzionale, ma consigliato)
-    # Teniamo l'ultima occorrenza di ogni coppia (factor, a)
-    df = df.drop_duplicates(subset=['factor', 'a'], keep='last')
-
-    # 3. Crea la Pivot Table
-    # Questa operazione riordina 'a' sulle righe e 'factor' sulle colonne
-    pivot_df = df.pivot(index='a', columns='factor', values=metric)
-
-    # 4. Estrai i valori per il plot
-    z_matrix = pivot_df.values
-    x_labels = pivot_df.columns.values
-    y_labels = pivot_df.index.values
-
-    # 5. Grafico
-    fig, ax = plt.subplots(figsize=(10, 8))
-    
-    # Usiamo extent basandoci sui valori reali trovati nel file
-    extent = [x_labels.min(), x_labels.max(), y_labels.min(), y_labels.max()]
-    
-    im = ax.imshow(z_matrix, 
-                   cmap='bwr', 
-                   origin='lower', 
-                   extent=extent, 
-                   aspect='auto')
-
-    # Aggiungiamo i titoli
-    ax.set_xlabel('Factor (a variability)')
-    ax.set_ylabel('a (mean value)')
-    ax.set_title(f"Heatmap di {metric}\n(Dati ordinati e ripuliti)", fontsize=14)
-
-    # Colorbar
-    plt.colorbar(im, ax=ax, label='Errore MAE')
-    
-    plt.show()
-
-    df = pd.read_csv("grid_search_2D_results.csv")
-    # Creiamo la pivot
-    pivot_df = df.pivot(index='a', columns='factor', values='M3_PSD_MAE')
-
-    plt.figure(figsize=(12, 8))
-    # Usiamo sns.heatmap perché gestisce meglio le etichette degli assi con i buchi
-    sns.heatmap(pivot_df, cmap='bwr', mask=pivot_df.isnull(), cbar_kws={'label': 'MAE'})
-    plt.title("Grid Search con dati mancanti (Buchi bianchi)")
-    plt.show()
-
-def heatmap_chat():
+def heatmap():
     df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\grid_search_2D_results_with_b_corrected.csv")
     df["factor"] = df["factor"].round(6)
     df["a"] = df["a"].round(6)
@@ -241,4 +151,4 @@ def heatmap_chat():
 #grid_search(factor_set=np.linspace(-0.9, -0.62, 15), a_set=np.linspace(0.055, 0.075, 17))
 ##grid_search(factor_set=np.linspace(-0.92, -0.04, 23), a_set=np.linspace(0.055, 0.085, 25))
 ##grid_search(factor_set=np.linspace(0.00, 0.40, 11), a_set=np.linspace(0.06, 0.105, 37))
-heatmap_chat()
+heatmap()
