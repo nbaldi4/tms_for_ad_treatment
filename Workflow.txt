@@ -20,3 +20,7 @@ Abbiamo provato a giocare con le percentuali di degenerazione dei valori di J e 
 Abbiamo deciso inoltre di far aumentare il valore di b a 1.2*b nelle regioni non colpite, pari allo 0.5% del suo aumento massimo relativo alla sola tau.
 
 Adesso vediamo se, modificando a in modo che vari in base alla coordinata sagittale, riusciamo a ottenere un miglior accordo con il picco nelle frequenza \alpha delle PSD mantenendo un accordo ragionevole con la FC e assicurandoci che la degenerazione causata da tau sia mantenuta.
+
+Nella cartella a = 0.075 factor = 0.04 abbiamo riportato i grafici relativi alla soluzione che forniva la miglior approssimazione di PSD dopo l'esplorazione dello spazio a_factor. I risultati non migliorano il precedente risultato con factor = 0.00, direi perciò (almeno per il momento di abbandonare l'idea di far variare a sull'asse sagittale.
+
+Siccome abbiamo notato che non tornano più le soluzioni ottimali, facciamo delle prove per trovare gli errori nel codice: cartella errore_04_01
