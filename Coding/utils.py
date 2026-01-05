@@ -552,7 +552,7 @@ def simulate(sim_time=20000,
              noise=0.14480848489827142,
              a=0.0728044836955774,
              b=0.06293568322880852,
-             factor=0,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
+             factor=0.04,#0.03999999999999998,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
              C_ip_values=np.linspace(33.75, 10, 10),
              cip=0,
              C_ep_values=np.linspace(108, 20, 10),
@@ -619,7 +619,7 @@ def simulate(sim_time=20000,
     b_delta = 0.3133/0.0593
 
     a_array = np.ones((76,1))*a
-    b_array = np.ones((76,1))*b #*(1+b_delta*0.01*tau_stage)
+    b_array = np.ones((76,1))*b*(1+b_delta*0.01*tau_stage)
     
     regions_centers = conn.centres
     distance = np.ones((76,1))
