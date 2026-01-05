@@ -54,7 +54,7 @@ def grid_search(factor_set=factor_values, a_set=a_values):
             couples.append((f_val, a_val)) # Crea una lista di tuple (factor, a)
 
     # 3. Esecuzione parallela
-    results = Parallel(n_jobs=-3)(
+    results = Parallel(n_jobs=-2)(
         delayed(evaluate)(coup) for coup in couples
     )
 
@@ -64,7 +64,7 @@ def grid_search(factor_set=factor_values, a_set=a_values):
     df_results.insert(0, "a", [c[1] for c in couples])
     df_results.insert(0, "factor", [c[0] for c in couples])
 
-    file_path = "grid_search_2D_results.csv"
+    file_path = "grid_search_2D_results_with_b_corrected.csv"
 
     file_exists = os.path.isfile(file_path)
 
@@ -155,7 +155,7 @@ def plot_heatmap_robust(file_path="grid_search_2D_results.csv", metric="M3_PSD_M
     plt.show()
 
 def heatmap_chat():
-    df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\grid_search_2D_results.csv")
+    df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\grid_search_2D_results_with_b_corrected.csv")
     df["factor"] = df["factor"].round(6)
     df["a"] = df["a"].round(6)
     
@@ -173,7 +173,15 @@ def heatmap_chat():
     z2 = heatmap_data["M2_Reduced_FC_MAE"].values
     z3 = heatmap_data["M3_PSD_MAE"].values
 
-    z = z1 + z2 + 2 * z3
+    mean_z1 = np.nanmean(z1)
+    mean_z2 = np.nanmean(z2)
+    mean_z3 = np.nanmean(z3)
+
+    dev_z1 = (z1 - mean_z1)/mean_z1
+    dev_z2 = (z2 - mean_z2)/mean_z2
+    dev_z3 = (z3 - mean_z3)/mean_z3
+
+    z = dev_z3
     masked_data = np.ma.masked_invalid(z)
     # Colormap (copiata per poter modificare i NaN)
     cmap = plt.cm.coolwarm.copy() #plt.cm.viridis.copy() sono altri colori
@@ -208,7 +216,29 @@ def heatmap_chat():
 
     plt.tight_layout()
     plt.show()
+
+    # 1. Trova l'indice del valore minimo ignorando i NaN
+    # np.nanargmin restituisce l'indice come se l'array fosse piatto (1D)
+    idx_min_flat = np.nanargmin(z)
+
+    # 2. Converte l'indice piatto in coordinate (riga, colonna) della matrice
+    row_idx, col_idx = np.unravel_index(idx_min_flat, z.shape)
+
+    # 3. Recupera i valori reali di 'a' (indice) e 'factor' (colonne)
+    # heatmap_data.index contiene i valori di 'a'
+    # heatmap_data["M1_FC_MAE"].columns contiene i valori di 'factor'
+    a_opt = heatmap_data.index[row_idx]
+    factor_opt = heatmap_data["M1_FC_MAE"].columns[col_idx]
+    z_min_val = z[row_idx, col_idx]
+
+    print(f"\n--- Risultati Ottimizzazione ---")
+    print(f"Valore minimo di z: {z_min_val:.4f}")
+    print(f"Parametri ottimali trovati:")
+    print(f"  > factor: {factor_opt}")
+    print(f"  > a:      {a_opt}")
 #grid_search(factor_set=np.linspace(0.02, 0.38, 10), a_set=np.linspace(0.06, 0.07875, 16))
 #grid_search(factor_set=np.linspace(-0.38, -0.22, 5), a_set=np.linspace(0.07125, 0.085, 12))
-#grid_search(factor_set=np.linspace(-0.8, -0.62, 10), a_set=np.linspace(0.055, 0.075, 17))
+#grid_search(factor_set=np.linspace(-0.9, -0.62, 15), a_set=np.linspace(0.055, 0.075, 17))
+##grid_search(factor_set=np.linspace(-0.92, -0.04, 23), a_set=np.linspace(0.055, 0.085, 25))
+##grid_search(factor_set=np.linspace(0.00, 0.40, 11), a_set=np.linspace(0.06, 0.105, 37))
 heatmap_chat()
