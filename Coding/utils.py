@@ -288,9 +288,9 @@ def functional_connectivity(time_series_original, label):
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
 
-    corr = 2 * (corr - np.min(corr)) / (np.max(corr) - np.min(corr)) - 1
+    corr_viz = 2 * (corr - np.min(corr)) / (np.max(corr) - np.min(corr)) - 1
     # Plot corr_tavg
-    im1 = ax1.imshow(corr, interpolation='nearest', cmap='bwr')
+    im1 = ax1.imshow(corr_viz, interpolation='nearest', cmap='bwr')
     ax1.set_yticks(np.arange(len(conn.region_labels)))
     ax1.set_yticklabels(conn.region_labels, fontsize=12)
     ax1.set_xticks(np.arange(len(conn.region_labels)))
@@ -315,11 +315,11 @@ def functional_connectivity(time_series_original, label):
     if gv.show_plots:
         plt.show()
 
-    sub_corr = 2 * (sub_corr - np.min(sub_corr)) / (np.max(sub_corr) - np.min(sub_corr)) - 1
+    sub_corr_viz = 2 * (sub_corr - np.min(sub_corr)) / (np.max(sub_corr) - np.min(sub_corr)) - 1
     # Plot corr
     fig = plt.figure(figsize=(12, 8)) 
     ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-    im = ax.imshow(sub_corr, cmap='bwr', vmin=-1, vmax=1, aspect='equal') 
+    im = ax.imshow(sub_corr_viz, cmap='bwr', vmin=-1, vmax=1, aspect='equal') 
     title_text = f"Reduced size simulated FC\n{label} FC reduced mean = {corr_sub_mean:.4f}, ({abs_sub_corr_mean:.4f})"
     ax.set_title(title_text, fontsize=15)
     cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
@@ -394,8 +394,9 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut):
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
 
+    corr_viz = 2 * (corr - np.min(corr)) / (np.max(corr) - np.min(corr)) - 1
     # Plot corr_tavg
-    im1 = ax1.imshow(corr, interpolation='nearest', cmap='bwr')
+    im1 = ax1.imshow(corr_viz, interpolation='nearest', cmap='bwr')
     ax1.set_yticks(np.arange(len(conn.region_labels)))
     ax1.set_yticklabels(conn.region_labels, fontsize=12)
     ax1.set_xticks(np.arange(len(conn.region_labels)))
@@ -420,11 +421,11 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut):
     if gv.show_plots:
         plt.show()
 
-    sub_corr = 2 * (sub_corr - np.min(sub_corr)) / (np.max(sub_corr) - np.min(sub_corr)) - 1
+    sub_corr_viz = 2 * (sub_corr - np.min(sub_corr)) / (np.max(sub_corr) - np.min(sub_corr)) - 1
     # Plot corr
     fig = plt.figure(figsize=(12, 8)) 
     ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-    im = ax.imshow(sub_corr, cmap='bwr', vmin=-1, vmax=1, aspect='equal') 
+    im = ax.imshow(sub_corr_viz, cmap='bwr', vmin=-1, vmax=1, aspect='equal') 
     title_text = f"Reduced size simulated FC\n{label} FC reduced mean = {corr_sub_mean:.4f}, ({abs_sub_corr_mean:.4f})"
     ax.set_title(title_text, fontsize=15)
     cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 

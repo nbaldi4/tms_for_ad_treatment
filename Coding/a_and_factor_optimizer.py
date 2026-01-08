@@ -91,7 +91,7 @@ def heatmap():
     dev_z2 = (z2 - mean_z2)/mean_z2
     dev_z3 = (z3 - mean_z3)/mean_z3
 
-    z = dev_z3
+    z = dev_z1 + dev_z2 + 2*dev_z3
     masked_data = np.ma.masked_invalid(z)
     # Colormap (copiata per poter modificare i NaN)
     cmap = plt.cm.coolwarm.copy() #plt.cm.viridis.copy() sono altri colori

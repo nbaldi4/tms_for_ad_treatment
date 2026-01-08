@@ -123,7 +123,7 @@ def evaluate_simulation(row, sim_time=20000):
     return regular_mae, reduced_mae, psd_mae
 
 def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
-                                   label_real="Experimental", label_sim="Simulated", return_value = False):
+                                   label_real="Experimental", label_sim="Simulated", return_value = False, pass_psd_ev = False):
 
     # =========================
     # PSD reale
@@ -165,27 +165,6 @@ def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
 
     psd_mae = np.sum(np.abs(simulated_psd_resampled-real_psd_mean))
 
-        # Normalizzo le PSD a distribuzioni di massa (somma = 1)
-    real_weights = real_psd_mean.astype(float)
-    sim_weights  = simulated_psd_resampled.astype(float)
-
-    s_real = np.sum(real_weights)
-    s_sim  = np.sum(sim_weights)
-    if s_real == 0:
-        real_weights = np.ones_like(real_weights) / len(real_weights)
-    else:
-        real_weights = real_weights / s_real
-
-    if s_sim == 0:
-        sim_weights = np.ones_like(sim_weights) / len(sim_weights)
-    else:
-        sim_weights = sim_weights / s_sim
-
-    emd_value = wasserstein_distance(u_values=freqs_uniform,
-                                    v_values=freqs_uniform,
-                                    u_weights=real_weights,
-                                    v_weights=sim_weights)
-    
         # Plot
     plt.figure(figsize=(10,4))
     plt.plot(simulated_freqs, simulated_psd_mean, color='b', linewidth=2, label=label_sim)
@@ -206,6 +185,94 @@ def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
 
     if return_value:
         return psd_mae, peak_freq 
+
+def real_vs_stages_PSD(matrix, stage_psd, stage_freqs, n_bin=180, fs=100,
+                                   label_real="Experimental", label_sim="Simulated", return_value = False, pass_psd_ev = False):
+
+    # =========================
+    # PSD reale
+    # =========================
+    if matrix.ndim == 2:
+        real_psd_mean = np.mean(matrix, axis=0)
+    # Se matrix ha 1 dimensione
+    else:
+        real_psd_mean = matrix
+
+    # Taglio e normalizzazione reale
+    real_psd_mean = real_psd_mean[:n_bin].astype(float)
+
+    # Evito divisione per zero
+    if np.max(real_psd_mean) == 0:
+        real_psd_mean = real_psd_mean + 1e-12
+    real_psd_mean /= np.max(real_psd_mean)
+
+
+    # Frequenze reali (uniformi)
+    freqs_uniform = np.linspace(0, 45, n_bin)
+
+    # Taglio frequenze a 45 Hz
+    mask = stage_psd <= 45
+    stage_psd = stage_psd[mask]
+    stage_psd = stage_psd[mask]
+
+    # =========================
+    # Interpolazione simulata su 180 bin
+    # =========================
+    simulated_psd_resampled = np.interp(freqs_uniform, stage_freqs, stage_psd)
+
+    # Normalizzazione simulata
+    if np.max(simulated_psd_resampled) == 0:
+        simulated_psd_resampled = simulated_psd_resampled + 1e-12
+    simulated_psd_resampled /= np.max(simulated_psd_resampled)
+    psd_mae = np.sum(np.abs(simulated_psd_resampled-real_psd_mean))
+    
+
+        
+    """
+        # Normalizzo le PSD a distribuzioni di massa (somma = 1)
+    real_weights = real_psd_mean.astype(float)
+    sim_weights  = simulated_psd_resampled.astype(float)
+
+    s_real = np.sum(real_weights)
+    s_sim  = np.sum(sim_weights)
+    if s_real == 0:
+        real_weights = np.ones_like(real_weights) / len(real_weights)
+    else:
+        real_weights = real_weights / s_real
+
+    if s_sim == 0:
+        sim_weights = np.ones_like(sim_weights) / len(sim_weights)
+    else:
+        sim_weights = sim_weights / s_sim
+
+    emd_value = wasserstein_distance(u_values=freqs_uniform,
+                                    v_values=freqs_uniform,
+                                    u_weights=real_weights,
+                                    v_weights=sim_weights)
+    """
+
+        # Plot
+    plt.figure(figsize=(10,4))
+    plt.plot(stage_freqs, stage_psd, color='b', linewidth=2, label=label_sim)
+    plt.plot(freqs_uniform, real_psd_mean, color='r', linewidth=2, label=label_real)
+    plt.xlabel("Frequency [Hz]")
+    plt.ylabel("Normalized PSD")
+    plt.ylim(0, 1.01)
+    plt.xlim(0, 45)
+    plt.title(f"PSD: MAE = {psd_mae:.3f}")
+    plt.legend()
+    plt.grid()
+    if gv.save_plots:
+        fig_name = f"sim_vs_real_PSD.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    if return_value:
+        return psd_mae
 
 def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
     """
@@ -283,6 +350,75 @@ def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
     im1 = ax[0].imshow(sub_corr_eeg, cmap='bwr', vmin=-1, vmax=1)
     ax[0].set_title("Reduced size simulated FC")
     im2 = ax[1].imshow(sub_corr_mean, cmap='bwr', vmin=-1, vmax=1)
+    ax[1].set_title(f"Reduced size real FC: MAE = {reduced_mae:.3f}")
+    plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
+    plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
+
+    if gv.save_plots:
+        fig_name = "Sim_vs_real_reduced_size.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+
+    if gv.save_plots:
+        fig_name = f"sim_vs_real_PSD.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    if return_value:
+        return normal_mae, reduced_mae
+    
+def real_vs_stages_FC(fc_real, fc_regular_stage, fc_reduced_stage, return_value=False):
+    """
+    Compares simulated functional connectivity (from TVB) with real EEG-based FC
+    at both full and reduced (macro) resolution levels.
+
+    Displays comparison plots with MAE values.
+    """
+
+    fc_stage_com_ind, fc_real_com_ind = to_common_indices(fc_regular_stage, fc_real)
+    normal_mae = np.mean(np.abs(fc_real_com_ind - fc_stage_com_ind))
+    fc_reduced_real = macro_fc(fc_real_com_ind)
+    fc_reduced_stage = macro_fc(fc_stage_com_ind)
+    fc_reduced_real = np.clip(fc_reduced_real, -0.999999, 0.999999)
+    fc_reduced_stage = np.clip(fc_reduced_stage, -0.999999, 0.999999)
+    reduced_mae = np.mean(np.abs(fc_reduced_real - fc_reduced_stage))
+
+    # Normalize matrices to [-1, 1] only for visualization purpose
+    fc_real_com_ind = 2 * (fc_real_com_ind - np.min(fc_real_com_ind)) / (np.max(fc_real_com_ind) - np.min(fc_real_com_ind)) - 1
+    fc_stage_com_ind = 2 * (fc_stage_com_ind - np.min(fc_stage_com_ind)) / (np.max(fc_stage_com_ind) - np.min(fc_stage_com_ind)) - 1
+
+    # Plot comparison (regular scale)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    im1 = ax[0].imshow(fc_stage_com_ind, cmap='bwr', vmin=-1, vmax=1)
+    ax[0].set_title("Regular size simulated FC")
+    im2 = ax[1].imshow(fc_real_com_ind, cmap='bwr', vmin=-1, vmax=1)
+    ax[1].set_title(f"Regular size real FC: MAE = {normal_mae:.3f}")
+    plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
+    plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
+
+    if gv.save_plots:
+        fig_name = "Sim_vs_real_regular_size.png"
+        os.makedirs(gv.fig_folder, exist_ok=True)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+
+    if gv.show_plots:
+        plt.show()
+    else:
+        plt.close()
+
+    # Normalize for visualization
+    fc_reduced_real = 2 * (fc_reduced_real - np.min(fc_reduced_real)) / (np.max(fc_reduced_real) - np.min(fc_reduced_real)) - 1
+    fc_reduced_stage = 2 * (fc_reduced_stage - np.min(fc_reduced_stage)) / (np.max(fc_reduced_stage) - np.min(fc_reduced_stage)) - 1
+
+    # Plot comparison (reduced scale)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    im1 = ax[0].imshow(fc_reduced_stage, cmap='bwr', vmin=-1, vmax=1)
+    ax[0].set_title("Reduced size simulated FC")
+    im2 = ax[1].imshow(fc_reduced_real, cmap='bwr', vmin=-1, vmax=1)
     ax[1].set_title(f"Reduced size real FC: MAE = {reduced_mae:.3f}")
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
