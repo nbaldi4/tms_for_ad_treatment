@@ -25,6 +25,12 @@ Nella cartella a = 0.075 factor = 0.04 abbiamo riportato i grafici relativi alla
 
 La heatmap mostra come la coppia migliore sia sempre quella a = 0.0728044836955774 e factor = 0.0 Andiamo quindi avanti senza differenziare i valori di a in base alla posizione sul cranio.
 
-A questo punto iniziamo a lavorare sul riconoscimento dei pazienti. Scriviamo un codice che riesca a leggere i file in una determinata cartella denominata "Stages" e restituisca le distanze con un file in input. Quello che scopriamo è che la media dei pazienti sani si avvicina allo stadio tau = 1 abeta = 0. Non credo che questo fenomeno sia correggibile. Inoltre è importante notare come la distanza fra la media dei pazienti sani e ognuno dei primi 3 stadi sia simile e significativamente diversa da quella fra la media dei pazienti sani e gli ultimi 3 stadi.
+A questo punto iniziamo a lavorare sul riconoscimento dei pazienti. Scriviamo un codice che riesca a leggere i file in una determinata cartella denominata "Stages" e restituisca le distanze con un file in input. Quello che scopriamo è che la media dei pazienti sani si avvicina allo stadio tau = 1 abeta = 0. Non credo che questo fenomeno sia correggibile. Inoltre è importante notare come la distanza fra la media dei pazienti sani e ognuno dei primi 3 stadi sia simile e significativamente diversa da quella fra la media dei pazienti sani e gli ultimi 3 stadi. Inoltre notiamo come per la maggioranza dei pazienti sani lo stadio 0 venga indicato come il più simile. Riporto i valori dello stadio identificato per ognuno dei 17 pazienti sani a mia disposizione. [0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 2, 1, 0, 0, 0, 1]
 
 Fatto questo procediamo con la scrittura dei grafici che catturino l'andamento delle metriche in funzione della banda.
+
+Fra le varie metriche notiamo che il valor medio della FC cambia entro una deviazione standard (media dei pazienti HC). Per il valor medio dei valori assoluti la situazione migliora un po'. In ogni caso penserei bene se continuare ad analizzare la FC solo tramite il valor medio o anche usando altri indicatori (da determinare usando il paper di Sohrabpour.
+
+Abbiamo costruito anche gli stadi di abeta.
+
+I pazienti sani li prende poco peggio di tau. Il problema è che sia tau sia abeta sembrano sbagliare nel riconoscere i pazienti malati. Dobbiamo innanzitutto capire se gli stadi della abeta sono sensati; una volta fatto questo dobbiamo pensare alle metriche utili per confrontare i pazienti. Dovremmo arrivare a una buona categorizzazioni dei pazienti MCI. 
