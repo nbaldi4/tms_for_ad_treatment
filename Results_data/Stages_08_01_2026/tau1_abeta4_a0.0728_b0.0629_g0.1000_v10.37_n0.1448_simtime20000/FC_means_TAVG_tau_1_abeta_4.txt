@@ -1,0 +1,4 @@
+Label: TAVG
+Mean Correlation (raw): -0.000506
+Mean Absolute Correlation: 0.030541
+Threshold (gv.th): 0.08

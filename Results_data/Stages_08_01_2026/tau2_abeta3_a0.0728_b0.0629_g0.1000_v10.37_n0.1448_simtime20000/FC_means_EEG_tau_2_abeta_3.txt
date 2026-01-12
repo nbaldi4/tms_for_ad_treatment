@@ -1,0 +1,4 @@
+Label: EEG
+Mean Correlation (raw): 0.005183
+Mean Absolute Correlation: 0.413833
+Threshold (gv.th): 0.08
