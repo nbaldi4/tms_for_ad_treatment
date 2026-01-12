@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from data_analysis_utils import macro_fc
 
 # --- 1. DATI E CARICAMENTO ---
 # Array di dati clinici
@@ -95,18 +96,29 @@ def plot_fc_matrix(patient_index, title, Abeta_val, tau_val):
     plt.grid()
     plt.show()
     
+    vis_matrix = 2 * (matrix - np.min(matrix)) / (np.max(matrix) - np.min(matrix)) - 1 
     # Plotting
     plt.figure(figsize=(7, 6))
     plt.title(f"{title} (Indice {patient_index})\n(Abeta={Abeta_val:.1f} mg/L, Tau={tau_val:.1f} mg/L)", fontsize=12)
-    plt.imshow(matrix, cmap='bwr', vmin=-1, vmax=1)
+    plt.imshow(vis_matrix, cmap='bwr', vmin=-1, vmax=1)
     plt.colorbar(label='Connettività Funzionale (FC)')
     plt.xlabel('Regioni Cerebrali')
     plt.ylabel('Regioni Cerebrali')
     plt.show()
 
+    sub_matrix = macro_fc(matrix)
+    sub_vis_matrix = 2 * (sub_matrix - np.min(sub_matrix)) / (np.max(sub_matrix) - np.min(sub_matrix)) - 1 
+    # Plotting
+    plt.figure(figsize=(7, 6))
+    plt.title(f"{title} (Indice {patient_index})\n(Abeta={Abeta_val:.1f} mg/L, Tau={tau_val:.1f} mg/L)", fontsize=12)
+    plt.imshow(sub_vis_matrix, cmap='bwr', vmin=-1, vmax=1)
+    plt.colorbar(label='Connettività Funzionale (FC)')
+    plt.xlabel('Regioni Cerebrali')
+    plt.ylabel('Regioni Cerebrali')
+    plt.show()
 # --- 5. STAMPA E PLOT DEI RISULTATI ESTREMI ---
-
-print("## 🥇 Pazienti con Valori Estremi Selezionati")
+"""
+print("## Pazienti con Valori Estremi Selezionati")
 print("------------------------------------------")
 
 # A. Max Tau nella categoria "Solo Tau"
@@ -143,5 +155,17 @@ if idx_abeta_AD != -1:
     print(f"Valori: Abeta={Abeta_val:.1f}, Tau={tau_val:.1f}")
     
     plot_fc_matrix(idx_abeta_AD, "FC Paziente AD Riemen-schneider con Abeta MIN", Abeta_val, tau_val)
+else:
+    print("Nessun paziente AD Riemen-schneider trovato.")
+"""
+idx = 2
+# C. Min Abeta nella categoria "AD Riemen-schneider"
+if idx != -1:
+    Abeta_val, tau_val = patients_data[idx]
+    
+    print(f"### Paziente Indice: {idx})")
+    print(f"Valori: Abeta={Abeta_val:.1f}, Tau={tau_val:.1f}")
+    
+    plot_fc_matrix(idx, "FC Paziente ", Abeta_val, tau_val)
 else:
     print("Nessun paziente AD Riemen-schneider trovato.")

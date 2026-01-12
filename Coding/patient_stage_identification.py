@@ -44,32 +44,34 @@ def collect_files(root_folder_path, files_name):
     return df
 
 
-root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_05_01_2026"
+root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_08_01_2026"
 alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha band*")
 delta_band_files = collect_files(root_folder, files_name="FC_EEG delta band*")
 theta_band_files = collect_files(root_folder, files_name="FC_EEG theta band*")
 broad_band_files = collect_files(root_folder, files_name="FC_EEG_*")
 PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
 
-fc_regular = np.empty((6, 1), dtype=object)
-psd = np.empty((6, 1), dtype=object)
-freqs = np.empty((6, 1), dtype=object)
-psd_maes = np.zeros((6,1))
-fc_reg_maes = np.zeros((6,1))
-fc_red_maes = np.zeros((6,1))
-fc_healty = np.load(gv.HC_FC_data)
-psd_healty = np.load(gv.HC_PSD_data)
-for i in range(len(psd_healty)):
+tau_stages = 6
+abeta_stages = 1
+fc_regular = np.empty((tau_stages, abeta_stages), dtype=object)
+psd = np.empty((tau_stages, abeta_stages), dtype=object)
+freqs = np.empty((tau_stages, abeta_stages), dtype=object)
+psd_maes = np.zeros((tau_stages, abeta_stages))
+fc_reg_maes = np.zeros((tau_stages, abeta_stages))
+fc_red_maes = np.zeros((tau_stages, abeta_stages))
+fc_healty = np.load(gv.MCI_FC_data)
+psd_healty = np.load(gv.MCI_PSD_data)
+for i in [26]:#range(len(psd_healty)):
     fc_mean = fc_healty[i]#np.mean(fc_healty, axis=0)
     psd_mean = psd_healty[i]
-    for tau in range(6):
-        for abeta in range(1):
-            fc_sel = broad_band_files[(broad_band_files["tau"] == tau) & (alpha_band_files["abeta"] == abeta)]
+    for tau in range(tau_stages):
+        for abeta in range(abeta_stages):
+            fc_sel = broad_band_files[(broad_band_files["tau"] == tau) & (broad_band_files["abeta"] == abeta)]
             fc_path_sel = fc_sel["file_path"]
             fc_path_string = fc_path_sel.iloc[0] 
             fc_matrix = np.load(fc_path_string)
             fc_regular[tau, abeta] = fc_matrix['normal_size']
-            psd_sel = PSD_files[(PSD_files["tau"] == tau) & (alpha_band_files["abeta"] == abeta)]
+            psd_sel = PSD_files[(PSD_files["tau"] == tau) & (PSD_files["abeta"] == abeta)]
             psd_path_sel = psd_sel["file_path"]
             psd_path_string = psd_path_sel.iloc[0] 
             psd_matrix = np.load(psd_path_string)
@@ -87,6 +89,7 @@ for i in range(len(psd_healty)):
 
     distances = fc_red_dev + fc_reg_dev + 2*psd_dev
 
+    #print(distances) 26
     print(np.argmin(distances))
 
 """

@@ -525,6 +525,15 @@ def analyze_regular_data(real_data):
     normal_z_std = np.std(normal_z_stack, axis=0)
     mean_std = np.mean(normal_z_std)
 
+    mean_values = np.zeros(len(normal_matrices))
+    abs_mean_values = np.zeros(len(normal_matrices))
+    for i in range(len(normal_matrices)):
+        mean_values[i] = np.mean(normal_matrices[i])
+        abs_mean_values[i] = np.mean(np.abs(normal_matrices[i]))
+
+    print(f"Regular FC mean value = {np.mean(mean_values)} \u00b1 {np.std(mean_values)}") #0.047856842662177254 ± 0.08968511621416027
+    print(f"Regular abs FC mean value = {np.mean(abs_mean_values)} \u00b1 {np.std(abs_mean_values)}")
+
     normal_corr_mean = np.tanh(normal_z_mean)
     normal_corr_mean = 2 * (normal_corr_mean - np.min(normal_corr_mean)) / (np.max(normal_corr_mean) - np.min(normal_corr_mean)) - 1
 
@@ -552,9 +561,16 @@ def analyze_reduced_data(real_data):
     and standard deviation in both correlation and Fisher z-space.
     """
     sub_matrices = np.zeros((len(real_data), gv.partitioning, gv.partitioning))
+    sub_mean_values = np.zeros((len(sub_matrices)))
+    sub_abs_mean_values = np.zeros(len(sub_matrices))
     
     for i in range(len(real_data)):
         sub_matrices[i, :, :] = macro_fc(matrix=real_data[i, :, :])
+        sub_mean_values[i] = np.mean(sub_matrices[i,:,:])
+        sub_abs_mean_values[i] = np.mean(np.abs(sub_matrices[i]))
+
+    print(f"Reduced FC mean value = {np.mean(sub_mean_values)} \u00b1 {np.std(sub_mean_values)}") #0.038065655535405904 ± 0.08841950384424763
+    print(f"Reduced abs FC mean value = {np.mean(sub_abs_mean_values)} \u00b1 {np.std(sub_abs_mean_values)}")
     
     # Shift to z-score to compute mean and standard deviation
     # Stack into a 3D array: shape = (n_subjects, n_regions, n_regions)
