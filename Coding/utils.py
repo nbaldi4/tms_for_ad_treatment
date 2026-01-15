@@ -590,18 +590,18 @@ def simulate(sim_time=20000,
     Cip_value = C_ip_values[cip]
     J_value = 128
     J_stages = np.ones((76))
-    tau_stage_1 = np.array([
+    tau_stage_1 = np.array([ #2 areas
         24, 62   # PHC
     ])
 
-    tau_stage_2 = np.array([
+    tau_stage_2 = np.array([ #8 areas
         9, 47,       # Temporal allocortex / hippocampal limbic III -> HC
         31, 69,      # TCI
         30, 68,      # TCC
         34, 72       # TCV
     ])
     impaired_regions = np.array([21,22,30,31,32,34,59,60,68,69,70,72])
-    tau_stage_3 = np.array([
+    tau_stage_3 = np.array([ #16 areas
         18, 56,   # PFCDL
         17, 55,   # PFCCL
         19, 57,   # PFCDM
@@ -615,7 +615,7 @@ def simulate(sim_time=20000,
     0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 13, 14, 15, 16, 20, 21, 22, 23, 25, 26, 27, 32, 33, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 48, 49, 51, 52, 53, 54, 58, 59, 60, 61, 63, 64, 65, 70, 71, 75
     ])
 
-    Abeta_stage_1 = [
+    Abeta_stage_1 = [ #12 areas
         22, 60,   # PFCPOL (prefrontal polar)
         21, 59,   # PFCORB (orbitofrontal)
         31, 69,   # TCI (inferior temporal)
@@ -624,7 +624,7 @@ def simulate(sim_time=20000,
         32, 70    # TCPOL (temporal pole)
     ]
 
-    Abeta_stage_2 = [
+    Abeta_stage_2 = [ #14 areas
         9, 47,      # Hippocampus (HC)
         24, 62,     # Parahippocampal gyrus (PHC)
         2, 40,      # Amygdala (AMYG)
@@ -634,11 +634,32 @@ def simulate(sim_time=20000,
         23, 61      # Ventrolateral prefrontal cortex (PFCVL)
     ]
 
-    Abeta_stage_3 = [
-        0,  1,  3,  4,  6,  7,  8, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-        25, 26, 27, 28, 29, 33, 35, 36, 37,
-        38, 39, 41, 42, 44, 45, 46, 49, 50, 51, 52, 53, 54, 55, 56, 57,
-        63, 64, 65, 66, 67, 71, 73, 74, 75
+    Abeta_stage_3 = [ #50 areas
+        0,  1,
+        3,  4,
+        6,  7,
+        8, 11,
+        12, 13,
+        14, 15,
+        16, 17,
+        18, 19,
+        25, 26,
+        27, 28,
+        29, 33,
+        35, 36,
+        37, 38,
+        39, 41,
+        42, 44,
+        45, 46,
+        49, 50,
+        51, 52,
+        53, 54,
+        55, 56,
+        57, 63,
+        64, 65,
+        66, 67,
+        71, 73,
+        74, 75
     ]
 
     degeneration = [0, 0, 0, 0.28, 0.78, 0.95, 0.95, 0.95]
@@ -646,7 +667,7 @@ def simulate(sim_time=20000,
     a_delta = 3.65/3.25
     b_delta = 0.3133/0.0593
 
-    a_array = np.ones((76,1))*a
+    a_array = np.ones((76,1))*a ########################################################################
     b_array = np.ones((76,1))*b*(1+b_delta*0.01*tau_stage)
     
     regions_centers = conn.centres

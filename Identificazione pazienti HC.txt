@@ -1,0 +1,21 @@
+Identificazione pazienti HC
+
+tau stage ; abeta stage
+
+tau =  0.0 ; abeta =  0.0
+tau =  0.0 ; abeta =  0.0
+tau =  2.0 ; abeta =  2.0
+tau =  0.0 ; abeta =  0.0
+tau =  0.0 ; abeta =  0.0
+tau =  0.0 ; abeta =  1.0
+tau =  1.0 ; abeta =  0.0
+tau =  0.0 ; abeta =  0.0
+tau =  0.0 ; abeta =  5.0
+tau =  0.0 ; abeta =  1.0
+tau =  0.0 ; abeta =  0.0
+tau =  2.0 ; abeta =  1.0
+tau =  1.0 ; abeta =  0.0
+tau =  0.0 ; abeta =  1.0
+tau =  0.0 ; abeta =  1.0
+tau =  0.0 ; abeta =  0.0
+tau =  1.0 ; abeta =  0.0

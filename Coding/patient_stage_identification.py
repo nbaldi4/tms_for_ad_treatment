@@ -52,16 +52,16 @@ broad_band_files = collect_files(root_folder, files_name="FC_EEG_*")
 PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
 
 tau_stages = 6
-abeta_stages = 1
+abeta_stages = 6
 fc_regular = np.empty((tau_stages, abeta_stages), dtype=object)
 psd = np.empty((tau_stages, abeta_stages), dtype=object)
 freqs = np.empty((tau_stages, abeta_stages), dtype=object)
 psd_maes = np.zeros((tau_stages, abeta_stages))
 fc_reg_maes = np.zeros((tau_stages, abeta_stages))
 fc_red_maes = np.zeros((tau_stages, abeta_stages))
-fc_healty = np.load(gv.MCI_FC_data)
-psd_healty = np.load(gv.MCI_PSD_data)
-for i in [26]:#range(len(psd_healty)):
+fc_healty = np.load(gv.HC_FC_data)
+psd_healty = np.load(gv.HC_PSD_data)
+for i in range(len(psd_healty)):
     fc_mean = fc_healty[i]#np.mean(fc_healty, axis=0)
     psd_mean = psd_healty[i]
     for tau in range(tau_stages):
@@ -89,8 +89,10 @@ for i in [26]:#range(len(psd_healty)):
 
     distances = fc_red_dev + fc_reg_dev + 2*psd_dev
 
-    #print(distances) 26
-    print(np.argmin(distances))
+    nearest = np.argmin(distances)
+    nearest_tau_stage = np.floor(nearest/6)
+    nearest_abeta_stage = nearest - nearest_tau_stage*6
+    print("tau = ", nearest_tau_stage, "; abeta = ", nearest_abeta_stage)
 
 """
 fc_healty = np.load(gv.HC_FC_data)

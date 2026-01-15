@@ -1,0 +1,4 @@
+Label: EEG delta band (0.5-4)Hz
+Mean Correlation (raw): 0.000592
+Mean Absolute Correlation: 0.703985
+Threshold (gv.th): 0.08
