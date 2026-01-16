@@ -1,0 +1,4 @@
+Label: TAVG alpha band (8-14)Hz
+Mean Correlation (raw): 0.001233
+Mean Absolute Correlation: 0.053219
+Threshold (gv.th): 0.08

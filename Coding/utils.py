@@ -22,7 +22,7 @@ from tvb.simulator.lab import *
 from tvb.datatypes import graph
 from tvb.datatypes.time_series import TimeSeriesRegion 
 from scipy.stats import pearsonr, wasserstein_distance
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, csd, welch
 from scipy import signal
 from pymoo.core.problem import Problem
 from pymoo.algorithms.moo.nsga2 import NSGA2
@@ -624,6 +624,15 @@ def simulate(sim_time=20000,
         32, 70    # TCPOL (temporal pole)
     ]
 
+    Abeta_stage_1_second_trial = [
+        30, 58, #Precuneus (PCu)
+        35, 73, #Superior Frontal
+        31, 69, #Superior Parietal
+        28, 66, #Posterior Cingulate
+        37, 75, #Middle Temporal
+        36,	74, #Superior Temporal
+    ]
+
     Abeta_stage_2 = [ #14 areas
         9, 47,      # Hippocampus (HC)
         24, 62,     # Parahippocampal gyrus (PHC)
@@ -632,6 +641,15 @@ def simulate(sim_time=20000,
         20, 58,     # Subgenual cingulum (PFCM)
         5, 43,      # Retrosplenial cingulum (CCR)
         23, 61      # Ventrolateral prefrontal cortex (PFCVL)
+    ]
+
+    Abeta_stage_2_second_trial = [
+        12, 50, #Hippocampus
+        6, 44, #Entorhinal Cortex
+        1, 39, #Amygdala
+        13, 51, #Insula	
+        32, 2, 70, 40, #Anterior Cingulate (Ros/Caud)
+	    22, 60 #Parahippocampal Gyrus
     ]
 
     Abeta_stage_3 = [ #50 areas
@@ -660,6 +678,14 @@ def simulate(sim_time=20000,
         66, 67,
         71, 73,
         74, 75
+    ]
+
+    Abeta_stage_3_second_trial = [
+        34, 72, #Thalamus
+    	3, 41, #Caudate
+	    33, 71, #Putamen
+	    21, 59, #Pallidum
+	    0, 38, #Accumbens
     ]
 
     degeneration = [0, 0, 0, 0.28, 0.78, 0.95, 0.95, 0.95]
@@ -1013,3 +1039,149 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
 
     if return_psd:
         return freqs, psd_mean
+
+def ev_img_coh(time_series_original, lowcut, highcut):
+    conn = get_conn()
+    time_series = time_series_original.copy()
+    
+    # TVB 4D format: [Time, Var, Nodes, Modes]
+    # Squeeziamo per avere [Time, Nodes] assumendo Var=0 e Mode=0
+    data = time_series[:, 0, :, 0] 
+    n_nodes = data.shape[1]
+    fs = 1000 / gv.temp_avg_period  # Frequenza di campionamento in Hz
+    
+    # Inizializziamo la matrice iCOH
+    icoh_matrix = np.zeros((n_nodes, n_nodes))
+
+    # Calcoliamo la coerenza per ogni coppia di nodi
+    for i in range(n_nodes):
+        for j in range(i + 1, n_nodes): # Solo triangolo superiore per velocità
+            # Calcolo della coerenza complessa
+            # Nota: scipy.signal.coherence restituisce la magnitudo quadra. 
+            # Per la coerenza immaginaria serve la Cross-Spectral Density (CSD).
+            
+            f, Pxy = csd(data[:, i], data[:, j], fs=fs, nperseg=int(fs*2)) # finestre di 2s
+            f, Pxx = welch(data[:, i], fs=fs, nperseg=int(fs*2))
+            f, Pyy = welch(data[:, j], fs=fs, nperseg=int(fs*2))
+            
+            # Coerenza Complessa = Pxy / sqrt(Pxx * Pyy)
+            complex_coherence = Pxy / np.sqrt(Pxx * Pyy)
+            
+            # Estraiamo la parte immaginaria
+            # Spesso si fa la media sulla banda di interesse (es. Alpha 8-13Hz)
+            band_mask = (f > lowcut) & (f <= highcut)
+            icoh_val = np.mean(np.imag(complex_coherence[band_mask]))
+            
+            icoh_matrix[i, j] = icoh_val
+            icoh_matrix[j, i] = icoh_val # Simmetria
+
+    # Per mantenere compatibilità con il tuo oggetto TimeSeriesRegion e graph.CorrelationCoefficients
+    # creiamo un array 4D finto come si aspetta il resto del tuo codice
+    result = icoh_matrix[:, :, np.newaxis, np.newaxis]
+    
+    # Ricostruiamo l'oggetto TVB (anche se i nomi dicono 'corr', conterrà iCOH)
+    tsr = TimeSeriesRegion(connectivity=conn, data=time_series, sample_period=gv.temp_avg_period)
+    tsr.configure()
+    corr_coeff = graph.CorrelationCoefficients(source=tsr, array_data=result)
+    
+    return corr_coeff
+
+def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut):
+
+    fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+    os.makedirs(fig_save_dir, exist_ok=True)
+
+    conn = get_conn()
+    time_series = time_series_original.copy()
+    #time_series = time_series[np.isnan(time_series)]
+    tsr_corr = ev_img_coh(time_series, lowcut, highcut)
+
+    corr= tsr_corr.array_data[..., 0, 0]
+
+    abs_corr_mean = np.mean(np.abs(corr))
+    corr_mean = np.mean(corr)
+    sub_corr = macro_fc(corr)
+    abs_sub_corr_mean = np.mean(np.abs(sub_corr))
+    corr_sub_mean = np.mean(sub_corr)
+
+    #Define a threshold for connections
+    corr_th = (corr) > gv.th
+
+    pmatrix = np.zeros((len(time_series[0,0,:,0]),len(time_series[0,0,:,0])))
+
+    for i in range(len(time_series[0,0,:,0])):
+        for j in range(len(time_series[0,0,:,0])):
+            
+            region_A = time_series[:,0, i, 0]
+            region_B = time_series[:,0, j, 0]
+            
+            pmatrix[i][j] = pearsonr(region_A, region_B)[1]
+
+    pmatrix_th = pmatrix < 0.05
+
+    corr_th_significance = np.multiply(corr_th, pmatrix_th)
+
+    # FC data
+    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+    os.makedirs(data_save_dir, exist_ok=True)
+
+    
+    with open(os.path.join(data_save_dir, f"FC_means_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.txt"), "w") as f:
+        f.write(f"Label: {label}\n")
+        f.write(f"Mean Correlation (raw): {corr_mean:.6f}\n")
+        f.write(f"Mean Absolute Correlation: {abs_corr_mean:.6f}\n")
+        f.write(f"Threshold (gv.th): {gv.th}\n")
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
+
+    corr_viz = 2 * (corr - np.min(corr)) / (np.max(corr) - np.min(corr)) - 1
+    # Plot corr_tavg
+    im1 = ax1.imshow(corr_viz, interpolation='nearest', cmap='bwr')
+    ax1.set_yticks(np.arange(len(conn.region_labels)))
+    ax1.set_yticklabels(conn.region_labels, fontsize=12)
+    ax1.set_xticks(np.arange(len(conn.region_labels)))
+    ax1.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
+    ax1.set_title(f"{label} FC mean = {corr_mean:.4f}, ({abs_corr_mean:.4f})", fontsize=15)
+
+    # Plot corr_tavg_th
+    im2 = ax2.imshow(corr_th, interpolation='nearest', cmap='bwr')
+    ax2.set_yticks(np.arange(len(conn.region_labels)))
+    ax2.set_yticklabels(conn.region_labels, fontsize=12)
+    ax2.set_xticks(np.arange(len(conn.region_labels)))
+    ax2.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
+    ax2.set_title(label+' FC w/ threshold', fontsize=15)
+
+    # Colorbar
+    cax = fig.add_axes([ax2.get_position().x1 + 0.01, ax2.get_position().y0, 0.02, ax2.get_position().height])
+    cbar = plt.colorbar(im2, cax=cax)
+
+    if gv.save_plots:
+        fig_name = f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.png"
+        plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()
+
+    sub_corr_viz = 2 * (sub_corr - np.min(sub_corr)) / (np.max(sub_corr) - np.min(sub_corr)) - 1
+    # Plot corr
+    fig = plt.figure(figsize=(12, 8)) 
+    ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
+    im = ax.imshow(sub_corr_viz, cmap='bwr', vmin=-1, vmax=1, aspect='equal') 
+    title_text = f"Reduced size simulated FC\n{label} FC reduced mean = {corr_sub_mean:.4f}, ({abs_sub_corr_mean:.4f})"
+    ax.set_title(title_text, fontsize=15)
+    cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
+    plt.colorbar(im, cax=cax)
+
+    output = os.path.join(data_save_dir, 
+        f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
+
+    np.savez_compressed(
+            output,
+            normal_size=corr,
+            reduced_size=sub_corr
+        )
+
+    if gv.save_plots:
+        fig_name = f"FC_reduced_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.png"
+        plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
+    if gv.show_plots:
+        plt.show()

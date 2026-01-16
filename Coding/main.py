@@ -5,7 +5,7 @@ import argparse
 from tvb.simulator.lab import *
 
 from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot
-from utils import functional_connectivity, psd, functional_connectivity_band
+from utils import functional_connectivity, psd, functional_connectivity_band, functional_connectivity_img_coh
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data, load_simulation_results
 import global_variable_creation as gv
 
@@ -140,7 +140,7 @@ def main():
 
     """il controllo sulla label della FC va migliorato, vorrei si potesse inserire da terminale, magari facendo si che alla tupla di parametri richiesti 
     venga associata una certa dicita (e.g. malato braak stage 2 - beta stage 1)"""
-    if gv.fc == True:
+    """if gv.fc == True:
         functional_connectivity_band(eeg, 'EEG alpha band (8-14)Hz', lowcut=8, highcut=14)
         functional_connectivity_band(eeg, 'EEG theta band (4-8)Hz', lowcut=4, highcut=8)
         functional_connectivity_band(eeg, 'EEG delta band (0.5-4)Hz', lowcut=0.5, highcut=4)
@@ -149,6 +149,16 @@ def main():
         functional_connectivity_band(tavg, 'TAVG delta band (0.5-4)Hz', lowcut=0.5, highcut=4)
         functional_connectivity(eeg, 'EEG')
         functional_connectivity(tavg, 'TAVG')
+"""
+    if gv.fc == True:
+        functional_connectivity_img_coh(eeg, 'EEG alpha band (8-14)Hz', lowcut=8, highcut=14)
+        functional_connectivity_img_coh(eeg, 'EEG theta band (4-8)Hz', lowcut=4, highcut=8)
+        functional_connectivity_img_coh(eeg, 'EEG delta band (0.5-4)Hz', lowcut=0.5, highcut=4)
+        functional_connectivity_img_coh(tavg, 'TAVG alpha band (8-14)Hz', lowcut=8, highcut=14)
+        functional_connectivity_img_coh(tavg, 'TAVG theta band (4-8)Hz', lowcut=4, highcut=8)
+        functional_connectivity_img_coh(tavg, 'TAVG delta band (0.5-4)Hz', lowcut=0.5, highcut=4)
+        functional_connectivity_img_coh(eeg, 'EEG', lowcut=0, highcut=45)
+        functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0, highcut=45)
 
     if gv.psd == True:
         psd(eeg, 'EEG')

@@ -1,0 +1,4 @@
+Label: EEG theta band (4-8)Hz
+Mean Correlation (raw): 0.000884
+Mean Absolute Correlation: 0.062963
+Threshold (gv.th): 0.08

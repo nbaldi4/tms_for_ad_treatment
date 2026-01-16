@@ -34,3 +34,9 @@ Fra le varie metriche notiamo che il valor medio della FC cambia entro una devia
 Abbiamo costruito anche gli stadi di abeta.
 
 I pazienti sani li prende poco peggio di tau. Il problema è che sia tau sia abeta sembrano sbagliare nel riconoscere i pazienti malati. Dobbiamo innanzitutto capire se gli stadi della abeta sono sensati; una volta fatto questo dobbiamo pensare alle metriche utili per confrontare i pazienti. Dovremmo arrivare a una buona categorizzazioni dei pazienti MCI. 
+
+Per vedere se c'è un modo migliori di far variare gli stage della beta, ho provato una suddivisione in stages alternativa a quella usata finora. Otteniamo una power spectral density che, come forma, non cambia dallo stage 1 allo stage 5. Direi quindi di abbandonare questa suddivisone.>
+
+Adesso proviamo a calcolare la FC utilizzando una metrica diversa dal Pearson correlation coefficient usato finora. Utilizziamo la imaginary coherence e vediamo come si correlano i pazienti MCI agli stadi. Salviamo i risultati nella cartella Stages_16_01.
+
+Cercando di capire come sono messi i dati salta subito all'occhio che non sembra essere nessuna correlazione fra la dicitura HC, MCI e la forma della PSD. Non so a cosa possa essere dovuto. In ogni caso occorre controllare anche la FC e poi cercare di capire se i dati MCI sono realmente classificabili.

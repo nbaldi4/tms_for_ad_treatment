@@ -5,11 +5,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import global_variable_creation as gv
 
-from data_analysis_utils import real_vs_stages_PSD, real_vs_stages_FC, to_common_indices, macro_fc
+from data_analysis_utils import real_vs_stages_PSD, real_vs_stages_FC, to_common_indices, macro_fc, analyze_regular_data, analyze_reduced_data
 
 
 # Rimuove il limite di larghezza della colonna (None = nessun limite)
 pd.set_option('display.max_colwidth', None)
+
+abeta_MCI_patients = np.array([1559.0, np.nan, 338.0, 974.0, np.nan, 384.0, np.nan, 1239.0, 758.0, np.nan, np.nan, 1742.0,
+                               np.nan, 527.0, np.nan, 702.0, 1170.0, np.nan, 812.0, 1238.0, np.nan, np.nan, 1202.0, 702.0,
+                               np.nan, 692.0, 876.0, 1251.0, 490.0, np.nan, 1320.0, 1962.0, np.nan, 1374.0, np.nan, 1572.0,
+                               685.0, 698.0, np.nan, 464.0])
+tau_MCI_patients = np.array([40.0, np.nan, 128.2, 20.0, np.nan, 30.6, np.nan, 44.0, 125.0, np.nan, np.nan, 53.0, np.nan, 34.0,
+                             np.nan, 81.0, 28.0, np.nan, 56.0, 30.0, np.nan, np.nan, 25.0, 40.0, np.nan, 103.0, 158.0, 36.0,
+                             103.0, np.nan, 39.4, 102.6, np.nan, 40.4, np.nan, 42.9, 156.9, 83.0, np.nan, 18.2])
 
 def collect_files(root_folder_path, files_name):
     """
@@ -44,7 +52,7 @@ def collect_files(root_folder_path, files_name):
     return df
 
 
-root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_08_01_2026"
+root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_16_01_2026"
 alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha band*")
 delta_band_files = collect_files(root_folder, files_name="FC_EEG delta band*")
 theta_band_files = collect_files(root_folder, files_name="FC_EEG theta band*")
@@ -59,8 +67,12 @@ freqs = np.empty((tau_stages, abeta_stages), dtype=object)
 psd_maes = np.zeros((tau_stages, abeta_stages))
 fc_reg_maes = np.zeros((tau_stages, abeta_stages))
 fc_red_maes = np.zeros((tau_stages, abeta_stages))
-fc_healty = np.load(gv.HC_FC_data)
-psd_healty = np.load(gv.HC_PSD_data)
+fc_healty = np.load(gv.MCI_FC_data)
+psd_healty = np.load(gv.MCI_PSD_data)
+gv.show_plots = True
+analyze_regular_data(fc_healty)
+analyze_reduced_data(fc_healty)
+gv.show_plots = False
 for i in range(len(psd_healty)):
     fc_mean = fc_healty[i]#np.mean(fc_healty, axis=0)
     psd_mean = psd_healty[i]
@@ -79,6 +91,8 @@ for i in range(len(psd_healty)):
             freqs[tau, abeta] = psd_matrix['freqs']
             psd_maes[tau,abeta] = real_vs_stages_PSD(psd_mean, stage_psd=psd[tau,abeta], stage_freqs=freqs[tau,abeta], return_value=True)
             fc_reg_maes[tau,abeta], fc_red_maes[tau,abeta] = real_vs_stages_FC(fc_real=fc_mean, fc_regular_stage=fc_regular[tau,abeta], fc_reduced_stage=macro_fc(fc_regular[tau,abeta]), return_value=True)
+            #fc_reg_maes[tau,abeta] = np.abs(np.mean(fc_mean) - np.mean(fc_regular[tau,abeta]))
+            #fc_red_maes[tau,abeta] = np.abs(np.mean(macro_fc(fc_mean)) - np.mean(macro_fc(fc_regular[tau,abeta])))
 
     psd_mean = np.mean(psd_maes)
     fc_red_mean = np.mean(fc_red_maes)
@@ -90,9 +104,9 @@ for i in range(len(psd_healty)):
     distances = fc_red_dev + fc_reg_dev + 2*psd_dev
 
     nearest = np.argmin(distances)
-    nearest_tau_stage = np.floor(nearest/6)
-    nearest_abeta_stage = nearest - nearest_tau_stage*6
-    print("tau = ", nearest_tau_stage, "; abeta = ", nearest_abeta_stage)
+    nearest_tau_stage = np.floor(nearest/tau_stages)
+    nearest_abeta_stage = nearest - nearest_tau_stage*abeta_stages
+    print("tau = ", nearest_tau_stage, "; abeta = ", nearest_abeta_stage, "; CSF tau = ", tau_MCI_patients[i], "; CSF abeta = ", abeta_MCI_patients[i])
 
 """
 fc_healty = np.load(gv.HC_FC_data)

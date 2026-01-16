@@ -1,0 +1,4 @@
+Label: TAVG theta band (4-8)Hz
+Mean Correlation (raw): -0.000017
+Mean Absolute Correlation: 0.062792
+Threshold (gv.th): 0.08
