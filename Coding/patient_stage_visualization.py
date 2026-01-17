@@ -23,7 +23,7 @@ tau_pos = tau_MCI_patients > 52
 pos_tau_idxs = np.where(tau_pos)[0]
 pos_abeta_idxs = np.where(abeta_pos)[0]
 mci = np.where(abeta_pos & tau_pos)[0] 
-non_nan_idxs = np.array([22]) #np.where(~np.isnan(tau_MCI_patients))[0]
+non_nan_idxs = np.where(~np.isnan(tau_MCI_patients))[0]
 abeta_neg = abeta_MCI_patients >= 1000
 tau_neg = tau_MCI_patients <= 35
 neg_tau_idxs = np.where(tau_neg)[0]
@@ -84,6 +84,78 @@ print('delta power', np.mean(d), '\pm', np.std(d))
 print('alpha power', np.mean(a), '\pm', np.std(a))
 print('theta power', np.mean(t), '\pm', np.std(t))
 print('beta-gamma power', np.mean(b), '\pm', np.std(b))
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_tau, d, color='r', linewidth=2, )
+plt.xlabel("Tau level [mg/L]")
+plt.ylabel("delta power")
+plt.title(f"Band power over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_tau, a, color='r', linewidth=2, )
+plt.xlabel("Tau level [mg/L]")
+plt.ylabel("alpha power")
+plt.title(f"Band power over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_tau, t, color='r', linewidth=2, )
+plt.xlabel("Tau level [mg/L]")
+plt.ylabel("theta power")
+plt.title(f"Band power over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_abeta, d, color='r', linewidth=2, )
+plt.xlabel("ABeta level [mg/L]")
+plt.ylabel("delta power")
+plt.title(f"Band power over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_abeta, a, color='r', linewidth=2, )
+plt.xlabel("ABeta level [mg/L]")
+plt.ylabel("alpha power")
+plt.title(f"Band power over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_abeta, t, color='r', linewidth=2, )
+plt.xlabel("ABeta level [mg/L]")
+plt.ylabel("theta power")
+plt.title(f"Band power over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_tau, dt_a, color='r', linewidth=2, )
+plt.xlabel("Tau level [mg/L]")
+plt.ylabel("delta+theta over alpha")
+plt.title(f"Relative bands power")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_abeta, dt_a, color='r', linewidth=2, )
+plt.xlabel("ABeta level [mg/L]")
+plt.ylabel("delta+theta over alpha")
+plt.title(f"Relative bands power")
+plt.legend()
+plt.grid()
+plt.show()
 """
 plt.figure(figsize=(10,4))
 plt.scatter(condition, dt_a)
@@ -143,33 +215,32 @@ fig.colorbar(surf, shrink=0.5, aspect=5)
 
 plt.show()
 """
-fc_patients = np.load(gv.HC_FC_data)
-psd_patients = np.load(gv.HC_PSD_data)
-print(psd_patients.shape)
-mean_healty_fc = np.mean(fc_patients, axis=0)
-mean_healty_psd = np.mean(psd_patients, axis=0)
+fc_HC_patients = np.load(gv.HC_FC_data)
+psd_HC_patients = np.load(gv.HC_PSD_data)
+mean_healty_fc = np.mean(fc_HC_patients, axis=0)
+mean_healty_psd = np.mean(psd_HC_patients, axis=0)
 
 mean_healty_psd = mean_healty_psd[:180].astype(float)
 if np.max(mean_healty_psd) == 0:
         mean_healty_psd = mean_healty_psd + 1e-12
 mean_healty_psd /= np.max(mean_healty_psd)
 
-dt_a = np.zeros(len(fc_patients[:,0,0]))
-d_a = np.zeros(len(fc_patients[:,0,0]))
-t_a = np.zeros(len(fc_patients[:,0,0]))
-d = np.zeros(len(fc_patients[:,0,0]))
-a = np.zeros(len(fc_patients[:,0,0]))
-t = np.zeros(len(fc_patients[:,0,0]))
-b = np.zeros(len(fc_patients[:,0,0]))
+dt_a = np.zeros(len(fc_HC_patients[:,0,0]))
+d_a = np.zeros(len(fc_HC_patients[:,0,0]))
+t_a = np.zeros(len(fc_HC_patients[:,0,0]))
+d = np.zeros(len(fc_HC_patients[:,0,0]))
+a = np.zeros(len(fc_HC_patients[:,0,0]))
+t = np.zeros(len(fc_HC_patients[:,0,0]))
+b = np.zeros(len(fc_HC_patients[:,0,0]))
 
-for i in range(len(fc_patients[:,0,0])):
-    dt_a[i] = np.sum(psd_patients[i,:31])/np.sum(psd_patients[i,32:64])
-    d_a[i] = np.sum(psd_patients[i,:23])/np.sum(psd_patients[i,32:64])
-    t_a[i] = np.sum(psd_patients[i,24:31])/np.sum(psd_patients[i,32:64])
-    d[i] = np.sum(psd_patients[i,:23])
-    a[i] = np.sum(psd_patients[i,32:64])
-    t[i] = np.sum(psd_patients[i,24:31])
-    b[i] = np.sum(psd_patients[i,65:])
+for i in range(len(fc_HC_patients[:,0,0])):
+    dt_a[i] = np.sum(psd_HC_patients[i,:31])/np.sum(psd_HC_patients[i,32:64])
+    d_a[i] = np.sum(psd_HC_patients[i,:23])/np.sum(psd_HC_patients[i,32:64])
+    t_a[i] = np.sum(psd_HC_patients[i,24:31])/np.sum(psd_HC_patients[i,32:64])
+    d[i] = np.sum(psd_HC_patients[i,:23])
+    a[i] = np.sum(psd_HC_patients[i,32:64])
+    t[i] = np.sum(psd_HC_patients[i,24:31])
+    b[i] = np.sum(psd_HC_patients[i,65:])
 
 print('delta+theta over alpha power', np.mean(dt_a), '\pm', np.std(dt_a))
 print('delta over alpha power', np.mean(d_a), '\pm', np.std(d_a))
@@ -178,18 +249,18 @@ print('delta power', np.mean(d), '\pm', np.std(d))
 print('alpha power', np.mean(a), '\pm', np.std(a))
 print('theta power', np.mean(t), '\pm', np.std(t))
 print('beta-gamma power', np.mean(b), '\pm', np.std(b))
-"""
-paziente_prova = 16
+
+paziente_prova = 22
 freqs_uniform = np.linspace(0, 45, 180)
 plt.figure(figsize=(10,4))
 plt.plot(freqs_uniform, psd_patients[paziente_prova, :180], color='r', linewidth=2, )
 plt.xlabel("Frequency [Hz]")
-plt.ylabel("Normalized PSD")
-plt.title(f"PSD mci patients, {np.sum(psd_patients[paziente_prova,2:32])/np.sum(psd_patients[paziente_prova,32:])}, tau = {tau_MCI_patients[paziente_prova]}, abeta = {abeta_MCI_patients[paziente_prova]}")
+plt.ylabel("PSD")
+plt.title(f"PSD mci patient {paziente_prova}, delta-theta over alpha = {np.sum(psd_patients[paziente_prova,2:32])/np.sum(psd_patients[paziente_prova,32:])}, tau = {tau_MCI_patients[paziente_prova]}, abeta = {abeta_MCI_patients[paziente_prova]}")
 plt.legend()
 plt.grid()
 plt.show()
-
+"""
 plt.figure(figsize=(10,4))
 plt.plot(freqs_uniform, mean_mci_psd, color='r', linewidth=2, )
 plt.xlabel("Frequency [Hz]")
@@ -214,9 +285,4 @@ print(pos_tau_idxs)
 print(pos_abeta_idxs)
 print(mci)
 print(healty)
-
-fc_healty = np.load(gv.HC_FC_data)
-psd_healty = np.load(gv.HC_PSD_data)
-
 """
-
