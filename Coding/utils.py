@@ -343,7 +343,7 @@ def functional_connectivity(time_series_original, label):
 
     
 
-def functional_connectivity_band(time_series_original, label, lowcut, highcut):
+def functional_connectivity_band(time_series_original, label, lowcut, highcut, patient = 0, real_patient = False):
 
     fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
     os.makedirs(fig_save_dir, exist_ok=True)
@@ -431,8 +431,12 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut):
     cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
     plt.colorbar(im, cax=cax)
 
-    output = os.path.join(data_save_dir, 
-        f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.npz")
+    if real_patient == False:
+        output = os.path.join(data_save_dir, 
+            f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.npz")
+    else:
+        output = os.path.join(data_save_dir, 
+            f"FC_patient_{patient}_band_{lowcut}-{highcut}_Hz.npz")
 
     np.savez_compressed(
             output,
@@ -689,6 +693,8 @@ def simulate(sim_time=20000,
     ]
 
     degeneration = [0, 0, 0, 0.28, 0.78, 0.95, 0.95, 0.95]
+    degeneration_alpha = [[0, 0, 0], [0.11, 0.21, 0.31], [0.43, 0.53, 0.63], [0.75, 0.85, 0.95], [0.85, 0.95, 0.95], [0.95, 0.95, 0.95]]
+    degeneration_alpha_2 = [[0, 0, 0], [0.21, 0.26, 0.31], [0.53, 0.58, 0.63], [0.85, 0.90, 0.95], [0.90, 0.95, 0.95], [0.95, 0.95, 0.95]]
 
     a_delta = 3.65/3.25
     b_delta = 0.3133/0.0593
@@ -709,27 +715,27 @@ def simulate(sim_time=20000,
 
     for i in tau_stage_1:
         J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage + 2])
+        b_array[i] = b*(1+b_delta*0.5*degeneration_alpha[tau_stage][2])
     
     for i in tau_stage_2:
         J_stages[i] = 1 - degeneration[tau_stage + 1]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage + 1])
+        b_array[i] = b*(1+b_delta*0.5*degeneration_alpha[tau_stage][1])
 
     for i in tau_stage_3:
         J_stages[i] = 1 - degeneration[tau_stage]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage])
+        b_array[i] = b*(1+b_delta*0.5*degeneration_alpha[tau_stage][0])
 
     for i in Abeta_stage_1:
-        a_array[i] = a*(1+a_delta*degeneration[abeta_stage + 2])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage + 2]
+        a_array[i] = a*(1+a_delta*degeneration_alpha[abeta_stage][2])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_alpha[abeta_stage][2]
 
     for i in Abeta_stage_2:
-        a_array[i] = a*(1+a_delta*degeneration[abeta_stage + 1])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage + 1]
+        a_array[i] = a*(1+a_delta*degeneration_alpha[abeta_stage][1])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_alpha[abeta_stage][1]
 
     for i in Abeta_stage_3:
-        a_array[i] = a*(1+a_delta*degeneration[abeta_stage])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage]
+        a_array[i] = a*(1+a_delta*degeneration_alpha[abeta_stage][0])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_alpha[abeta_stage][0]
 
     #for i in impaired_regions:
     #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta
@@ -805,7 +811,7 @@ def simulate(sim_time=20000,
     return ttavg, tavg, teeg, eeg
 
 
-def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window='hamming', return_psd=False):
+def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window='hamming', return_psd=False, real_patient = False, patient = 0):
     """
     Compute and visualize the Power Spectral Density (PSD) of regional brain signals.
 
@@ -870,11 +876,17 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     psd_std = np.std(psd_all, axis=0)
 
     # psd_all array dimensions are [n_regions, n_freqs]
-    if gv.save_plots == True:
-        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
-        os.makedirs(data_save_dir, exist_ok=True)
+    
+    if real_patient == False:
         fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
         os.makedirs(fig_save_dir, exist_ok=True)
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+        os.makedirs(data_save_dir, exist_ok=True)
+    else:
+        fig_save_dir = os.path.join(gv.fig_folder, f"patient_{patient}")
+        os.makedirs(fig_save_dir, exist_ok=True)
+        data_save_dir = os.path.join(gv.data_folder, f"patient_{patient}")
+        os.makedirs(data_save_dir, exist_ok=True)
 
     if len(filtered_signals[0, :]) > 75:
         psd_affected = []
@@ -897,8 +909,13 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
         psd_non_affected_std = np.std(psd_non_affected, axis=0)
 
         if gv.save_plots == True:
-            output_non_affected = os.path.join(data_save_dir, 
-                f"PSD_NON_AFFECTED_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
+            if real_patient == False:
+                output_non_affected = os.path.join(data_save_dir, 
+                    f"PSD_NON_AFFECTED_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
+            else:
+                output_non_affected = os.path.join(data_save_dir, 
+                    f"PSD_NON_AFFECTED_patient_{patient}.npz")
+
 
             np.savez_compressed(
                 output_non_affected,
@@ -947,10 +964,15 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
         psd_affected = np.array(psd_affected)
         psd_affected_mean = np.mean(psd_affected, axis=0)
         psd_affected_std = np.std(psd_affected, axis=0)
-
+        
         if gv.save_plots == True:
-            output_affected = os.path.join(data_save_dir, 
+            if real_patient == False:
+                output_affected = os.path.join(data_save_dir, 
                     f"PSD_AFFECTED_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
+            else:
+                output_affected = os.path.join(data_save_dir, 
+                    f"PSD_AFFECTED_{label}_patient_{patient}.npz")
+
 
             np.savez_compressed(
                 output_affected,
@@ -976,16 +998,23 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
 
         # Save / show
         if gv.save_plots:
-            fig_name = f"{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_affected_PSD.png"
+            if real_patient == False:
+                fig_name = f"{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_affected_PSD.png"
+            else:
+                fig_name = f"{label}_patient_{patient}_affected_PSD.png"
             plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
         if gv.show_plots:
             plt.show()
         else:
             plt.close()
-    
-    if gv.save_plots:
-        output_all = os.path.join(data_save_dir, 
-            f"PSD_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
+
+    if gv.save_plots == True:
+        if real_patient == False:
+            output_all = os.path.join(data_save_dir, 
+                f"PSD_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
+        else:
+            output_all = os.path.join(data_save_dir, 
+                f"PSD_{label}_patient_{patient}.npz")
 
         np.savez_compressed(
             output_all,
@@ -996,11 +1025,15 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     
         # Normalize
         normalization_factor = np.max(psd_mean)
-        psd_mean /= normalization_factor
-        psd_std /= normalization_factor
+        #psd_mean /= normalization_factor
+        #psd_std /= normalization_factor
 
         # normalization factor
-        with open(os.path.join(data_save_dir, f"PSD_info_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.txt"), "w") as f:
+        if real_patient == False:
+            file_name = f"PSD_info_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.txt"
+        else:
+            file_name = f"PSD_patient_{patient}_info_{label}.txt"
+        with open(os.path.join(data_save_dir, file_name), "w") as f:
             f.write(f"Label: {label}\n")
             f.write(f"Sampling Frequency (fs): {fs_welch:.2f} Hz\n")
             f.write(f"Normalization Factor (max mean PSD): {normalization_factor:.6e}\n")
@@ -1012,15 +1045,15 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
 
     # Normalize
     normalization_factor = np.max(psd_mean)
-    psd_mean /= normalization_factor
-    psd_std /= normalization_factor
+    #psd_mean /= normalization_factor
+    #psd_std /= normalization_factor
 
     # Plot
     plt.figure(figsize=(10, 6))
     plt.plot(freqs, psd_mean, label=label, linewidth=3)
     plt.fill_between(freqs, psd_mean + psd_std, psd_mean - psd_std, alpha=0.35)
     plt.title(label + ' mean PSD', fontsize=20)
-    plt.ylim(0, 1.01)
+    #plt.ylim(0, 1.01)
     plt.xlim(0, 45)
     plt.xlabel('Frequency [Hz]', fontsize=16)
     plt.ylabel('Normalized PSD', fontsize=16)
@@ -1029,7 +1062,10 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
 
     # Save / show
     if gv.save_plots:
-        fig_name = f"{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_PSD.png"
+        if real_patient == False:
+            fig_name = f"{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_PSD.png"
+        else:
+            fig_name = f"PSD_patient_{patient}_{label}.png"
         os.makedirs(gv.fig_folder, exist_ok=True)
         plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
     if gv.show_plots:
@@ -1043,13 +1079,11 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
 def ev_img_coh(time_series_original, lowcut, highcut):
     conn = get_conn()
     time_series = time_series_original.copy()
-    
     # TVB 4D format: [Time, Var, Nodes, Modes]
     # Squeeziamo per avere [Time, Nodes] assumendo Var=0 e Mode=0
     data = time_series[:, 0, :, 0] 
     n_nodes = data.shape[1]
     fs = 1000 / gv.temp_avg_period  # Frequenza di campionamento in Hz
-    
     # Inizializziamo la matrice iCOH
     icoh_matrix = np.zeros((n_nodes, n_nodes))
 
@@ -1086,10 +1120,14 @@ def ev_img_coh(time_series_original, lowcut, highcut):
     
     return corr_coeff
 
-def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut):
+def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut, patient = 0, real_patient = False):
 
-    fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
-    os.makedirs(fig_save_dir, exist_ok=True)
+    if real_patient == False:
+        fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+        os.makedirs(fig_save_dir, exist_ok=True)
+    else:
+        fig_save_dir = os.path.join(gv.fig_folder, f"patient_{patient}")
+        os.makedirs(fig_save_dir, exist_ok=True)
 
     conn = get_conn()
     time_series = time_series_original.copy()
@@ -1097,7 +1135,6 @@ def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut
     tsr_corr = ev_img_coh(time_series, lowcut, highcut)
 
     corr= tsr_corr.array_data[..., 0, 0]
-
     abs_corr_mean = np.mean(np.abs(corr))
     corr_mean = np.mean(corr)
     sub_corr = macro_fc(corr)
@@ -1118,15 +1155,19 @@ def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut
             pmatrix[i][j] = pearsonr(region_A, region_B)[1]
 
     pmatrix_th = pmatrix < 0.05
-
     corr_th_significance = np.multiply(corr_th, pmatrix_th)
 
     # FC data
-    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
-    os.makedirs(data_save_dir, exist_ok=True)
+    if real_patient == False:
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+        os.makedirs(data_save_dir, exist_ok=True)
+        file_txt_title = f"FC_means_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_{lowcut}-{highcut}_Hz.txt"
+    else:
+        data_save_dir = os.path.join(gv.data_folder, f"patient_{patient}")
+        os.makedirs(data_save_dir, exist_ok=True)
+        file_txt_title = f"FC_patient_{patient}_{lowcut}-{highcut}_Hz.txt"
 
-    
-    with open(os.path.join(data_save_dir, f"FC_means_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.txt"), "w") as f:
+    with open(os.path.join(data_save_dir, file_txt_title), "w") as f:
         f.write(f"Label: {label}\n")
         f.write(f"Mean Correlation (raw): {corr_mean:.6f}\n")
         f.write(f"Mean Absolute Correlation: {abs_corr_mean:.6f}\n")
@@ -1141,22 +1182,27 @@ def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut
     ax1.set_yticklabels(conn.region_labels, fontsize=12)
     ax1.set_xticks(np.arange(len(conn.region_labels)))
     ax1.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
-    ax1.set_title(f"{label} FC mean = {corr_mean:.4f}, ({abs_corr_mean:.4f})", fontsize=15)
-
+    if real_patient == False:
+        ax1.set_title(f"{label} FC mean = {corr_mean:.4f} {lowcut}-{highcut} Hz, ({abs_corr_mean:.4f})", fontsize=15)
+    else:
+        ax1.set_title(f"Patient {patient} {lowcut}-{highcut} Hz FC mean = {corr_mean:.4f}, ({abs_corr_mean:.4f})", fontsize=15)
     # Plot corr_tavg_th
     im2 = ax2.imshow(corr_th, interpolation='nearest', cmap='bwr')
     ax2.set_yticks(np.arange(len(conn.region_labels)))
     ax2.set_yticklabels(conn.region_labels, fontsize=12)
     ax2.set_xticks(np.arange(len(conn.region_labels)))
     ax2.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
-    ax2.set_title(label+' FC w/ threshold', fontsize=15)
+    if real_patient == False:
+        ax2.set_title(label+f' FC w/ threshold {lowcut}-{highcut} Hz ', fontsize=15)
+    else:
+        ax2.set_title(f'FC w/ threshold {lowcut}-{highcut} Hz ', fontsize=15)
 
     # Colorbar
     cax = fig.add_axes([ax2.get_position().x1 + 0.01, ax2.get_position().y0, 0.02, ax2.get_position().height])
     cbar = plt.colorbar(im2, cax=cax)
 
     if gv.save_plots:
-        fig_name = f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.png"
+        fig_name = f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_{lowcut}-{highcut}_Hz.png"
         plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
     if gv.show_plots:
         plt.show()
@@ -1166,13 +1212,20 @@ def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut
     fig = plt.figure(figsize=(12, 8)) 
     ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
     im = ax.imshow(sub_corr_viz, cmap='bwr', vmin=-1, vmax=1, aspect='equal') 
-    title_text = f"Reduced size simulated FC\n{label} FC reduced mean = {corr_sub_mean:.4f}, ({abs_sub_corr_mean:.4f})"
+    if real_patient == False:
+        title_text = f"Reduced size simulated FC\n{label} FC reduced mean = {corr_sub_mean:.4f}, ({abs_sub_corr_mean:.4f})"
+    else:
+        title_text = f"Patient {patient} reduced size FC reduced mean = {corr_sub_mean:.4f}, ({abs_sub_corr_mean:.4f})"
     ax.set_title(title_text, fontsize=15)
     cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
     plt.colorbar(im, cax=cax)
 
-    output = os.path.join(data_save_dir, 
-        f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.npz")
+    if real_patient == False:
+        output = os.path.join(data_save_dir, 
+        f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_{lowcut}-{highcut}_Hz.npz")
+    else:
+        output = os.path.join(data_save_dir, 
+        f"FC_{lowcut}-{highcut}_Hz_patient_{patient}.npz")
 
     np.savez_compressed(
             output,
@@ -1181,7 +1234,7 @@ def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut
         )
 
     if gv.save_plots:
-        fig_name = f"FC_reduced_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}.png"
+        fig_name = f"FC_reduced_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_{lowcut}-{highcut}_Hz.png"
         plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
     if gv.show_plots:
         plt.show()

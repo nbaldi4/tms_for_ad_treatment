@@ -33,9 +33,6 @@ healty = np.where(abeta_neg & tau_neg)[0]
 fc_patients = np.load(gv.MCI_FC_data)
 psd_patients = np.load(gv.MCI_PSD_data)
 
-for i in range(len(psd_patients)):
-    print(psd_patients[i].shape)
-
 mean_healty_fc = np.mean(fc_patients[healty], axis=0)
 mean_mci_fc = np.mean(fc_patients[mci], axis=0)
 mean_healty_psd = np.mean(psd_patients[healty], axis=0)
@@ -62,6 +59,7 @@ non_nan_tau = np.zeros((len(non_nan_idxs)))
 non_nan_abeta = np.zeros((len(non_nan_idxs)))
 normalized_max_sum = np.zeros((len(non_nan_idxs)))
 condition = np.zeros((len(non_nan_idxs)))
+
 j=0
 for i in non_nan_idxs:
     dt_a[j] = np.sum(psd_patients[i,:31])/np.sum(psd_patients[i,32:62])
@@ -76,7 +74,7 @@ for i in non_nan_idxs:
     normalized_max_sum[j] = (tau_MCI_patients[i] - 52)/np.max(tau_MCI_patients[non_nan_idxs]) - (abeta_MCI_patients[i] - 813)/np.max(abeta_MCI_patients[non_nan_idxs])
     condition[j] = abeta_MCI_patients[i] - (373 + 0.82 * tau_MCI_patients[i])
     j +=1
-
+"""
 print('delta+theta over alpha power', np.mean(dt_a), '\pm', np.std(dt_a))
 print('delta over alpha power', np.mean(d_a), '\pm', np.std(d_a))
 print('theta over alpha power', np.mean(t_a), '\pm', np.std(t_a))
@@ -156,6 +154,7 @@ plt.title(f"Relative bands power")
 plt.legend()
 plt.grid()
 plt.show()
+"""
 """
 plt.figure(figsize=(10,4))
 plt.scatter(condition, dt_a)
@@ -260,6 +259,77 @@ plt.title(f"PSD mci patient {paziente_prova}, delta-theta over alpha = {np.sum(p
 plt.legend()
 plt.grid()
 plt.show()
+
+fc_paziente = fc_patients[paziente_prova]
+print(fc_paziente.shape)
+
+corr_viz = 2 * (fc_paziente - np.min(fc_paziente)) / (np.max(fc_paziente) - np.min(fc_paziente)) - 1
+# Plot corr
+fig = plt.figure(figsize=(12, 8)) 
+ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
+im = ax.imshow(corr_viz, cmap='bwr', vmin=-1, vmax=1, aspect='equal') 
+title_text = f"FC mci patient {paziente_prova}, tau = {tau_MCI_patients[paziente_prova]}, abeta = {abeta_MCI_patients[paziente_prova]}"
+ax.set_title(title_text, fontsize=15)
+cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
+plt.colorbar(im, cax=cax)
+plt.show()
+
+mean_value_fc = np.mean(fc_patients, axis=(1,2))
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_tau, mean_value_fc[non_nan_idxs], color='r', linewidth=2, )
+plt.xlabel("Tau level [mg/L]")
+plt.ylabel("FC mean")
+plt.title(f"FC mean over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_abeta, mean_value_fc[non_nan_idxs], color='r', linewidth=2, )
+plt.xlabel("ABeta level [mg/L]")
+plt.ylabel("FC mean")
+plt.title(f"FC mean over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+eeg_real_data_names = np.load(r'c:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\HC_data\names_ch.npy')
+eeg_real_data_names = np.array(eeg_real_data_names)
+print(eeg_real_data_names)
+
+frontal_idx = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 46, 54, 55] #Frontal Crtex
+temporal_idx = [14, 21, 22, 29, 30, 37, 38, 45] #Temporal Cortex
+parietal_idx = [39, 40, 41, 42, 43, 44, 47, 48, 51, 52, 59, 60] #Perietal Cortex
+
+all_selected_idx = frontal_idx + temporal_idx + parietal_idx
+
+
+fc_subset = fc_patients[:, np.ix_(all_selected_idx, all_selected_idx)[0], np.ix_(all_selected_idx, all_selected_idx)[1]]
+print(fc_subset.shape)
+print(fc_patients.shape)
+
+mean_value_subset_fc = np.mean(fc_subset, axis=(1,2))
+print(mean_value_subset_fc.shape)
+print(mean_value_fc.shape)
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_tau, mean_value_subset_fc[non_nan_idxs], color='r', linewidth=2, )
+plt.xlabel("Tau level [mg/L]")
+plt.ylabel("FC mean")
+plt.title(f"FC mean over protein level")
+plt.legend()
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(10,4))
+plt.scatter(non_nan_abeta, mean_value_subset_fc[non_nan_idxs], color='r', linewidth=2, )
+plt.xlabel("ABeta level [mg/L]")
+plt.ylabel("FC mean")
+plt.title(f"FC mean over protein level")
+plt.legend()
+plt.grid()
+plt.show()
 """
 plt.figure(figsize=(10,4))
 plt.plot(freqs_uniform, mean_mci_psd, color='r', linewidth=2, )
@@ -286,3 +356,4 @@ print(pos_abeta_idxs)
 print(mci)
 print(healty)
 """
+

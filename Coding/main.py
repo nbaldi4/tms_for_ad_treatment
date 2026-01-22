@@ -151,14 +151,16 @@ def main():
         functional_connectivity(tavg, 'TAVG')
 """
     if gv.fc == True:
-        functional_connectivity_img_coh(eeg, 'EEG alpha band (8-14)Hz', lowcut=8, highcut=14)
+        functional_connectivity_img_coh(eeg, 'EEG beta band (12-30)Hz', lowcut=12, highcut=30)
+        functional_connectivity_img_coh(eeg, 'EEG alpha band (8-12)Hz', lowcut=8, highcut=12)
         functional_connectivity_img_coh(eeg, 'EEG theta band (4-8)Hz', lowcut=4, highcut=8)
         functional_connectivity_img_coh(eeg, 'EEG delta band (0.5-4)Hz', lowcut=0.5, highcut=4)
-        functional_connectivity_img_coh(tavg, 'TAVG alpha band (8-14)Hz', lowcut=8, highcut=14)
+        functional_connectivity_img_coh(tavg, 'TAVG beta band (12-30)Hz', lowcut=12, highcut=30)
+        functional_connectivity_img_coh(tavg, 'TAVG alpha band (8-12)Hz', lowcut=8, highcut=12)
         functional_connectivity_img_coh(tavg, 'TAVG theta band (4-8)Hz', lowcut=4, highcut=8)
         functional_connectivity_img_coh(tavg, 'TAVG delta band (0.5-4)Hz', lowcut=0.5, highcut=4)
-        functional_connectivity_img_coh(eeg, 'EEG', lowcut=0, highcut=45)
-        functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0, highcut=45)
+        functional_connectivity_img_coh(eeg, 'EEG', lowcut=0.5, highcut=45)
+        functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0.5, highcut=45)
 
     if gv.psd == True:
         psd(eeg, 'EEG')

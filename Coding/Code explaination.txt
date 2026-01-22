@@ -1,0 +1,37 @@
+Code explaination
+
+Considering the complexity of the repository I decided to write a small guide to understand what is the logic ruling the numerous python file. Hope this guide will be helpful :)
+
+-Main.py is the principal program, by that the user could what features (PSD or FC) simulate, can specify if and where to save plots and can decide to change simulation parameters
+
+-utils.py is a library of functions which enclose all funtionalities activated by main.py
+
+-additional_utils.py because pf some conflicts between files I was obliged to divide utils into different libraries
+
+-data_analysis_utils.py is a library which enclose functions handling comparison between real and simulated data
+
+-patient_stage_identification.py
+ visualizzazione_pazienti_AD.py
+ and
+ patient_stage_visualization.py purpose is to read PSD and FC from patients and try to guess their stage of AD
+
+-different_band_graph.py plots different quantities regarding how bands changes as respect to stages combinations
+
+-batch_simulations.py starts different simulations as if the user would make them star directly from the terminal
+
+-global_variable_creation.py is a file containing different variables used through the entire repository
+
+-stages_factory.py compute different stages features
+
+-grid_search.py
+ NSGA-II.py
+ differentiation_region_optimizer.py
+ factor_optimizer.py
+ and
+ a_and_factor_optimizer.py are programmes which optimize different combinations of parameters
+
+-different_band_graph.py
+ 3d_plots.py
+ data_visualization.py have the purpose of visualize simulated data
+
+-classes.py some objects used in utils.py had to be customized, this is the purpose of classes.py

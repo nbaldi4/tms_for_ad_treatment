@@ -130,7 +130,7 @@ for i in Abeta_stage_3:
     stage_4_b[i] = b_hc + b_variations*deg_perc[2]
     stage_5_b[i] = b_hc + b_variations*deg_perc[3]
 
-def compute_stage_matrix(matrix, stage1 = [], stage2= [], stage3= [], deg_perc = [0, 0.05, 0.25, 0.45], w_ij_delta = 0.0134/0.0192, w_ii_delta = 0.0127/0.0181, lonely = 1/1.33):
+def compute_stage_matrix(matrix, stage1 = [], stage2= [], stage3= [], deg_perc = [0, 0.155, 0.315, 0.45], w_ij_delta = 0.0134/0.0192, w_ii_delta = 0.0127/0.0181, lonely = 1/1.33):
     matrix2 = matrix.copy()
     stages = np.concatenate((stage1, stage2, stage3)).astype(int)
     for i in stages:

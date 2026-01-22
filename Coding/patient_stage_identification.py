@@ -51,62 +51,67 @@ def collect_files(root_folder_path, files_name):
     df = pd.DataFrame(data)
     return df
 
+def file_extraction(files_group, tau_stage, abeta_stage):
+    file_sel = files_group[(files_group["tau"] == tau_stage) & (files_group["abeta"] == abeta_stage)]
+    file_path_sel = file_sel["file_path"]
+    file_path_string = file_path_sel.iloc[0] 
+    file_data = np.load(file_path_string)
+    return file_data
 
-root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_16_01_2026"
-alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha band*")
-delta_band_files = collect_files(root_folder, files_name="FC_EEG delta band*")
-theta_band_files = collect_files(root_folder, files_name="FC_EEG theta band*")
-broad_band_files = collect_files(root_folder, files_name="FC_EEG_*")
-PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
+def patient_extraction(files_group):
+    file_sel = files_group[(files_group["tau"] == tau_stage) & (files_group["abeta"] == abeta_stage)]
+    file_path_sel = file_sel["file_path"]
+    file_path_string = file_path_sel.iloc[0] 
+    file_data = np.load(file_path_string)
+    return file_data
 
-tau_stages = 6
-abeta_stages = 6
-fc_regular = np.empty((tau_stages, abeta_stages), dtype=object)
-psd = np.empty((tau_stages, abeta_stages), dtype=object)
-freqs = np.empty((tau_stages, abeta_stages), dtype=object)
-psd_maes = np.zeros((tau_stages, abeta_stages))
-fc_reg_maes = np.zeros((tau_stages, abeta_stages))
-fc_red_maes = np.zeros((tau_stages, abeta_stages))
-fc_healty = np.load(gv.MCI_FC_data)
-psd_healty = np.load(gv.MCI_PSD_data)
-gv.show_plots = True
-analyze_regular_data(fc_healty)
-analyze_reduced_data(fc_healty)
-gv.show_plots = False
-for i in range(len(psd_healty)):
-    fc_mean = fc_healty[i]#np.mean(fc_healty, axis=0)
-    psd_mean = psd_healty[i]
+def stage_metrics(PSD_patient, FC_patient, root_folder):
+    root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_21_01_2026_img_coh"
+    alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha band*")
+    beta_band_files = collect_files(root_folder, files_name="FC_EEG beta band*")
+    delta_band_files = collect_files(root_folder, files_name="FC_EEG delta band*")
+    theta_band_files = collect_files(root_folder, files_name="FC_EEG theta band*")
+    broad_band_files = collect_files(root_folder, files_name="FC_EEG_*")
+    bands_files = [broad_band_files, delta_band_files, theta_band_files, alpha_band_files, beta_band_files]
+    PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
+
+    tau_stages = 6
+    abeta_stages = 6
+    psd_means = np.zeros((tau_stages, abeta_stages, 5)) #broad (0.5-45)Hz, delta (0.5-4)Hz, theta (4-8)Hz, alpha (8-12)Hz, beta (12-30)Hz 
+    fc_reg_means = np.zeros((tau_stages, abeta_stages, 5, 2)) #tau stage, abeta stage, band, mean or mean absolute value
+    fc_red_means = np.zeros((tau_stages, abeta_stages, 5, 2)) #tau stage, abeta stage, band, mean or mean absolute value
     for tau in range(tau_stages):
         for abeta in range(abeta_stages):
-            fc_sel = broad_band_files[(broad_band_files["tau"] == tau) & (broad_band_files["abeta"] == abeta)]
-            fc_path_sel = fc_sel["file_path"]
-            fc_path_string = fc_path_sel.iloc[0] 
-            fc_matrix = np.load(fc_path_string)
-            fc_regular[tau, abeta] = fc_matrix['normal_size']
-            psd_sel = PSD_files[(PSD_files["tau"] == tau) & (PSD_files["abeta"] == abeta)]
-            psd_path_sel = psd_sel["file_path"]
-            psd_path_string = psd_path_sel.iloc[0] 
-            psd_matrix = np.load(psd_path_string)
-            psd[tau, abeta] = psd_matrix['psd_mean']
-            freqs[tau, abeta] = psd_matrix['freqs']
-            psd_maes[tau,abeta] = real_vs_stages_PSD(psd_mean, stage_psd=psd[tau,abeta], stage_freqs=freqs[tau,abeta], return_value=True)
-            fc_reg_maes[tau,abeta], fc_red_maes[tau,abeta] = real_vs_stages_FC(fc_real=fc_mean, fc_regular_stage=fc_regular[tau,abeta], fc_reduced_stage=macro_fc(fc_regular[tau,abeta]), return_value=True)
-            #fc_reg_maes[tau,abeta] = np.abs(np.mean(fc_mean) - np.mean(fc_regular[tau,abeta]))
-            #fc_red_maes[tau,abeta] = np.abs(np.mean(macro_fc(fc_mean)) - np.mean(macro_fc(fc_regular[tau,abeta])))
+            for band in range(bands_files):
+                fc_matrix = file_extraction(bands_files[band], tau, abeta)
+                fc_reg_means[tau,abeta, band, 0] = np.mean(fc_matrix['normal_size'])
+                fc_reg_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['normal_size']))
+                fc_red_means[tau,abeta, band, 0] = np.mean(fc_matrix['reduced_size'])
+                fc_red_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['reduced_size']))
 
-    psd_mean = np.mean(psd_maes)
-    fc_red_mean = np.mean(fc_red_maes)
-    fc_reg_mean = np.mean(fc_reg_maes)
-    psd_dev = (psd_maes-psd_mean)/psd_mean
-    fc_red_dev = (fc_red_maes-fc_red_mean)/fc_red_mean
-    fc_reg_dev = (fc_reg_maes-fc_reg_mean)/fc_reg_mean
+            psd_matrix = file_extraction(PSD_files, tau, abeta)
+            psd = psd_matrix['psd_mean']
+            freqs = psd_matrix['freqs']
+            psd_means[tau, abeta, 0] = np.mean(psd)                               #broad
+            psd_means[tau, abeta, 1] = np.mean(psd[(freqs < 4)])                  #delta
+            psd_means[tau, abeta, 2] = np.mean(psd[(freqs >= 4) & (freqs < 8)])   #theta
+            psd_means[tau, abeta, 3] = np.mean(psd[(freqs >= 8) & (freqs < 12)])  #alpha
+            psd_means[tau, abeta, 4] = np.mean(psd[(freqs >= 12) & (freqs < 30)]) #beta
+    return fc_reg_means, fc_red_means, psd_means
 
-    distances = fc_red_dev + fc_reg_dev + 2*psd_dev
+patient_files = collect_files(root_folder_path=gv.data_folder, files_name="patient_*")
 
-    nearest = np.argmin(distances)
-    nearest_tau_stage = np.floor(nearest/tau_stages)
-    nearest_abeta_stage = nearest - nearest_tau_stage*abeta_stages
-    print("tau = ", nearest_tau_stage, "; abeta = ", nearest_abeta_stage, "; CSF tau = ", tau_MCI_patients[i], "; CSF abeta = ", abeta_MCI_patients[i])
+def stage_identification(fc_reg_pat, psd_pat): #pat for patient (not for path)
+    tau_stages = 6
+    abeta_stages = 6
+    distances = np.zeros((tau_stages, abeta_stages, 15)) #5 for fc_reg, 5 for fc_red, 5 for PSD
+
+fc_healty = np.load(gv.MCI_FC_data)
+psd_healty = np.load(gv.MCI_PSD_data)
+nearest = np.argmin(distances)
+nearest_tau_stage = np.floor(nearest/tau_stages)
+nearest_abeta_stage = nearest - nearest_tau_stage*abeta_stages
+print("tau = ", nearest_tau_stage, "; abeta = ", nearest_abeta_stage, "; CSF tau = ", tau_MCI_patients[i], "; CSF abeta = ", abeta_MCI_patients[i])
 
 """
 fc_healty = np.load(gv.HC_FC_data)

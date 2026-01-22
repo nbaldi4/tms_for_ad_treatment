@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import re
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import global_variable_creation as gv
@@ -43,8 +44,74 @@ def collect_files(root_folder_path, files_name):
     df = pd.DataFrame(data)
     return df
 
+def file_extraction(files_group, tau_stage, abeta_stage):
+    file_sel = files_group[(files_group["tau"] == tau_stage) & (files_group["abeta"] == abeta_stage)]
+    file_path_sel = file_sel["file_path"]
+    file_path_string = file_path_sel.iloc[0] 
+    file_data = np.load(file_path_string)
+    return file_data
 
-root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_08_01_2026"
+def stage_metrics(root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_21_01_2026_img_coh"):
+    alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha band*")
+    beta_band_files = collect_files(root_folder, files_name="FC_EEG beta band*")
+    delta_band_files = collect_files(root_folder, files_name="FC_EEG delta band*")
+    theta_band_files = collect_files(root_folder, files_name="FC_EEG theta band*")
+    broad_band_files = collect_files(root_folder, files_name="FC_EEG_*")
+    bands_files = [broad_band_files, delta_band_files, theta_band_files, alpha_band_files, beta_band_files]
+    PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
+
+    tau_stages = 6
+    abeta_stages = 6
+    psd_means = np.zeros((tau_stages, abeta_stages, 5)) #broad (0.5-45)Hz, delta (0.5-4)Hz, theta (4-8)Hz, alpha (8-12)Hz, beta (12-30)Hz 
+    fc_reg_means = np.zeros((tau_stages, abeta_stages, 5, 2)) #tau stage, abeta stage, band, mean or mean absolute value
+    fc_red_means = np.zeros((tau_stages, abeta_stages, 5, 2)) #tau stage, abeta stage, band, mean or mean absolute value
+    for tau in range(tau_stages):
+        for abeta in range(abeta_stages):
+            for band in range(len(bands_files)):
+                fc_matrix = file_extraction(bands_files[band], tau, abeta)
+                fc_reg_means[tau,abeta, band, 0] = np.mean(fc_matrix['normal_size'])
+                fc_reg_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['normal_size']))
+                fc_red_means[tau,abeta, band, 0] = np.mean(fc_matrix['reduced_size'])
+                fc_red_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['reduced_size']))
+
+            psd_matrix = file_extraction(PSD_files, tau, abeta)
+            psd = psd_matrix['psd_mean']
+            freqs = psd_matrix['freqs']
+            psd_means[tau, abeta, 0] = np.mean(psd)                               #broad
+            psd_means[tau, abeta, 1] = np.mean(psd[(freqs < 4)])                  #delta
+            psd_means[tau, abeta, 2] = np.mean(psd[(freqs >= 4) & (freqs < 8)])   #theta
+            psd_means[tau, abeta, 3] = np.mean(psd[(freqs >= 8) & (freqs < 12)])  #alpha
+            psd_means[tau, abeta, 4] = np.mean(psd[(freqs >= 12) & (freqs < 30)]) #beta
+    return fc_reg_means, fc_red_means, psd_means
+
+fc_reg_means, fc_red_means, psd_means = stage_metrics()
+data_save_dir = os.path.join(gv.data_folder, f"Stages_21_01_2026_img_coh")
+os.makedirs(data_save_dir, exist_ok=True)
+output = os.path.join(data_save_dir, f"stage_metrics.npz")
+np.savez_compressed(
+            output,
+            fc_reg_means=fc_reg_means,
+            fc_red_means=fc_red_means,
+            psd_means=psd_means
+        )
+root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_21_01_2026_img_coh"
+alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha band*")
+delta_band_files = collect_files(root_folder, files_name="FC_EEG delta band*")
+theta_band_files = collect_files(root_folder, files_name="FC_EEG theta band*")
+beta_band_files = collect_files(root_folder, files_name="FC_EEG beta band*")
+broad_band_files = collect_files(root_folder, files_name="FC_EEG_*")
+PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
+
+def file_extraction(files_group, tau_stage, abeta_stage):
+    file_sel = files_group[(files_group["tau"] == tau_stage) & (files_group["abeta"] == abeta_stage)]
+    file_path_sel = file_sel["file_path"]
+    file_path_string = file_path_sel.iloc[0] 
+    file_data = np.load(file_path_string)
+    return file_data
+
+bands_files = [broad_band_files, delta_band_files, theta_band_files, alpha_band_files, beta_band_files]
+
+root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_21_01_2026_img_coh"
 alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha band*")
 delta_band_files = collect_files(root_folder, files_name="FC_EEG delta band*")
 theta_band_files = collect_files(root_folder, files_name="FC_EEG theta band*")
@@ -60,7 +127,7 @@ psd_means = np.empty((4, tau_stages, abeta_stages))
 psd_max = np.empty((4, tau_stages, abeta_stages))
 freq_max = np.empty((4, tau_stages, abeta_stages))
 freqs = np.empty((tau_stages, abeta_stages), dtype=object)
-mean_reg_EEG_array = np.ones((4, tau_stages, abeta_stages))
+mean_reg_EEG_array = np.ones((4, tau_stages, abeta_stages)) #bands, tau, abeta
 mean_abs_reg_EEG_array = np.ones((4, tau_stages, abeta_stages))
 mean_red_EEG_array = np.ones((4, tau_stages, abeta_stages))
 mean_abs_red_EEG_array = np.ones((4, tau_stages, abeta_stages))
@@ -146,393 +213,87 @@ for tau in range(tau_stages):
         idx_max = np.where(mask_alpha)[0][np.argmax(psd_mean[mask_alpha])]
         freq_max[1, tau, abeta] = freqs[idx_max]
 
+def plot_function(x, title, xlabel, labels=['broad','delta','theta', 'alpha', 'beta'], y = np.linspace(0,5,6), tau = True):
+    plt.figure(figsize=(10, 12))
+    for i in range(len(labels)):
+        if tau == True:
+            plt.plot(y, x[i, :, 0], label=labels[i])
+        else:
+            plt.plot(y, x[i, 0, :], label=labels[i])
+    plt.legend()
+    plt.grid()
+    plt.title(title, fontsize=18)
+    plt.xlabel(xlabel, fontsize=16)
+    plt.show()
 
+def plot_heatmap(x, title, idx):
+    fig = plt.figure(figsize=(12, 8)) 
+    ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
+    im = ax.imshow(x[:,:,idx], cmap='bwr', vmin=None, vmax=None, aspect='equal')
+    title_text = title
+    ax.set_title(title_text, fontsize=15)
+    ax.set_ylabel('Tau Stage', fontsize=12)# Primo indice (righe)
+    ax.set_xlabel('Abeta Stage', fontsize=12)  # Secondo indice (colonne)
+    cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
+    plt.colorbar(im, cax=cax)
+    plt.show()
 
-stages = np.linspace(0,5,6)
-"""
-plt.figure(figsize=(10, 12))
-plt.plot(stages, mean_reg_EEG_array[0, :, 0], label='reg_b')
-plt.plot(stages, mean_reg_EEG_array[1, :, 0], label='reg_a')
-plt.plot(stages, mean_reg_EEG_array[2, :, 0], label='reg_d')
-plt.plot(stages, mean_reg_EEG_array[3, :, 0], label='reg_t')
-plt.legend()
-plt.grid()
-plt.title('EEG FC reg mean', fontsize=18)
-plt.xlabel('Tau stages', fontsize=16)
-plt.show()
+def plot_heatmap2(x, title, idx, abs = 0):
+    fig = plt.figure(figsize=(12, 8)) 
+    ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
+    im = ax.imshow(x[idx,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')
+    title_text = title
+    ax.set_title(title_text, fontsize=15)
+    ax.set_ylabel('Tau Stage', fontsize=12)    # Primo indice (righe)
+    ax.set_xlabel('Abeta Stage', fontsize=12)  # Secondo indice (colonne)
+    cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
+    plt.colorbar(im, cax=cax)
+    plt.show()
 
-plt.figure(figsize=(10, 12))
-plt.plot(stages, mean_red_EEG_array[0, :, 0], label='red_b')
-plt.plot(stages, mean_red_EEG_array[1, :, 0], label='red_a')
-plt.plot(stages, mean_red_EEG_array[2, :, 0], label='red_d')
-plt.plot(stages, mean_red_EEG_array[3, :, 0], label='red_t')
-plt.legend()
-plt.grid()
-plt.title('EEG FC red mean', fontsize=18)
-plt.xlabel('Tau stages', fontsize=16)
-plt.show()
+def plot_heatmaps():
+    """
+    plot_heatmap(x=psd_means, title='broad PSD mean', idx = 0)
+    plot_heatmap(x=psd_means, title='delta PSD mean', idx = 1)
+    plot_heatmap(x=psd_means, title='theta PSD mean', idx = 2)
+    plot_heatmap(x=psd_means, title='alpha PSD mean', idx = 3)
+    plot_heatmap(x=psd_means, title='beta PSD mean', idx = 4)
+    """
+    plot_heatmap(x=fc_reg_means[:, :, :, 0], title='broad FC mean reg', idx = 0) #tau stage, abeta stage, band, mean or mean absolute value
+    plot_heatmap2(x=mean_reg_EEG_array[:, :, :], title='broad FC mean reg', idx = 0)  #bands, tau, abeta
+    #plot_heatmap(x=fc_reg_means[:, :, :, 0], title='delta FC mean reg', idx = 1)
+    #plot_heatmap(x=fc_reg_means[:, :, :, 0], title='theta FC mean reg', idx = 2)
+    #plot_heatmap(x=fc_reg_means[:, :, :, 0], title='alpha FC mean reg', idx = 3)
+    #plot_heatmap(x=fc_reg_means[:, :, :, 0], title='beta FC mean reg', idx = 4)
+    
+    #plot_heatmap2(x=mean_reg_EEG_array[:, :, :], title='delta FC mean reg', idx = 1)
+    #plot_heatmap2(x=mean_reg_EEG_array[:, :, :], title='theta FC mean reg', idx = 2)
+    #plot_heatmap2(x=mean_reg_EEG_array[:, :, :], title='alpha FC mean reg', idx = 3)
+    #plot_heatmap2(x=mean_reg_EEG_array[:, :, :], title='beta FC mean reg', idx = 4)
+    """
+    plot_heatmap(x=fc_red_means[:, :, :, 0], title='broad FC mean red', idx = 0)
+    plot_heatmap(x=fc_red_means[:, :, :, 0], title='delta FC mean red', idx = 1)
+    plot_heatmap(x=fc_red_means[:, :, :, 0], title='theta FC mean red', idx = 2)
+    plot_heatmap(x=fc_red_means[:, :, :, 0], title='alpha FC mean red', idx = 3)
+    plot_heatmap(x=fc_red_means[:, :, :, 0], title='beta FC mean red', idx = 4)
+    plot_heatmap(x=fc_reg_means[:, :, :, 1], title='broad abs FC mean reg', idx = 0)
+    plot_heatmap(x=fc_reg_means[:, :, :, 1], title='delta abs FC mean reg', idx = 1)
+    plot_heatmap(x=fc_reg_means[:, :, :, 1], title='theta abs FC mean reg', idx = 2)
+    plot_heatmap(x=fc_reg_means[:, :, :, 1], title='alpha abs FC mean reg', idx = 3)
+    plot_heatmap(x=fc_reg_means[:, :, :, 1], title='beta abs FC mean reg', idx = 4)
+    plot_heatmap(x=fc_red_means[:, :, :, 1], title='broad abs FC mean red', idx = 0)
+    plot_heatmap(x=fc_red_means[:, :, :, 1], title='delta abs FC mean red', idx = 1)
+    plot_heatmap(x=fc_red_means[:, :, :, 1], title='theta abs FC mean red', idx = 2)
+    plot_heatmap(x=fc_red_means[:, :, :, 1], title='alpha abs FC mean red', idx = 3)
+    plot_heatmap(x=fc_red_means[:, :, :, 1], title='beta abs FC mean red', idx = 4)
+    """
 
-plt.figure(figsize=(10, 12))
-plt.plot(stages, mean_abs_reg_EEG_array[0, :, 0], label='reg_abs_b')
-plt.plot(stages, mean_abs_reg_EEG_array[1, :, 0], label='reg_abs_a')
-plt.plot(stages, mean_abs_reg_EEG_array[2, :, 0], label='reg_abs_d')
-plt.plot(stages, mean_abs_reg_EEG_array[3, :, 0], label='reg_abs_t')
-plt.legend()
-plt.grid()
-plt.title('EEG FC abs reg mean', fontsize=18)
-plt.xlabel('Tau stages', fontsize=16)
-plt.show()
+def plot_functions():
+    plot_function(x = fc_reg_means[:, :, :, 0], title = 'EEG FC reg mean', xlabel='Tau stages')
+    plot_function(x = fc_red_means[:, :, :, 0], title = 'EEG FC red mean', xlabel='Tau stages')
+    plot_function(x = fc_reg_means[:, :, :, 1], title = 'EEG FC abs reg mean', xlabel='Tau stages')
+    plot_function(x = fc_red_means[:, :, :, 1], title = 'EEG FC abs red mean', xlabel='Tau stages')
+    #plot_function(x = freq_max, title = 'Frequency peaks', xlabel='Tau stages')
+    #plot_function(x = psd_max, title = 'Frequency amplitude', xlabel='Tau stages')
+    plot_function(x = psd_means, title = 'PSD mean', xlabel='Tau stages')
 
-plt.figure(figsize=(10, 12))
-plt.plot(stages, mean_abs_red_EEG_array[0, :, 0], label='red_abs_b')
-plt.plot(stages, mean_abs_red_EEG_array[1, :, 0], label='red_abs_a')
-plt.plot(stages, mean_abs_red_EEG_array[2, :, 0], label='red_abs_d')
-plt.plot(stages, mean_abs_red_EEG_array[3, :, 0], label='red_abs_t')
-plt.legend()
-plt.grid()
-plt.title('EEG FC abs red mean', fontsize=18)
-plt.xlabel('Tau stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, freq_max[0, :, 0], label='peak_freq_b')
-plt.plot(stages, freq_max[1, :, 0], label='peak_freq_a')
-plt.plot(stages, freq_max[2, :, 0], label='peak_freq_d')
-plt.plot(stages, freq_max[3, :, 0], label='peak_freq_t')
-plt.yticks(np.linspace(2,10,17))
-plt.xticks(np.linspace(0,5,6))
-plt.legend()
-plt.grid('minor')
-plt.title('Frequency peaks', fontsize=18)
-plt.xlabel('Tau stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, psd_max[0, :, 0], label='peak_amp_b')
-plt.plot(stages, psd_max[1, :, 0], label='peak_amp_a')
-plt.plot(stages, psd_max[2, :, 0], label='peak_amp_d')
-plt.plot(stages, psd_max[3, :, 0], label='peak_amp_t')
-plt.yticks(np.linspace(0,0.008,17))
-plt.xticks(np.linspace(0,5,6))
-plt.legend()
-plt.grid('minor')
-plt.title('Peaks amplitude', fontsize=18)
-plt.xlabel('Tau stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, psd_means[0, :, 0], label='peak_amp_b')
-plt.plot(stages, psd_means[1, :, 0], label='peak_amp_a')
-plt.plot(stages, psd_means[2, :, 0], label='peak_amp_d')
-plt.plot(stages, psd_means[3, :, 0], label='peak_amp_t')
-plt.yticks(np.linspace(0,0.008,17))
-plt.xticks(np.linspace(0,5,6))
-plt.legend()
-plt.grid('minor')
-plt.title('PSD means', fontsize=18)
-plt.xlabel('Tau stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, mean_reg_EEG_array[0, 0, :], label='reg_b')
-plt.plot(stages, mean_reg_EEG_array[1, 0, :], label='reg_a')
-plt.plot(stages, mean_reg_EEG_array[2, 0, :], label='reg_d')
-plt.plot(stages, mean_reg_EEG_array[3, 0, :], label='reg_t')
-plt.legend()
-plt.grid()
-plt.title('EEG FC reg mean', fontsize=18)
-plt.xlabel('Abeta stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, mean_red_EEG_array[0, 0, :], label='red_b')
-plt.plot(stages, mean_red_EEG_array[1, 0, :], label='red_a')
-plt.plot(stages, mean_red_EEG_array[2, 0, :], label='red_d')
-plt.plot(stages, mean_red_EEG_array[3, 0, :], label='red_t')
-plt.legend()
-plt.grid()
-plt.title('EEG FC red mean', fontsize=18)
-plt.xlabel('Abeta stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, mean_abs_reg_EEG_array[0, 0, :], label='reg_abs_b')
-plt.plot(stages, mean_abs_reg_EEG_array[1, 0, :], label='reg_abs_a')
-plt.plot(stages, mean_abs_reg_EEG_array[2, 0, :], label='reg_abs_d')
-plt.plot(stages, mean_abs_reg_EEG_array[3, 0, :], label='reg_abs_t')
-plt.legend()
-plt.grid()
-plt.title('EEG FC abs reg mean', fontsize=18)
-plt.xlabel('Abeta stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, mean_abs_red_EEG_array[0, 0, :], label='red_abs_b')
-plt.plot(stages, mean_abs_red_EEG_array[1, 0, :], label='red_abs_a')
-plt.plot(stages, mean_abs_red_EEG_array[2, 0, :], label='red_abs_d')
-plt.plot(stages, mean_abs_red_EEG_array[3, 0, :], label='red_abs_t')
-plt.legend()
-plt.grid()
-plt.title('EEG FC abs red mean', fontsize=18)
-plt.xlabel('Abeta stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, freq_max[0, 0, :], label='peak_freq_b')
-plt.plot(stages, freq_max[1, 0, :], label='peak_freq_a')
-plt.plot(stages, freq_max[2, 0, :], label='peak_freq_d')
-plt.plot(stages, freq_max[3, 0, :], label='peak_freq_t')
-plt.yticks(np.linspace(2,15,27))
-plt.xticks(np.linspace(0,5,6))
-plt.legend()
-plt.grid('minor')
-plt.title('Frequency peaks', fontsize=18)
-plt.xlabel('Abeta stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, psd_max[0, 0, :], label='peak_amp_b')
-plt.plot(stages, psd_max[1, 0, :], label='peak_amp_a')
-plt.plot(stages, psd_max[2, 0, :], label='peak_amp_d')
-plt.plot(stages, psd_max[3, 0, :], label='peak_amp_t')
-plt.yticks(np.linspace(0,0.008,17))
-plt.xticks(np.linspace(0,5,6))
-plt.legend()
-plt.grid('minor')
-plt.title('Peaks amplitude', fontsize=18)
-plt.xlabel('Abeta stages', fontsize=16)
-plt.show()
-
-plt.figure(figsize=(10, 12))
-plt.plot(stages, psd_means[0, 0, :], label='psd_mean_b')
-plt.plot(stages, psd_means[1, 0, :], label='psd_mean_a')
-plt.plot(stages, psd_means[2, 0, :], label='psd_mean_d')
-plt.plot(stages, psd_means[3, 0, :], label='psd_mean_t')
-plt.yticks(np.linspace(0,0.0045,10))
-plt.xticks(np.linspace(0,5,6))
-plt.legend()
-plt.grid('minor')
-plt.title('PSD means', fontsize=18)
-plt.xlabel('Abeta stages', fontsize=16)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(psd_means[0,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')
-title_text = 'broad PSD mean'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)    # Secondo indice (righe)
-ax.set_xlabel('Abeta Stage', fontsize=12)  # Terzo indice (colonne)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(psd_means[1,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')
-title_text = 'alpha PSD mean'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(psd_means[2,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')
-title_text = 'delta PSD mean'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-
-plt.show()
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(psd_means[3,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')
-title_text = 'theta PSD mean'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-"""
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_reg_EEG_array[0,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'broad FC mean reg'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_reg_EEG_array[1,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'alpha FC mean reg'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_reg_EEG_array[2,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'delta FC mean reg'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_reg_EEG_array[3,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'theta FC mean reg'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_red_EEG_array[0,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'broad FC mean red'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_red_EEG_array[1,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')
-title_text = 'alpha FC mean red'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_red_EEG_array[2,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'delta FC mean red'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_red_EEG_array[3,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'theta FC mean red'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_abs_reg_EEG_array[0,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')
-title_text = 'broad abs FC mean reg'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_abs_reg_EEG_array[1,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')  
-title_text = 'alpha abs FC mean reg'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_abs_reg_EEG_array[2,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')  
-title_text = 'delta abs FC mean reg'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_abs_reg_EEG_array[3,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')  
-title_text = 'theta abs FC mean reg'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_abs_red_EEG_array[0,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'broad abs FC mean red'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_abs_red_EEG_array[1,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'alpha abs FC mean red'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_abs_red_EEG_array[2,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal') 
-title_text = 'delta asb FC mean red'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
-
-fig = plt.figure(figsize=(12, 8)) 
-ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-im = ax.imshow(mean_abs_red_EEG_array[3,:,:], cmap='bwr', vmin=None, vmax=None, aspect='equal')  
-title_text = 'theta abs FC mean red'
-ax.set_title(title_text, fontsize=15)
-ax.set_ylabel('Tau Stage', fontsize=12)
-ax.set_xlabel('Abeta Stage', fontsize=12)
-cax = fig.add_axes([0.87, 0.15, 0.02, 0.7]) 
-plt.colorbar(im, cax=cax)
-plt.show()
+plot_heatmaps()
