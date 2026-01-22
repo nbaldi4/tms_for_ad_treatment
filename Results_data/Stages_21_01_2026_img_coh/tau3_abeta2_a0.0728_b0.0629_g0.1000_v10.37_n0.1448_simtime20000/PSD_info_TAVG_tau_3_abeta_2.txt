@@ -1,0 +1,7 @@
+Label: TAVG
+Sampling Frequency (fs): 1000.00 Hz
+Normalization Factor (max mean PSD): 1.357828e-03
+Normalization Factor affected regions (max mean PSD): 2.288578e-03
+Normalization Factor non affected regions (max mean PSD): 8.901862e-04
+Bandpass Filter: 0.5-45 Hz
+NPERSEG (Welch): 2048

@@ -1,0 +1,4 @@
+Label: TAVG beta band (12-30)Hz
+Mean Correlation (raw): 0.000757
+Mean Absolute Correlation: 0.031666
+Threshold (gv.th): 0.08
