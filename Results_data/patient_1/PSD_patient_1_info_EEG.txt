@@ -1,5 +1,0 @@
-Label: EEG
-Sampling Frequency (fs): 512.00 Hz
-Normalization Factor (max mean PSD): 1.603789e-12
-Bandpass Filter: 0.5-45 Hz
-NPERSEG (Welch): 2048
