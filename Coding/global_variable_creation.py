@@ -98,3 +98,15 @@ def connectivity_factory():
 # Istanza globale unica — importabile ovunque
 get_eeg_monitor = eeg_monitor_factory()
 get_conn = connectivity_factory()
+
+#mon_eeg = get_eeg_monitor() # Questo chiama la tua factory
+#print("Nomi sensori EEG simulati:")
+#print(mon_eeg.sensors.labels)
+"""
+['Fp1' 'Fp2' 'F4' 'F3' 'C3' 'C4' 'P4' 'P3' 'O2' 'O1' 'F8' 'F7' 'T8/T4'
+ 'T7/T3' 'P8/T6' 'P7/T5' 'Pz' 'Fz' 'IO1' 'IO2' 'AF9' 'AF10' 'F9' 'F10'
+ 'CB1' 'CB2' 'TP7' 'TP9' 'TP10' 'TP8' 'Oz' 'Iz' 'PO4' 'PO3' 'CP5' 'CP6'
+ 'CP1' 'CP2' 'FT9' 'FT10' 'FC2' 'FC1' 'AF3' 'AF4' 'FC6' 'FC5' 'CPz' 'P1'
+ 'POz' 'P2' 'P6' 'C6' 'P5' 'C1' 'C2' 'C5' 'F2' 'F6' 'F1' 'AF8' 'F5' 'AF7'
+ 'Fpz' 'FCz' 'Cz']
+ """

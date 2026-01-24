@@ -58,7 +58,7 @@ def file_extraction(files_group, tau_stage, abeta_stage):
     file_data = np.load(file_path_string)
     return file_data
 
-def patient_extraction(files_group):
+def patient_extraction(files_group, tau_stage, abeta_stage):
     file_sel = files_group[(files_group["tau"] == tau_stage) & (files_group["abeta"] == abeta_stage)]
     file_path_sel = file_sel["file_path"]
     file_path_string = file_path_sel.iloc[0] 

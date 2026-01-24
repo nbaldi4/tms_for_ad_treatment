@@ -715,27 +715,27 @@ def simulate(sim_time=20000,
 
     for i in tau_stage_1:
         J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration_alpha[tau_stage][2])
+        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage + 2])
     
     for i in tau_stage_2:
         J_stages[i] = 1 - degeneration[tau_stage + 1]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration_alpha[tau_stage][1])
+        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage + 1])
 
     for i in tau_stage_3:
         J_stages[i] = 1 - degeneration[tau_stage]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration_alpha[tau_stage][0])
+        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage])
 
     for i in Abeta_stage_1:
-        a_array[i] = a*(1+a_delta*degeneration_alpha[abeta_stage][2])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_alpha[abeta_stage][2]
+        a_array[i] = a*(1+a_delta*degeneration[abeta_stage + 2])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage+ 2]
 
     for i in Abeta_stage_2:
-        a_array[i] = a*(1+a_delta*degeneration_alpha[abeta_stage][1])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_alpha[abeta_stage][1]
+        a_array[i] = a*(1+a_delta*degeneration[abeta_stage + 1])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage + 1]
 
     for i in Abeta_stage_3:
-        a_array[i] = a*(1+a_delta*degeneration_alpha[abeta_stage][0])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_alpha[abeta_stage][0]
+        a_array[i] = a*(1+a_delta*degeneration[abeta_stage])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage]
 
     #for i in impaired_regions:
     #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta
@@ -1019,6 +1019,7 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
         np.savez_compressed(
             output_all,
             freqs=freqs,
+            psd_all_channels=psd_all,
             psd_mean=psd_mean,
             psd_std=psd_std
         )
@@ -1072,6 +1073,67 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
         plt.show()
     else:
         plt.close()
+
+    if len(filtered_signals[0, :]) < 70:    #P4(6), P3(7), O2(8), O1(9), T8(12), T7(13), Pz(16) regions probably more affected by AD
+        psd_interested = []
+        interested_nodes = [
+            6, 7, 8, 9, 12, 13, 16
+        ]
+        for i in interested_nodes:
+            freqs_AD, psd_AD = signal.welch(
+                filtered_signals[:, i],
+                fs=fs_welch,
+                nperseg=min(n_seg, len(filtered_signals[:, i])),
+                noverlap=n_seg // 2,
+                window=window
+            )
+            psd_interested.append(psd_AD)
+
+        psd_interested = np.array(psd_interested)
+        psd_interested_mean = np.mean(psd_interested, axis=0)
+        psd_interested_std = np.std(psd_interested, axis=0)
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
+        os.makedirs(data_save_dir, exist_ok=True)
+        fig_name = f"{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_interested_PSD.png"
+        output_AD = os.path.join(data_save_dir, 
+                file_name)
+
+        np.savez_compressed(
+            output_AD,
+            freqs=freqs_AD,
+            psd_mean=psd_interested_mean,
+            psd_std=psd_interested_std
+        )
+
+            # Normalize
+        normalization_factor = np.max(psd_interested_mean)
+        #psd_mean /= normalization_factor
+        #psd_std /= normalization_factor
+
+        # Plot
+        plt.figure(figsize=(10, 6))
+        plt.plot(freqs_AD, psd_interested_mean, label=label, linewidth=3)
+        plt.fill_between(freqs_AD, psd_interested_mean + psd_interested_std, psd_interested_mean - psd_interested_std, alpha=0.35)
+        plt.title(label + ' AD regions mean PSD', fontsize=20)
+        #plt.ylim(0, 1.01)
+        plt.xlim(0, 45)
+        plt.xlabel('Frequency [Hz]', fontsize=16)
+        plt.ylabel('Normalized PSD', fontsize=16)
+        plt.legend(fontsize=14)
+        plt.grid(True)
+
+        # Save / show
+        if gv.save_plots:
+            if real_patient == False:
+                fig_name = f"{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_AD_regions_PSD.png"
+            else:
+                fig_name = f"PSD_patient_{patient}_AD_regions_PSD_{label}.png"
+            os.makedirs(gv.fig_folder, exist_ok=True)
+            plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
+        if gv.show_plots:
+            plt.show()
+        else:
+            plt.close()
 
     if return_psd:
         return freqs, psd_mean
@@ -1205,7 +1267,9 @@ def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut
         fig_name = f"FC_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_{lowcut}-{highcut}_Hz.png"
         plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
     if gv.show_plots:
-        plt.show()
+        plt.show()    
+    else:
+        plt.close()
 
     sub_corr_viz = 2 * (sub_corr - np.min(sub_corr)) / (np.max(sub_corr) - np.min(sub_corr)) - 1
     # Plot corr
@@ -1238,3 +1302,5 @@ def functional_connectivity_img_coh(time_series_original, label, lowcut, highcut
         plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
     if gv.show_plots:
         plt.show()
+    else:
+        plt.close()

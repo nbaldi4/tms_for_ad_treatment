@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import re
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import global_variable_creation as gv
@@ -9,6 +10,7 @@ import time
 from data_analysis_utils import real_vs_stages_PSD, real_vs_stages_FC, to_common_indices, macro_fc, analyze_regular_data, analyze_reduced_data
 import mne
 from utils import psd, functional_connectivity_img_coh
+from staging_highlights import collect_files, file_extraction
 
 from pymatreader import read_mat
 import mne
@@ -17,7 +19,7 @@ start = time.time()
 
 # Rimuove il limite di larghezza della colonna (None = nessun limite)
 
-
+root_folder_global_save = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\MCI_data"
 # Esempio caricamento soggetto 211 Occhi Chiusi
 path_211 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_211_final.set"
 path_0 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_1_final.set"
@@ -118,7 +120,7 @@ def fun(path_ec, proteins, patient_num):
     eeg_data = raw_ec.get_data() 
 
     # reshape in TVB notation
-    eeg_reshape = eeg_data.T[10000:, np.newaxis, :, np.newaxis]
+    eeg_reshape = eeg_data.T[10000:60000, np.newaxis, :, np.newaxis] ########################################################
 
     # sample frequency
     gv.temp_avg_period = 1000 / raw_ec.info['sfreq']
@@ -127,12 +129,162 @@ def fun(path_ec, proteins, patient_num):
 
 def analyze_patients(paths, prot_lev):
     for i in range(len(paths)):
-        eeg = fun(paths[i], prot_lev[i], patient_num=i+1)
-        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG broad band (0.5-45)Hz', lowcut=0.5, highcut=45, real_patient=True, patient=i+1)
-        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG beta band (12-30)Hz', lowcut=12, highcut=30, real_patient=True, patient=i+1)
-        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG alpha band (8-12)Hz', lowcut=8, highcut=12, real_patient=True, patient=i+1)
-        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG theta band (4-8)Hz', lowcut=4, highcut=8, real_patient=True, patient=i+1)
-        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG delta band (0.5-4)Hz', lowcut=0.5, highcut=4, real_patient=True, patient=i+1)
-        psd(eeg, label=f"EEG", real_patient=True, patient=i+1)
+        p_id = f"{i+1:02d}"
+        eeg = fun(paths[i], prot_lev[i], patient_num=p_id)
+        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG broad band (0.5-45)Hz', lowcut=0.5, highcut=45, real_patient=True, patient=p_id)
+        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG beta band (13-30)Hz', lowcut=13, highcut=30, real_patient=True, patient=p_id)
+        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG alpha band (8-13)Hz', lowcut=8, highcut=13, real_patient=True, patient=p_id)
+        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG theta band (4-8)Hz', lowcut=4, highcut=8, real_patient=True, patient=p_id)
+        functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG delta band (0.5-4)Hz', lowcut=0.5, highcut=4, real_patient=True, patient=p_id)
+        psd(eeg, label=f"EEG", real_patient=True, patient=p_id)
 
-analyze_patients(paths=paths, prot_lev=prot_lev)
+def file_extraction(files_group, patient_id):
+    file_path_sel = os.path.join(files_group, patient_id)
+    file_path_string = file_path_sel.iloc[0] 
+    file_data = np.load(file_path_string)
+    return file_data
+
+def natural_keys(text):
+    # Converte i numeri in interi per l'ordinamento corretto (1, 2, 10 invece di 1, 10, 2)
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', str(text))]
+
+def apply_natural_keys(df):
+    if not df.empty:
+        # Estraiamo solo il nome del file dal path per l'ordinamento
+        df['filename_only'] = df['file_path'].apply(lambda x: os.path.basename(x))
+        df['sort_key'] = df['filename_only'].apply(natural_keys)
+        df = df.sort_values('sort_key').drop(columns=['sort_key', 'filename_only'])
+        df = df.reset_index(drop=True) # FONDAMENTALE per usare iloc correttamente
+    return df
+
+def build_patient_highlights_file(root_folder=r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data"):
+    # 1. Raccolta file con i nuovi pattern dei pazienti
+    alpha_band_files = collect_files(root_folder, files_name="FC_*8-12_Hz_patient_*")
+    beta_band_files = collect_files(root_folder, files_name="FC_*12-30_Hz_patient_*")
+    delta_band_files = collect_files(root_folder, files_name="FC_*0.5-4_Hz_patient_*")
+    theta_band_files = collect_files(root_folder, files_name="FC_*4-8_Hz_patient_*")
+    broad_band_files = collect_files(root_folder, files_name="FC_*0.5-45_Hz_patient_*")
+    PSD_files = collect_files(root_folder, files_name="PSD_EEG_patient_*")
+
+    alpha_band_files = apply_natural_keys(alpha_band_files)
+    beta_band_files = apply_natural_keys(beta_band_files)
+    delta_band_files = apply_natural_keys(delta_band_files)
+    theta_band_files = apply_natural_keys(theta_band_files)
+    broad_band_files = apply_natural_keys(broad_band_files)
+    PSD_files = apply_natural_keys(PSD_files)
+
+    bands_files = [broad_band_files, delta_band_files, theta_band_files, alpha_band_files, beta_band_files]
+    
+    # Determiniamo il numero di pazienti (usando alpha come riferimento)
+    num_patients = alpha_band_files.shape[0]
+    if num_patients == 0:
+        print("Nessun paziente trovato!")
+        return None
+    else:
+        print(f"{num_patients} pazienti trovati")
+    # 2. Inizializzazione contenitori (N_pazienti invece di 6x6)
+    # Usiamo la stessa struttura di stage_metrics ma con la prima dimensione = num_patients
+    psd_means = np.zeros((num_patients, 5)) 
+    psd_max = np.zeros((num_patients, 5))
+    freq_max = np.zeros(num_patients)
+    psd_metrics = np.zeros((num_patients, 2))
+    fc_reg_means = np.zeros((num_patients, 5, 2))
+    fc_red_means = np.zeros((num_patients, 5, 2))
+    fc_metrics = np.zeros((num_patients, 3))
+
+    # Nodi critici per la sottomatrice 7x7 (se ti serve ancora)
+    interested_nodes = [6, 7, 8, 9, 12, 13, 16]
+    fc_7x7_means = np.zeros((num_patients, 5, 2))
+
+    # 3. Estrazione dati per ogni paziente
+    for p_idx in range(num_patients):
+        # Nota: assumiamo che collect_files abbia ordinato i pazienti nello stesso modo per ogni banda
+        
+        # Estrazione FC per le 5 bande
+        for b_idx in range(len(bands_files)):
+            # Estraiamo il path del p_idx-esimo file del DataFrame
+            file_path = bands_files[b_idx].iloc[p_idx]['file_path']
+            fc_matrix = np.load(file_path)
+
+            # Medie Regular e Reduced
+            fc_reg_means[p_idx, b_idx, 0] = np.mean(fc_matrix['normal_size'])
+            fc_reg_means[p_idx, b_idx, 1] = np.mean(np.abs(fc_matrix['normal_size']))
+            fc_red_means[p_idx, b_idx, 0] = np.mean(fc_matrix['reduced_size'])
+            fc_red_means[p_idx, b_idx, 1] = np.mean(np.abs(fc_matrix['reduced_size']))
+            
+            # Sottomatrice 7x7
+            fc_7x7 = fc_matrix['normal_size'][np.ix_(interested_nodes, interested_nodes)]
+            fc_7x7_means[p_idx, b_idx, 0] = np.mean(fc_7x7)
+            fc_7x7_means[p_idx, b_idx, 1] = np.mean(np.abs(fc_7x7))
+
+        # Estrazione PSD
+        psd_path = PSD_files.iloc[p_idx]['file_path']
+        psd_data = np.load(psd_path)
+        psd = psd_data['psd_mean']
+        freqs = psd_data['freqs']
+
+        # Calcolo quantità PSD (somme e max)
+        masks = [
+            (freqs >= 0.5),                      # Broad
+            (freqs < 4),                         # Delta
+            (freqs >= 4) & (freqs < 8),          # Theta
+            (freqs >= 8) & (freqs < 12),         # Alpha
+            (freqs >= 12) & (freqs < 30)         # Beta
+        ]
+
+        for m_idx, mask in enumerate(masks):
+            psd_means[p_idx, m_idx] = np.sum(psd[mask])
+            psd_max[p_idx, m_idx] = np.max(psd[mask])
+
+        # Metriche PSD (Rapporti)
+        psd_metrics[p_idx, 0] = psd_means[p_idx, 3] / psd_means[p_idx, 0] # Alpha/Broad
+        psd_metrics[p_idx, 1] = psd_means[p_idx, 1] / psd_means[p_idx, 0] # Delta/Broad
+
+        # Frequenza di picco globale
+        freq_max[p_idx] = freqs[np.argmax(psd)]
+
+    # Metriche FC finali (Delta, Theta, Alpha abs mean)
+    fc_metrics[:, 0] = fc_reg_means[:, 1, 1] # Delta
+    fc_metrics[:, 1] = fc_reg_means[:, 2, 1] # Theta
+    fc_metrics[:, 2] = fc_reg_means[:, 3, 1] # Alpha
+
+    os.makedirs(root_folder_global_save, exist_ok=True)
+    output = os.path.join(root_folder_global_save, f"patients_metrics.npz")
+    np.savez_compressed(
+            output,
+            patient_id=np.linspace(1, num_patients, num_patients),
+            fc_reg_means=fc_reg_means,
+            fc_red_means=fc_red_means,
+            psd_max=psd_max,
+            freq_max=freq_max,
+            psd_metrics=psd_metrics,
+            fc_metrics=fc_metrics
+        )
+
+def print_patient_highlights(patients_metrics_path_file = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\MCI_data\patients_metrics.npz"):
+    
+    data = np.load(patients_metrics_path_file)
+    p_max = data['psd_max']
+    fc_means = data['fc_reg_means']
+
+    bands = ['Broad', 'Delta', 'Theta', 'Alpha', 'Beta']
+
+    print("-" * 60)
+    print(f"{'PATIENT':<10} | {'BAND':<8} | {'PSD MAX':<12} | {'FC MEAN (abs)'}")
+    print("-" * 60)
+
+    num_pazienti = p_max.shape[0]
+
+    for p in range(num_pazienti):
+        for b_idx, band_name in enumerate(bands):
+            psd_val = p_max[p, b_idx]
+            fc_val = fc_means[p, b_idx, 1] #index 1 stands for absolute mean value
+
+            p_label = f"Paz {p+1}" if b_idx == 0 else ""
+            
+            print(f"{p_label:<10} | {band_name:<8} | {psd_val:<12.4e} | {fc_val:.4f}")
+        print("-" * 60)
+
+#build_patient_highlights_file()
+#analyze_patients(paths=paths, prot_lev=prot_lev)
+

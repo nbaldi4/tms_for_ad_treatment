@@ -9,7 +9,7 @@ base_path = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_tre
 patient_dirs = glob.glob(os.path.join(base_path, "patient_*"))
 
 data_loaded = {}
-patients_number = 2
+patients_number = 50
 fc_reg = np.zeros((patients_number, 5, 2)) #patient_id, band [broad, delta, theta, alpha, beta], mean or mean absolute value
 fc_red = np.zeros((patients_number, 5, 2))
 psd_means = np.zeros((patients_number, 5)) #patient_id, band
@@ -174,4 +174,3 @@ stage_prob = -(reduced_distances[1,:,:]-np.argmax(reduced_distances[1,:,:]))
 stage_prob /= np.sum(stage_prob)
 
 print(stage_prob)
-
