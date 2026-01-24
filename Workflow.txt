@@ -40,3 +40,11 @@ Per vedere se c'è un modo migliori di far variare gli stage della beta, ho prov
 Adesso proviamo a calcolare la FC utilizzando una metrica diversa dal Pearson correlation coefficient usato finora. Utilizziamo la imaginary coherence e vediamo come si correlano i pazienti MCI agli stadi. Salviamo i risultati nella cartella Stages_16_01.
 
 Cercando di capire come sono messi i dati salta subito all'occhio che non sembra essere nessuna correlazione fra la dicitura HC, MCI e la forma della PSD. Non so a cosa possa essere dovuto. In ogni caso occorre controllare anche la FC e poi cercare di capire se i dati MCI sono realmente classificabili.
+
+Il prossimo passo è creare una metrica che sia funzione delle seguenti 4 quantità: PSD (np.sum(alpha)/np.sum(broad)); PSD (np.sum(delta)/np.sum(broad)); FC regular abs alpha; FC regular abs delta (o theta). Valutare quale fra le ultime due metriche permette di ottenere i risultati migliore per l'algoritmo di riconoscimento. Inoltre da ora in poi è importante tenere presente che la banda alpha sarà 8-13 e NON PIU' 8-12; questo non perché una sia più giusta rispetto all'altra ma in quanto Lorenzo in uno studio precedente ha usato il range 8-13 e vorremmo essere in grado di confrontare i due risultati.
+
+Abbiamo sistemato poi il programma staging_highlights.py che raccoglie le metriche e stampa tutto su una cartella, in modo da raccogliere automaticamente tutti i risultati. D'altronde faccio presente che, se si volessero aggiungere metriche o quantità da controllare, è necessario prestare attenzione alla definizione degli array che ospitano le quantità da plottare (la definizione usata forse rende leggermente troppo facile sbagliarsi per l'eccessiva quantità di indici).
+
+A questo punto, prima di creare la loss dei pazienti, scriviamo un file NPZ in cuie siano riassunte le quantità di ogni paziente in modo da poter recuperare quello ogni qual volta è richiesta un'analisi.
+
+Infine, a partire dall'articolo di Alzheimer's and Dementia "The neurobiological foundation of effective repetitive transcranial magnetic brain stimulation in Alzheimer’s disease" vorremmo cercare di risalire a uno staging migliore dei pazienti.
