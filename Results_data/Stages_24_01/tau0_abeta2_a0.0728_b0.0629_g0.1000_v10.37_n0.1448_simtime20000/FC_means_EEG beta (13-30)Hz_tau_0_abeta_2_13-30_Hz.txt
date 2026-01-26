@@ -1,0 +1,4 @@
+Label: EEG beta (13-30)Hz
+Mean Correlation (raw): 0.000370
+Mean Absolute Correlation: 0.024587
+Threshold (gv.th): 0.08

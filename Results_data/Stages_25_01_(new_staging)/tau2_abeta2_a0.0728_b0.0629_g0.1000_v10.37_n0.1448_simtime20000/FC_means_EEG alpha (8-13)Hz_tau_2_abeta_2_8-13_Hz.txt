@@ -1,0 +1,4 @@
+Label: EEG alpha (8-13)Hz
+Mean Correlation (raw): -0.000527
+Mean Absolute Correlation: 0.041732
+Threshold (gv.th): 0.08
