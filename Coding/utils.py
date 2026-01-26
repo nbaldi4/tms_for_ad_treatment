@@ -693,6 +693,8 @@ def simulate(sim_time=20000,
     ]
 
     degeneration = [0, 0, 0, 0.28, 0.78, 0.95, 0.95, 0.95]
+    degeneration_2_tau = [0, 0, 0, 0.28, 0.78, 0.95, 0.95, 0.95]
+    degeneration_2_abeta = [0, 0, 0, 0.6116, 0.8664, 0.95, 0.95, 0.95]
     degeneration_alpha = [[0, 0, 0], [0.11, 0.21, 0.31], [0.43, 0.53, 0.63], [0.75, 0.85, 0.95], [0.85, 0.95, 0.95], [0.95, 0.95, 0.95]]
     degeneration_alpha_2 = [[0, 0, 0], [0.21, 0.26, 0.31], [0.53, 0.58, 0.63], [0.85, 0.90, 0.95], [0.90, 0.95, 0.95], [0.95, 0.95, 0.95]]
 
@@ -714,28 +716,28 @@ def simulate(sim_time=20000,
     J_delta = 1 #0.0134/0.0192
 
     for i in tau_stage_1:
-        J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage + 2])
+        J_stages[i] = 1 - degeneration_2_tau[tau_stage + 2]*J_delta
+        b_array[i] = b*(1+b_delta*0.5*degeneration_2_tau[tau_stage + 2])
     
     for i in tau_stage_2:
-        J_stages[i] = 1 - degeneration[tau_stage + 1]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage + 1])
+        J_stages[i] = 1 - degeneration_2_tau[tau_stage + 1]*J_delta
+        b_array[i] = b*(1+b_delta*0.5*degeneration_2_tau[tau_stage + 1])
 
     for i in tau_stage_3:
-        J_stages[i] = 1 - degeneration[tau_stage]*J_delta
-        b_array[i] = b*(1+b_delta*0.5*degeneration[tau_stage])
+        J_stages[i] = 1 - degeneration_2_tau[tau_stage]*J_delta
+        b_array[i] = b*(1+b_delta*0.5*degeneration_2_tau[tau_stage])
 
     for i in Abeta_stage_1:
-        a_array[i] = a*(1+a_delta*degeneration[abeta_stage + 2])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage+ 2]
+        a_array[i] = a*(1+a_delta*degeneration_2_abeta[abeta_stage + 2])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_2_abeta[abeta_stage+ 2]
 
     for i in Abeta_stage_2:
-        a_array[i] = a*(1+a_delta*degeneration[abeta_stage + 1])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage + 1]
+        a_array[i] = a*(1+a_delta*degeneration_2_abeta[abeta_stage + 1])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_2_abeta[abeta_stage + 1]
 
     for i in Abeta_stage_3:
-        a_array[i] = a*(1+a_delta*degeneration[abeta_stage])
-        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration[abeta_stage]
+        a_array[i] = a*(1+a_delta*degeneration_2_abeta[abeta_stage])
+        b_array[i] = b_array[i] + b*b_delta*0.5*degeneration_2_abeta[abeta_stage]
 
     #for i in impaired_regions:
     #    J_stages[i] = 1 - degeneration[tau_stage]*J_delta

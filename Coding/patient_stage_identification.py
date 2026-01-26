@@ -19,6 +19,8 @@ tau_MCI_patients = np.array([40.0, np.nan, 128.2, 20.0, np.nan, 30.6, np.nan, 44
                              np.nan, 81.0, 28.0, np.nan, 56.0, 30.0, np.nan, np.nan, 25.0, 40.0, np.nan, 103.0, 158.0, 36.0,
                              103.0, np.nan, 39.4, 102.6, np.nan, 40.4, np.nan, 42.9, 156.9, 83.0, np.nan, 18.2])
 
+
+
 def collect_files(root_folder_path, files_name):
     """
     Raccoglie tutti i file che iniziano con 'FC_EEG alpha band' in tutte le sottocartelle

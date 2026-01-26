@@ -459,10 +459,10 @@ def to_common_indices(tvb_matrix, real_matrix):
     real_matrix_sub : np.ndarray
         Submatrix of real_matrix restricted to common channels.
     """
-    your_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
+    electrodes_name_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
 
     # Channel names for real EEG (62 channels)
-    eeg_real_data_names = np.load(your_path + 'names_ch.npy')
+    eeg_real_data_names = np.load(electrodes_name_path + 'names_ch.npy')
     eeg_real_data_names = np.array(eeg_real_data_names)
 
     # Channel names for Brainstorm EEG (65 channels)

@@ -13,7 +13,7 @@ def launch_simulation(i, j):
         "--PSD",
         "--FC",
         "--save_plots",
-        "--save_folder", 'Prova_22_01',
+        "--save_folder", 'Stages_25_01_(new_staging)',
         "--tau", i,
         "--abeta", j
     ]
