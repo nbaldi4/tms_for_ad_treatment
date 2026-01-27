@@ -19,158 +19,218 @@ tau_MCI_patients = np.array([40.0, np.nan, 128.2, 20.0, np.nan, 30.6, np.nan, 44
                              np.nan, 81.0, 28.0, np.nan, 56.0, 30.0, np.nan, np.nan, 25.0, 40.0, np.nan, 103.0, 158.0, 36.0,
                              103.0, np.nan, 39.4, 102.6, np.nan, 40.4, np.nan, 42.9, 156.9, 83.0, np.nan, 18.2])
 
+fc_mci_preview = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\MCI_data\fc_mci_preview.npy")
+mci_preview_metrics = np.zeros((len(abeta_MCI_patients), 3))
+mci_preview_metrics[:,0] = np.mean(fc_mci_preview, axis=(1,2))
+psd_mci_preview = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\MCI_data\psd_mci_preview.npy")
+psd_mci_preview_means = np.zeros((len(tau_MCI_patients), 2))
+prot_lev_mci = np.column_stack((abeta_MCI_patients, tau_MCI_patients))
+for i in range(len(tau_MCI_patients)):
+    mci_preview_metrics[:,1] = np.sum(psd_mci_preview[i, 2:16])/np.sum(psd_mci_preview[i, 2:180])
+    mci_preview_metrics[:,2] = np.sum(psd_mci_preview[i, 32:52])/np.sum(psd_mci_preview[i, 2:180]) # [delta/broad; alpha/broad]
 
+patients_stages_mci = np.zeros((len(abeta_MCI_patients), 2)) # tau stage, abeta stage
 
-def collect_files(root_folder_path, files_name):
-    """
-    Raccoglie tutti i file che iniziano con 'FC_EEG alpha band' in tutte le sottocartelle
-    della cartella root, estraendo tau e abeta dal nome del file.
-    """
-    root_folder = Path(root_folder_path)
-    data = []
+patient_data = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\MCI_data\patients_common_indices_metrics.npz")
+patient_psd_metrics = patient_data['psd_metrics'] #num_patients, metrics [Delta/Broad, Theta/Broad, Alpha/Broad, Beta/Broad]
+patient_fc_metrics = patient_data['fc_metrics'] #num_patients, metrics [regular abs broad; regular abs delta; regular abs theta; regular abs alpha; regular abs beta]
+stages_data = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Staging_del_25_01_(new_staging)\stage_metrics_del_25_01_(new_staging).npz")
+stages_psd_metrics = stages_data['psd_metrics'] #tau stage, abeta stage, metrics [Delta/Broad, Theta/Broad, Alpha/Broad, Beta/Broad]
+stages_fc_metrics = stages_data['fc_metrics'] #tau stage, abeta stage, metrics [regular abs broad; regular abs delta; regular abs theta; regular abs alpha; regular abs beta]
+print(stages_fc_metrics.shape)
+distances = np.zeros((len(patient_fc_metrics[:,0]), len(stages_fc_metrics[:,0,0]), len(stages_fc_metrics[0,:,0])))
+for p_idx in range(len(patient_fc_metrics[:,0])):
+    for tau_idx in range(len(stages_fc_metrics[:,0,0])):
+            for abeta_idx in range(len(stages_fc_metrics[0,:,0])):
+                distances[p_idx, tau_idx, abeta_idx] = (np.abs(patient_psd_metrics[p_idx, 0] - stages_psd_metrics[tau_idx, abeta_idx, 0]) +
+                                                        np.abs(patient_psd_metrics[p_idx, 2] - stages_psd_metrics[tau_idx, abeta_idx, 2]) +
+                                                        np.abs(patient_fc_metrics[p_idx, 1] - stages_fc_metrics[tau_idx, abeta_idx, 1]) +
+                                                        np.abs(patient_fc_metrics[p_idx, 2] - stages_fc_metrics[tau_idx, abeta_idx, 2]) +
+                                                        np.abs(patient_fc_metrics[p_idx, 3] - stages_fc_metrics[tau_idx, abeta_idx, 3])
+                                                       )
 
-    # regex flessibile per tau e abeta
-    pattern = re.compile(r"tau[_]?(\d+)[_]?abeta[_]?(\d+)", re.IGNORECASE)
+distances_abeta = np.zeros((len(patient_fc_metrics[:,0]), len(stages_fc_metrics[0,:,0])))
+distances_tau = np.zeros((len(patient_fc_metrics[:,0]), len(stages_fc_metrics[:,0,0])))
+for p_idx in range(len(patient_fc_metrics[:,0])):
+    for tau_idx in range(len(stages_fc_metrics[:,0,0])):
+            distances_tau[p_idx, tau_idx] = (np.abs(patient_psd_metrics[p_idx, 0] - stages_psd_metrics[tau_idx, 0, 0]) +
+                                             np.abs(patient_fc_metrics[p_idx, 1] - stages_fc_metrics[tau_idx, 0, 1]) 
+                                                   )
+            
+for p_idx in range(len(patient_fc_metrics[:,0])):
+    for abeta_idx in range(len(stages_fc_metrics[0,:,0])):
+        distances_abeta[p_idx, abeta_idx] = (np.abs(patient_psd_metrics[p_idx, 2] - stages_psd_metrics[0, abeta_idx, 2]) +
+                                             np.abs(patient_fc_metrics[p_idx, 2] - stages_fc_metrics[0, abeta_idx, 2]) +
+                                             np.abs(patient_fc_metrics[p_idx, 3] - stages_fc_metrics[0, abeta_idx, 3]) 
+                                                   )
 
-    # glob ricorsivo dalla root (trova tutto)
-    for file in root_folder.rglob(files_name):
-        match = pattern.search(file.name)
-        if match:
-            tau_val = int(match.group(1))
-            abeta_val = int(match.group(2))
-        else:
-            tau_val = None
-            abeta_val = None
+abeta_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_abeta.csv", skiprows=1)
+tau_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_p_tau.csv", skiprows=1)
+prot_lev = np.column_stack((abeta_level, tau_level))
+patients_stages = np.zeros((len(prot_lev), 2)) # tau stage, abeta stage
+######## ora determino lo stage dei pazienti in funzione dei protein levels determinati a partire dall'articolo"Clinical and biomarker trajectories in sporadic Alzheimer’s
+######## disease: A longitudinal study" di Alzheimer's and Dementia
+#CSF abeta level at stage I:  0.2318534187814261
+#CSF abeta level at stage II:  0.10060892803728635
+#CSF abeta level at stage III:  0.05000000000000001
+#CSF tau level at stage I:  0.5553246833941619
+#CSF tau level at stage II:  0.8543703680827017
+#CSF tau level at stage III:  0.9500000000000001
+######## per fare le proporzioni con i nostri livelli di proteine abbiamom soltanto il livello soglia, che supponiamo sia quello di cutoff
+######## p-tau >= 52 mg/L che corrisponde a 30.29 (inferred)
+######## abeta <= 813 mg/L che corrisponde a 192 (labeled in the article); la percentuale di decrescita della proteina alla quale è fissato il cutoff è 0.20618514077810396
+######## adesso dobbiamo risalire ai valori corrispondenti di abeta e tau nei 3 stages
+######## partiamo con i valori massimo di abeta e minimo di tau 
+######## il valore massimo di abeta sarà dato dalla proporzione x:813 = 241.87:192 --> x = 1024.17
+######## di conseguenza possiamo calcolare il valore minimo di abeta x:1024.17 = 130.53:241.87 --> x = 552.71
+######## allo stesso modo il valore minimo di tau sarà dato da x:52 = 47.07:30.29 --> x = 80.81
+######## quindi i delta del nostro modello saranno: abeta 1024.17 - 552.71 = 471.46
+########                                            tau 80.81 - 52 = 28.81
 
-        data.append({
-            "tau": tau_val,
-            "abeta": abeta_val,
-            "folder_name": file.parent.name,  # cartella immediata
-            "file_name": file.name,
-            "file_path": str(file.resolve())
-        })
+abeta_delta = 1024.17 - 552.71
+abeta_stage_1 = 552.71 + abeta_delta*0.2318534187814261
+abeta_stage_2 = 552.71 + abeta_delta*0.10060892803728635
+abeta_stage_3 = 552.71 + abeta_delta*0.05000000000000001
 
-    df = pd.DataFrame(data)
-    return df
+tau_delta = 80.81 - 28.81
+tau_stage_1 = 28.81 + tau_delta*0.5553246833941619
+tau_stage_2 = 28.81 + tau_delta*0.8543703680827017
+tau_stage_3 = 28.81 + tau_delta*0.9500000000000001
 
-def file_extraction(files_group, tau_stage, abeta_stage):
-    file_sel = files_group[(files_group["tau"] == tau_stage) & (files_group["abeta"] == abeta_stage)]
-    file_path_sel = file_sel["file_path"]
-    file_path_string = file_path_sel.iloc[0] 
-    file_data = np.load(file_path_string)
-    return file_data
+#########con questa divisione in stage la performance dell'algoritmo sale a 10 match e 4 mismatch di 1 (su 30 confronti totali)
+for i in range(len(patient_fc_metrics[:,0])):
+    if (prot_lev[i,0] == 0) & (prot_lev[i,1] == 0):
+        patients_stages[i,0] = np.nan
+        patients_stages[i,1] = np.nan
+    #prot_lev[i,0] < abeta_stage_1
+    if (prot_lev[i,0] > abeta_stage_1) & (prot_lev[i,1] < tau_stage_1):
+        patients_stages[i,0] = 0
+        patients_stages[i,1] = 0
 
-def patient_extraction(files_group, tau_stage, abeta_stage):
-    file_sel = files_group[(files_group["tau"] == tau_stage) & (files_group["abeta"] == abeta_stage)]
-    file_path_sel = file_sel["file_path"]
-    file_path_string = file_path_sel.iloc[0] 
-    file_data = np.load(file_path_string)
-    return file_data
+    if (prot_lev[i,0] > abeta_stage_1) & (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
+        patients_stages[i,0] = 3
+        patients_stages[i,1] = 3
 
-def stage_metrics(PSD_patient, FC_patient, root_folder):
-    root_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_21_01_2026_img_coh"
-    alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha band*")
-    beta_band_files = collect_files(root_folder, files_name="FC_EEG beta band*")
-    delta_band_files = collect_files(root_folder, files_name="FC_EEG delta band*")
-    theta_band_files = collect_files(root_folder, files_name="FC_EEG theta band*")
-    broad_band_files = collect_files(root_folder, files_name="FC_EEG_*")
-    bands_files = [broad_band_files, delta_band_files, theta_band_files, alpha_band_files, beta_band_files]
-    PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
+    if (prot_lev[i,0] > abeta_stage_1) & (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
+        patients_stages[i,0] = 4
+        patients_stages[i,1] = 3
+       
+    if (prot_lev[i,0] > abeta_stage_1) & (prot_lev[i,1] >= tau_stage_3):
+        patients_stages[i,0] = 5
+        patients_stages[i,1] = 3
 
-    tau_stages = 6
-    abeta_stages = 6
-    psd_means = np.zeros((tau_stages, abeta_stages, 5)) #broad (0.5-45)Hz, delta (0.5-4)Hz, theta (4-8)Hz, alpha (8-12)Hz, beta (12-30)Hz 
-    fc_reg_means = np.zeros((tau_stages, abeta_stages, 5, 2)) #tau stage, abeta stage, band, mean or mean absolute value
-    fc_red_means = np.zeros((tau_stages, abeta_stages, 5, 2)) #tau stage, abeta stage, band, mean or mean absolute value
-    for tau in range(tau_stages):
-        for abeta in range(abeta_stages):
-            for band in range(bands_files):
-                fc_matrix = file_extraction(bands_files[band], tau, abeta)
-                fc_reg_means[tau,abeta, band, 0] = np.mean(fc_matrix['normal_size'])
-                fc_reg_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['normal_size']))
-                fc_red_means[tau,abeta, band, 0] = np.mean(fc_matrix['reduced_size'])
-                fc_red_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['reduced_size']))
+    #abeta_stage_2 > prot_lev[i,0] >= abeta_stage_1
+    if (abeta_stage_2 < prot_lev[i,0] <= abeta_stage_1) & (prot_lev[i,1] < tau_stage_1):
+        patients_stages[i,0] = 2
+        patients_stages[i,1] = 0
 
-            psd_matrix = file_extraction(PSD_files, tau, abeta)
-            psd = psd_matrix['psd_mean']
-            freqs = psd_matrix['freqs']
-            psd_means[tau, abeta, 0] = np.mean(psd)                               #broad
-            psd_means[tau, abeta, 1] = np.mean(psd[(freqs < 4)])                  #delta
-            psd_means[tau, abeta, 2] = np.mean(psd[(freqs >= 4) & (freqs < 8)])   #theta
-            psd_means[tau, abeta, 3] = np.mean(psd[(freqs >= 8) & (freqs < 12)])  #alpha
-            psd_means[tau, abeta, 4] = np.mean(psd[(freqs >= 12) & (freqs < 30)]) #beta
-    return fc_reg_means, fc_red_means, psd_means
+    if (abeta_stage_2 < prot_lev[i,0] <= abeta_stage_1) & (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
+        patients_stages[i,0] = 3
+        patients_stages[i,1] = 1
 
-patient_files = collect_files(root_folder_path=gv.data_folder, files_name="patient_*")
+    if (abeta_stage_2 < prot_lev[i,0] <= abeta_stage_1) & (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
+        patients_stages[i,0] = 4
+        patients_stages[i,1] = 2
+        
+    if (abeta_stage_2 < prot_lev[i,0] <= abeta_stage_1) & (prot_lev[i,1] >= tau_stage_3):
+        patients_stages[i,0] = 5
+        patients_stages[i,1] = 3
 
-def stage_identification(fc_reg_pat, psd_pat): #pat for patient (not for path)
-    tau_stages = 6
-    abeta_stages = 6
-    distances = np.zeros((tau_stages, abeta_stages, 15)) #5 for fc_reg, 5 for fc_red, 5 for PSD
+    #abeta_stage_3 > prot_lev[i,0] >= abeta_stage_2
+    if (abeta_stage_3 < prot_lev[i,0] <= abeta_stage_2) & (prot_lev[i,1] < tau_stage_1):
+        patients_stages[i,0] = 2
+        patients_stages[i,1] = 0
 
-fc_healty = np.load(gv.MCI_FC_data)
-psd_healty = np.load(gv.MCI_PSD_data)
-nearest = np.argmin(distances)
-nearest_tau_stage = np.floor(nearest/tau_stages)
-nearest_abeta_stage = nearest - nearest_tau_stage*abeta_stages
-print("tau = ", nearest_tau_stage, "; abeta = ", nearest_abeta_stage, "; CSF tau = ", tau_MCI_patients[i], "; CSF abeta = ", abeta_MCI_patients[i])
+    if (abeta_stage_3 < prot_lev[i,0] <= abeta_stage_2) & (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
+        patients_stages[i,0] = 3
+        patients_stages[i,1] = 1
 
-"""
-fc_healty = np.load(gv.HC_FC_data)
-print(fc_regular[0,0].shape)
-fc_reduced_stage=macro_fc(fc_regular[0,0])
-print(fc_reduced_stage.shape)
-fc_mean = np.mean(fc_healty, axis=0)
-print(fc_mean.shape)
-matrix1, matrix2 = to_common_indices(fc_regular[0,0], fc_mean)
-print(matrix1.shape)
-print(matrix2.shape)
-print('np.max(fc_mean)',np.max(fc_mean))
-for i in range(len(fc_healty[:,0,0])):
-    print(i)
-    print(np.max(fc_healty[i,:,:]))
+    if (abeta_stage_3 < prot_lev[i,0] <= abeta_stage_2) & (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
+        patients_stages[i,0] = 4
+        patients_stages[i,1] = 2
+        
+    if (abeta_stage_3 < prot_lev[i,0] <= abeta_stage_2) & (prot_lev[i,1] >= tau_stage_3):
+        patients_stages[i,0] = 5
+        patients_stages[i,1] = 3
 
-fc = fc_regular[0,0]
+    #prot_lev[i,0] >= abeta_stage_3
+    if (prot_lev[i,0] <= abeta_stage_3) & (prot_lev[i,1] < tau_stage_1):
+        patients_stages[i,0] = 3
+        patients_stages[i,1] = 0
 
-print(fc_healty.shape)
-print(fc_regular[0,0].shape)
-sub_fc_healty, com_fc_healty = [], []
-for i in range(len(fc_healty[:, 0, 0])):
-    matrix1, matrix2 = to_common_indices(fc_regular[0,0], fc_healty[i, :, :])
-    com_fc_healty.append(matrix2)
+    if (prot_lev[i,0] <= abeta_stage_3) & (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
+        patients_stages[i,0] = 3
+        patients_stages[i,1] = 1
 
-fc_regular_0_0 = matrix1
-com_fc_healty = np.array(com_fc_healty)
-com_fc_healty = np.clip(com_fc_healty, -0.999999, 0.999999)
+    if (prot_lev[i,0] <= abeta_stage_3) & (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
+        patients_stages[i,0] = 3
+        patients_stages[i,1] = 2
+        
+    if (prot_lev[i,0] <= abeta_stage_3) & (prot_lev[i,1] >= tau_stage_3):
+        patients_stages[i,0] = 3
+        patients_stages[i,1] = 3
 
-# --- Compute group-level statistics ---
-normal_corr_stack = np.stack(com_fc_healty, axis=0)
-normal_z_stack = np.arctanh(normal_corr_stack)
-normal_z_mean = np.mean(normal_z_stack, axis=0)
-normal_corr_mean = np.tanh(normal_z_mean)
+    idx_abeta = np.argmin(distances_abeta[i, :])
+    idx_tau = np.argmin(distances_tau[i,:])
+    print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', idx_abeta, ' ', idx_tau)
 
+    idx_flat = np.argmin(distances[i, :, :])
 
-gv.show_plots = True
-norm_mae, red_mae = real_vs_stages_FC(fc_real=fc_mean, fc_regular_stage=fc_regular[0,0], fc_reduced_stage=macro_fc(fc_regular[0,0]), return_value=True)
-real_vs_stages_PSD(np.load(gv.HC_PSD_data), stage_psd=psd[0,0], stage_freqs=freqs[0,0])
-print('norm_mae',norm_mae)
-print('red_mae',red_mae)
-print('psd_mae',psd_maes[0,0])
-"""
-"""
-print(f"Shape matrice normale: {fc_regular.shape}")
-print(f"Shape matrice normale: {psd.shape}")
-print(fc_regular[0,0])
-print(psd[5,0].shape[0])
-freqs_uniform = np.linspace(0, psd[5,0].shape[0]-1, psd[0,0].shape[0])
-plt.figure(figsize=(10, 6))
-plt.plot(freqs_uniform, psd[5,0])
-plt.ylim(0, 1.01)
-plt.xlim(0, 45)
-plt.xlabel('Frequency [Hz]', fontsize=16)
-plt.ylabel('Normalized PSD', fontsize=16)
-plt.grid(True)
-plt.show()
-"""
-#for row in alpha_band_files.itertuples():
-#    print(row.tau, row.abeta, row.file_path)
+    # 2. Convertilo in coordinate (riga, colonna)
+    riga, colonna = np.unravel_index(idx_flat, distances[i, :, :].shape)
+    if riga >=3:
+        riga = 3
+    if colonna >=3:
+        colonna = 3
+    print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', riga, ' ', colonna, '\n')
+
+########## ovviamente questi sono 3 stage mentre noi ne abbiamo 5, per come abbiamo strutturato i nostri stages
+########## la corrispondenda stages_reali vs stages_simulati sarà la seguente:
+########## stage_reale 1 --> stage_simulato 1
+########## stage_reale 2 --> stage_simulato 2
+########## stage_reale 3 --> stage_simulato 3,4,5
+
+print(stages_fc_metrics.shape)
+distances_mci = np.zeros((len(abeta_MCI_patients), 6, 6))
+for p_idx in range(len(abeta_MCI_patients)):
+    for tau_idx in range(6):
+        for abeta_idx in range(6):
+            distances_mci[p_idx, tau_idx, abeta_idx] = (np.abs(mci_preview_metrics[p_idx,0] - stages_fc_metrics[tau_idx, abeta_idx, 2]) + 
+                                                   np.abs(mci_preview_metrics[p_idx, 1] - stages_psd_metrics[tau_idx, abeta_idx, 0]) +
+                                                   np.abs(mci_preview_metrics[p_idx, 2] - stages_psd_metrics[tau_idx, abeta_idx, 1]) 
+                                                   )
+            
+for i in range(len(abeta_MCI_patients)):
+    if (prot_lev_mci[i,0] != np.nan) & (prot_lev_mci[i,1] != np.nan):
+        match prot_lev_mci[i,0]:
+            case x if x >= abeta_stage_1:
+                patients_stages_mci[i,0] = 0
+            case x if abeta_stage_1 > x >= abeta_stage_2:
+                patients_stages_mci[i,0] = 1
+            case x if abeta_stage_2 > x >= abeta_stage_3:
+                patients_stages_mci[i,0] = 2
+            case _:
+                patients_stages_mci[i,0] = 3
+        match prot_lev_mci[i,1]:
+            case x if x <= tau_stage_1:
+                patients_stages_mci[i,1] = 0
+            case x if tau_stage_2 > x >= tau_stage_1:
+                patients_stages_mci[i,1] = 1
+            case x if tau_stage_3 > x >= tau_stage_2:
+                patients_stages_mci[i,1] = 2
+            case _:
+                patients_stages_mci[i,1] = 3
+    else:
+        patients_stages_mci[i,0] = np.nan
+        patients_stages_mci[i,1] = np.nan
+
+    idx_flat = np.argmin(distances_mci[i, :, :])
+
+    # 2. Convertilo in coordinate (riga, colonna)
+    riga, colonna = np.unravel_index(idx_flat, distances_mci[i, :, :].shape)
+    if riga >=3:
+        riga = 3
+    if colonna >=3:
+        colonna = 3
+    if (prot_lev_mci[i,0] < 2000):
+        print(i, ': ', prot_lev_mci[i], '; ', patients_stages_mci[i], '; ', riga, ' ', colonna)

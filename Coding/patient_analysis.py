@@ -24,59 +24,17 @@ start = time.time()
 
 root_folder_global_save = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\MCI_data"
 # Esempio caricamento soggetto 211 Occhi Chiusi
-path_211 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_211_final.set"
-path_0 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_1_final.set"
-path_1 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_2_final.set"
-path_2 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_3_final.set"
-path_3 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_4_final.set"
-path_4 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_5_final.set"
-path_5 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_6_final.set"
-path_6 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_7_final.set"
-path_7 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_8_final.set"
-path_8 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_9_final.set"
-path_9 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_10_final.set"
-path_10 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_11_final.set"
-path_11 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_12_final.set"
-path_12 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_13_final.set"
-path_13 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_14_final.set"
-path_14 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_15_final.set"
-path_15 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_16_final.set"
-path_16 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_17_final.set"
-path_17 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_18_final.set"
-path_18 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_19_final.set"
-path_19 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_20_final.set"
-path_20 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_21_final.set"
-path_21 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_22_final.set"
-path_22 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_23_final.set"
-path_23 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_24_final.set"
-path_24 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_25_final.set"
-path_25 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_26_final.set"
-path_26 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_27_final.set"
-path_27 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_28_final.set"
-path_28 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_29_final.set"
-path_29 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_30_final.set"
-path_30 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_31_final.set"
-path_31 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_32_final.set"
-path_32 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_33_final.set"
-path_33 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_34_final.set"
-path_34 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_35_final.set"
-path_35 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_36_final.set"
-path_36 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_37_final.set"
-path_37 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_38_final.set"
-path_38 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_39_final.set"
-path_39 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_40_final.set"
-path_40 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_41_final.set"
-path_41 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_42_final.set"
-path_42 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_43_final.set"
-path_43 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_44_final.set"
-path_44 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_45_final.set"
-path_45 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final\EC_EEG_PREVIEW_46_final.set"
 
-paths = np.array([path_1, path_2, path_3, path_4, path_5, path_6, path_7, path_8, path_9, path_10,
-                  path_11, path_12, path_13, path_14, path_15, path_16, path_17, path_18, path_19,
-                  path_20])#, path_21, path_22, path_23, path_24, path_25, path_26, path_27, path_28,
-                  #path_29, path_30, path_31, path_32, path_33, path_34, path_35, path_36, path_37,
-                  #path_38, path_39, path_40, path_41, path_42, path_43, path_44, path_45])
+base_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final"
+paths = []
+
+for i in range(1, 211): # Da 1 a 12
+    path = f"{base_folder}\EC_EEG_PREVIEW_{i}_final.set"
+    paths.append(path)
+
+paths = np.array(paths)
+
+print(paths.shape)
 
 abeta_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_abeta.csv", skiprows=1)
 tau_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_p_tau.csv", skiprows=1)
@@ -122,7 +80,7 @@ def fun(path_ec):
     eeg_data = raw_ec.get_data() 
 
     # reshape in TVB notation
-    eeg_reshape = eeg_data.T[10000:20000, np.newaxis, :, np.newaxis] ########################################################
+    eeg_reshape = eeg_data.T[10000:25000, np.newaxis, :, np.newaxis] ########################################################
 
     # sample frequency
     gv.temp_avg_period = 1000 / raw_ec.info['sfreq']
@@ -139,6 +97,7 @@ def analyze_patients(paths):
         functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG theta band (4-8)Hz', lowcut=4, highcut=8, real_patient=True, patient=p_id)
         functional_connectivity_img_coh(time_series_original = eeg, label = f'EEG delta band (0.5-4)Hz', lowcut=0.5, highcut=4, real_patient=True, patient=p_id)
         psd(eeg, label=f"EEG", real_patient=True, patient=p_id)
+        print(f'patients {i} analyzed')
 
 def process_single_patient(path, p_id):
     """Questa funzione contiene tutto il lavoro pesante per un singolo paziente."""
@@ -514,9 +473,9 @@ def build_reduced_patient_highlights_file(root_folder=r"C:\Users\User\OneDrive -
             fc_metrics=fc_metrics
         )
 
-build_reduced_patient_highlights_file()
+#build_reduced_patient_highlights_file()
 #analyze_patients_parallel(paths=paths)
-#analyze_patients(paths=paths)
+analyze_patients(paths=paths)
 #build_reduced_patient_highlights_file()
 
-data = np.load(os.path.join(root_folder_global_save, f"patients_common_indices_metrics.npz"))
+#data = np.load(os.path.join(root_folder_global_save, f"patients_common_indices_metrics.npz"))

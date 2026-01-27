@@ -158,7 +158,7 @@ for i in range(patient_number):
 
 abeta_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_abeta.csv", skiprows=1)
 tau_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_p_tau.csv", skiprows=1)
-prot_lev = np.column_stack((abeta_level, tau_level))
+prot_lev = np.column_stack((tau_level, abeta_level))
 
 def calcola_ranking_mi(df_metriche, target, nome_target="Proteina"):
 
@@ -207,7 +207,7 @@ stages_data = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Stag
 stages_psd_metrics = stages_data['psd_metrics'] #tau stage, abeta stage, metrics [delta/broad; alpha/broad]
 stages_fc_metrics = stages_data['fc_metrics'] #tau stage, abeta stage, metrics [regular abs delta; regular abs theta; regular abs alpha]
 print(stages_fc_metrics.shape)
-distances = np.zeros((len(patient_fc_metrics[:,0]), len(stages_fc_metrics[:,0,0]), len(stages_fc_metrics[0,:,0])))
+distances = np.zeros((len(patient_fc_metrics[:,0]), len(stages_fc_metrics[:,0,0]), len(stages_fc_metrics[0,:,0]))) #patients, tau, abeta
 for p_idx in range(len(patient_fc_metrics[:,0])):
     for tau_idx in range(len(stages_fc_metrics[:,0,0])):
         for abeta_idx in range(len(stages_fc_metrics[0,:,0])):
@@ -218,6 +218,7 @@ for p_idx in range(len(patient_fc_metrics[:,0])):
                                                    )
 
 patients_stages = np.zeros((patient_number, 2)) # tau stage, abeta stage
+inferred_patients_stages = np.zeros((patient_number, 2)) # tau stage, abeta stage
 ######## ora determino lo stage dei pazienti in funzione dei protein levels determinati a partire dall'articolo"Clinical and biomarker trajectories in sporadic Alzheimer’s
 ######## disease: A longitudinal study" di Alzheimer's and Dementia
 #CSF abeta level at stage I:  0.2318534187814261
@@ -241,123 +242,255 @@ abeta_delta = 1024.17 - 552.71
 abeta_stage_1 = 552.71 + abeta_delta*0.2318534187814261
 abeta_stage_2 = 552.71 + abeta_delta*0.10060892803728635
 abeta_stage_3 = 552.71 + abeta_delta*0.05000000000000001
+abeta_stage_4 = 552.71 - abeta_delta*0.05000000000000001
+abeta_stage_5 = 552.71 - abeta_delta*0.10060892803728635
+
+print(abeta_stage_1)
+print(abeta_stage_2)
+print(abeta_stage_3)
 
 tau_delta = 80.81 - 28.81
 tau_stage_1 = 28.81 + tau_delta*0.5553246833941619
 tau_stage_2 = 28.81 + tau_delta*0.8543703680827017
 tau_stage_3 = 28.81 + tau_delta*0.9500000000000001
+tau_stage_4 = 28.81 + tau_delta*1.5053246833941619
+tau_stage_5 = 28.81 + tau_delta*1.8043703680827018
 
+print(tau_stage_1)
+print(tau_stage_2)
+print(tau_stage_3)
 #########con questa divisione in stage la performance dell'algoritmo sale a 10 match e 4 mismatch di 1 (su 30 confronti totali)
+
+"""
+for i in range(patient_number):
+    if (prot_lev[i,1] == 0) & (prot_lev[i,0] == 0):
+        patients_stages[i,1] = np.nan
+        patients_stages[i,0] = np.nan
+    #prot_lev[i,0] < abeta_stage_1
+    if (prot_lev[i,1] < abeta_stage_1) & (prot_lev[i,0] < tau_stage_1):
+        patients_stages[i,1] = 0
+        patients_stages[i,0] = 0
+
+    if (prot_lev[i,1] < abeta_stage_1) & (tau_stage_2 > prot_lev[i,0] >= tau_stage_1):
+        patients_stages[i,1] = 3
+        patients_stages[i,0] = 3
+
+    if (prot_lev[i,1] < abeta_stage_1) & (tau_stage_3 > prot_lev[i,0] >= tau_stage_2):
+        patients_stages[i,1] = 4
+        patients_stages[i,0] = 3
+       
+    if (prot_lev[i,1] < abeta_stage_1) & (prot_lev[i,0] >= tau_stage_3):
+        patients_stages[i,1] = 5
+        patients_stages[i,0] = 3
+
+    #abeta_stage_2 > prot_lev[i,0] >= abeta_stage_1
+    if (abeta_stage_2 > prot_lev[i,1] >= abeta_stage_1) & (prot_lev[i,0] < tau_stage_1):
+        patients_stages[i,1] = 2
+        patients_stages[i,0] = 0
+
+    if (abeta_stage_2 > prot_lev[i,1] >= abeta_stage_1) & (tau_stage_2 > prot_lev[i,0] >= tau_stage_1):
+        patients_stages[i,1] = 3
+        patients_stages[i,0] = 1
+
+    if (abeta_stage_2 > prot_lev[i,1] >= abeta_stage_1) & (tau_stage_3 > prot_lev[i,0] >= tau_stage_2):
+        patients_stages[i,1] = 4
+        patients_stages[i,0] = 2
+        
+    if (abeta_stage_2 > prot_lev[i,1] >= abeta_stage_1) & (prot_lev[i,0] >= tau_stage_3):
+        patients_stages[i,1] = 5
+        patients_stages[i,0] = 3
+
+    #abeta_stage_3 > prot_lev[i,0] >= abeta_stage_2
+    if (abeta_stage_3 > prot_lev[i,1] >= abeta_stage_2) & (prot_lev[i,0] < tau_stage_1):
+        patients_stages[i,1] = 2
+        patients_stages[i,0] = 0
+
+    if (abeta_stage_3 > prot_lev[i,1] >= abeta_stage_2) & (tau_stage_2 > prot_lev[i,0] >= tau_stage_1):
+        patients_stages[i,1] = 3
+        patients_stages[i,0] = 1
+
+    if (abeta_stage_3 > prot_lev[i,1] >= abeta_stage_2) & (tau_stage_3 > prot_lev[i,0] >= tau_stage_2):
+        patients_stages[i,1] = 4
+        patients_stages[i,0] = 2
+        
+    if (abeta_stage_3 > prot_lev[i,1] >= abeta_stage_2) & (prot_lev[i,0] >= tau_stage_3):
+        patients_stages[i,1] = 5
+        patients_stages[i,0] = 3
+
+    #prot_lev[i,0] >= abeta_stage_3
+    if (prot_lev[i,1] >= abeta_stage_3) & (prot_lev[i,0] < tau_stage_1):
+        patients_stages[i,1] = 3
+        patients_stages[i,0] = 0
+
+    if (prot_lev[i,1] >= abeta_stage_3) & (tau_stage_2 > prot_lev[i,0] >= tau_stage_1):
+        patients_stages[i,1] = 3
+        patients_stages[i,0] = 1
+
+    if (prot_lev[i,1] >= abeta_stage_3) & (tau_stage_3 > prot_lev[i,0] >= tau_stage_2):
+        patients_stages[i,1] = 3
+        patients_stages[i,0] = 2
+        
+    if (prot_lev[i,1] >= abeta_stage_3) & (prot_lev[i,0] >= tau_stage_3):
+        patients_stages[i,1] = 3
+        patients_stages[i,0] = 3
+
+    idx_flat = np.argmin(distances[i, :, :])
+
+    # 2. Convertilo in coordinate (riga, colonna)
+    tau, abeta = np.unravel_index(idx_flat, distances[i, :, :].shape)
+    inferred_patients_stages[i,0] = tau
+    inferred_patients_stages[i,1] = abeta
+    print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', tau, ' ', abeta)
+"""
+
 for i in range(patient_number):
     if (prot_lev[i,0] == 0) & (prot_lev[i,1] == 0):
         patients_stages[i,0] = np.nan
         patients_stages[i,1] = np.nan
     #prot_lev[i,0] < abeta_stage_1
-    if (prot_lev[i,0] < abeta_stage_1) & (prot_lev[i,1] < tau_stage_1):
+    if (prot_lev[i,0] > abeta_stage_1):
         patients_stages[i,0] = 0
-        patients_stages[i,1] = 0
-
-    if (prot_lev[i,0] < abeta_stage_1) & (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
-        patients_stages[i,0] = 3
-        patients_stages[i,1] = 3
-
-    if (prot_lev[i,0] < abeta_stage_1) & (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
-        patients_stages[i,0] = 4
-        patients_stages[i,1] = 3
-       
-    if (prot_lev[i,0] < abeta_stage_1) & (prot_lev[i,1] >= tau_stage_3):
-        patients_stages[i,0] = 5
-        patients_stages[i,1] = 3
-
-    #abeta_stage_2 > prot_lev[i,0] >= abeta_stage_1
-    if (abeta_stage_2 > prot_lev[i,0] >= abeta_stage_1) & (prot_lev[i,1] < tau_stage_1):
+        
+    if (abeta_stage_1 > prot_lev[i,0] > abeta_stage_2):
+        patients_stages[i,0] = 1
+        
+    if (abeta_stage_2 > prot_lev[i,0] > abeta_stage_3):
         patients_stages[i,0] = 2
-        patients_stages[i,1] = 0
-
-    if (abeta_stage_2 > prot_lev[i,0] >= abeta_stage_1) & (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
+        
+    if (abeta_stage_3 > prot_lev[i,0] > abeta_stage_4):
         patients_stages[i,0] = 3
-        patients_stages[i,1] = 1
-
-    if (abeta_stage_2 > prot_lev[i,0] >= abeta_stage_1) & (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
+        
+    if (abeta_stage_4 > prot_lev[i,0] > abeta_stage_5):
         patients_stages[i,0] = 4
-        patients_stages[i,1] = 2
         
-    if (abeta_stage_2 > prot_lev[i,0] >= abeta_stage_1) & (prot_lev[i,1] >= tau_stage_3):
+    if (abeta_stage_5 > prot_lev[i,0]):
         patients_stages[i,0] = 5
-        patients_stages[i,1] = 3
 
-    #abeta_stage_3 > prot_lev[i,0] >= abeta_stage_2
-    if (abeta_stage_3 > prot_lev[i,0] >= abeta_stage_2) & (prot_lev[i,1] < tau_stage_1):
-        patients_stages[i,0] = 2
+    if (prot_lev[i,1] < tau_stage_1):
         patients_stages[i,1] = 0
 
-    if (abeta_stage_3 > prot_lev[i,0] >= abeta_stage_2) & (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
-        patients_stages[i,0] = 3
+    if (abeta_stage_1 < prot_lev[i,1] < abeta_stage_2):
         patients_stages[i,1] = 1
-
-    if (abeta_stage_3 > prot_lev[i,0] >= abeta_stage_2) & (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
-        patients_stages[i,0] = 4
+        
+    if (abeta_stage_2 < prot_lev[i,1] < abeta_stage_3):
         patients_stages[i,1] = 2
         
-    if (abeta_stage_3 > prot_lev[i,0] >= abeta_stage_2) & (prot_lev[i,1] >= tau_stage_3):
-        patients_stages[i,0] = 5
+    if (abeta_stage_3 < prot_lev[i,1] < abeta_stage_4):
         patients_stages[i,1] = 3
-
-    #prot_lev[i,0] >= abeta_stage_3
-    if (prot_lev[i,0] >= abeta_stage_3) & (prot_lev[i,1] < tau_stage_1):
-        patients_stages[i,0] = 3
-        patients_stages[i,1] = 0
-
-    if (prot_lev[i,0] >= abeta_stage_3) & (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
-        patients_stages[i,0] = 3
-        patients_stages[i,1] = 1
-
-    if (prot_lev[i,0] >= abeta_stage_3) & (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
-        patients_stages[i,0] = 3
-        patients_stages[i,1] = 2
         
-    if (prot_lev[i,0] >= abeta_stage_3) & (prot_lev[i,1] >= tau_stage_3):
-        patients_stages[i,0] = 3
-        patients_stages[i,1] = 3
+    if (abeta_stage_4 < prot_lev[i,1] < abeta_stage_5):
+        patients_stages[i,1] = 4
+        
+    if (abeta_stage_5 < prot_lev[i,1]):
+        patients_stages[i,1] = 5
 
     idx_flat = np.argmin(distances[i, :, :])
 
     # 2. Convertilo in coordinate (riga, colonna)
-    riga, colonna = np.unravel_index(idx_flat, distances[i, :, :].shape)
-    if riga >=3:
-        riga = 3
-    if colonna >=3:
-        colonna = 3
-    print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', riga, ' ', colonna)
+    tau, abeta = np.unravel_index(idx_flat, distances[i, :, :].shape)
+    inferred_patients_stages[i,0] = tau
+    inferred_patients_stages[i,1] = abeta
+    print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', tau, ' ', abeta)
+
 
 for i in range(patient_number):
     if not np.isnan(patients_stages[i]).any():
-        patient_parameters[i,:] = parameters_value(abeta_stage=int(patients_stages[i,0]), tau_stage=int(patients_stages[i,1]))
+        patient_parameters[i,:] = parameters_value(tau_stage=int(inferred_patients_stages[i,0]), abeta_stage=int(inferred_patients_stages[i,1]))
 
 print(patients_stages.shape)
 print(prot_lev[:patient_number].shape)
 valid = (
     ~np.isnan(patients_stages).any(axis=1)
-    & ~np.isnan(prot_lev[:patient_number]).any(axis=1)
+    & ~np.isnan(prot_lev[:patient_number]).any(axis=1) 
+    & (prot_lev[:patient_number, 0] > 0)
+    & (prot_lev[:patient_number, 1] > 0)
 )
-print(valid.shape)
-
 prot_lev_sub = prot_lev[:patient_number]
-
-tau = prot_lev_sub[valid, 1]
-abeta = prot_lev_sub[valid, 0]
+tau = prot_lev_sub[valid, 0]
+abeta = prot_lev_sub[valid, 1]
 params = patient_parameters[valid, :]
-
+np.set_printoptions(precision=3, suppress=True)
+#print('a_mean,  b_mean,  J_mean,  weights,  tau,  abeta')
+#print(np.column_stack((params, inferred_patients_stages[valid,:])))
 nomi_parametri = ['a_mean', 'b_mean', 'J_mean', 'weights_mean']
 print("\n--- Correlazione parametri vs Tau ---")
 for i, name in enumerate(nomi_parametri):
     rho, p = spearmanr(tau, params[:, i])
-    print(f"{name:25s}  rho={rho:+.3f}  p={p:.3e}")
+    #if i == 0:print(tau)
+    #if i == 0:print(params[:,i])
+    mi_tau = mutual_info_regression(
+        tau.reshape(-1,1),
+        params[:, i],
+        random_state=0
+        )
+    print(f'tau information on parameter {name}: {mi_tau}')
 
+    if gv.save_plots == True:
+        plt.scatter(tau, params[:, i], label=name)
+        plt.title(f'Correlation: {rho:.3f}, p-value: {p:.3f}')
+        plt.xlabel('CSF Tau')
+        plt.ylabel(nomi_parametri[i])
+        plt.grid()
+        plt.legend()
+        plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Correlation_scatterplots\tau_"+name)
+        plt.close()
+    #for j in range(len(tau)):
+    #    print(tau[j], params[j,i],)
+    print(f"{name:25s}  rho={rho:+.3f}  p={p:.3e}")
 print("\n--- Correlazione parametri vs Abeta ---")
 for i, name in enumerate(nomi_parametri):
     rho, p = spearmanr(abeta, params[:, i])
+    mi_abeta = mutual_info_regression(
+        abeta.reshape(-1,1),
+        params[:, i],
+        random_state=0
+        )
+    print(f'tau information on parameter {name}: {mi_abeta}')
+
+    if gv.save_plots == True:
+        plt.scatter(abeta, params[:, i], label=name)
+        plt.title(f'Correlation: {rho:.3f}, p-value: {p:.3f}')
+        plt.xlabel('CSF Abeta')
+        plt.ylabel(nomi_parametri[i])
+        plt.grid()
+        plt.legend()
+        plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Correlation_scatterplots\abeta_"+name)
+        plt.close()
+    #for j in range(len(abeta)):
+    #    print(abeta[j], params[j,i],)
     print(f"{name:25s}  rho={rho:+.3f}  p={p:.3e}")
+
+plt.scatter(abeta, tau)
+#plt.plot(373+0.82*np.linspace(np.min(tau), np.max(tau), len(tau)), np.linspace(np.min(tau), np.max(tau), len(tau)), label='alternative condition')
+plt.plot(813*np.ones(len(tau)), np.linspace(np.min(tau), np.max(tau), len(tau)), color = 'r', label='abeta cutoff')
+plt.plot(abeta_stage_1*np.ones(len(tau)), np.linspace(np.min(tau), np.max(tau), len(tau)), color = 'r')#, label='abeta 1')
+plt.plot(abeta_stage_2*np.ones(len(tau)), np.linspace(np.min(tau), np.max(tau), len(tau)), color = 'r')#, label='abeta 2')
+plt.plot(abeta_stage_3*np.ones(len(tau)), np.linspace(np.min(tau), np.max(tau), len(tau)), color = 'r')#, label='abeta 3')
+plt.plot(np.linspace(np.min(abeta), np.max(abeta), len(abeta)), 53*np.ones(len(abeta)), color = 'g', label='tau cutoff')
+plt.plot(np.linspace(np.min(abeta), np.max(abeta), len(abeta)), tau_stage_1*np.ones(len(abeta)), color = 'g')#, label='tau 1')
+plt.plot(np.linspace(np.min(abeta), np.max(abeta), len(abeta)), tau_stage_2*np.ones(len(abeta)), color = 'g')#, label='tau 2')
+plt.plot(np.linspace(np.min(abeta), np.max(abeta), len(abeta)), tau_stage_3*np.ones(len(abeta)), color = 'g')#, label='tau 3')
+plt.title('abeta vs tau')
+plt.xlabel('CSF Abeta')
+plt.ylabel('CSF Tau')
+plt.grid()
+plt.legend()
+plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\abeta_vs_tau")
+plt.close()
+
+plt.scatter(abeta, inferred_patients_stages[valid, 1])
+plt.xlabel('CSF Abeta')
+plt.ylabel('Inferred stage')
+plt.grid()
+plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\abeta_vs_inferre_stage")
+plt.close()
+
+plt.scatter(tau, inferred_patients_stages[valid, 0])
+plt.xlabel('CSF Tau')
+plt.ylabel('Inferred stage')
+plt.grid()
+plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tau_vs_inferre_stage")
+plt.close()
 
 ########## ovviamente questi sono 3 stage mentre noi ne abbiamo 5, per come abbiamo strutturato i nostri stages
 ########## la corrispondenda stages_reali vs stages_simulati sarà la seguente:
