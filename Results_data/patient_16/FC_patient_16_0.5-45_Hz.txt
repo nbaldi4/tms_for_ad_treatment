@@ -1,4 +1,4 @@
 Label: EEG broad band (0.5-45)Hz
-Mean Correlation (raw): -0.004409
-Mean Absolute Correlation: 0.031766
+Mean Correlation (raw): -0.003040
+Mean Absolute Correlation: 0.025957
 Threshold (gv.th): 0.08

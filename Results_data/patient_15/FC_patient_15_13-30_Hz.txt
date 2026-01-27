@@ -1,4 +1,4 @@
 Label: EEG beta band (13-30)Hz
-Mean Correlation (raw): -0.009472
-Mean Absolute Correlation: 0.049602
+Mean Correlation (raw): -0.006271
+Mean Absolute Correlation: 0.040848
 Threshold (gv.th): 0.08
