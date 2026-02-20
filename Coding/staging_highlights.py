@@ -15,8 +15,8 @@ from specparam import SpectralGroupModel # Usiamo Group per matrici [n_regions, 
 
 # Rimuove il limite di larghezza della colonna (None = nessun limite)
 pd.set_option('display.max_colwidth', None)
-root_folder_global = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_25_01_(new_staging)"
-root_folder_global_save = r"C:\Users\User\OneDrive - University of Pisa\Desktop\Staging_del_25_01_(new_staging)"
+root_folder_global = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_increase_b"
+root_folder_global_save = r"C:\Users\User\OneDrive - University of Pisa\Desktop\Stages_increase_b"
 
 def compute_mi_rank(X, y, target_name):
     # Calcolo della Mutual Information
@@ -91,13 +91,22 @@ def file_extraction(files_group, tau_stage, abeta_stage):
     return file_data
 
 def stage_metrics(root_folder = root_folder_global):
-    alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha (8-13)Hz_*")
-    beta_band_files = collect_files(root_folder, files_name="FC_EEG beta (13-30)Hz_*")
-    delta_band_files = collect_files(root_folder, files_name="FC_EEG delta (0.5-4)Hz_*")
-    theta_band_files = collect_files(root_folder, files_name="FC_EEG theta (4-8)Hz_*")
+    alpha_band_files = collect_files(root_folder, files_name="FC_EEG alpha_*")
+    beta_band_files = collect_files(root_folder, files_name="FC_EEG beta_*")
+    delta_band_files = collect_files(root_folder, files_name="FC_EEG delta_*")
+    theta_band_files = collect_files(root_folder, files_name="FC_EEG theta_*")
     broad_band_files = collect_files(root_folder, files_name="FC_EEG_*")
     bands_files = [broad_band_files, delta_band_files, theta_band_files, alpha_band_files, beta_band_files]
     PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
+    PSD_files = PSD_files[~PSD_files["file_name"].str.contains("interested", case=False)]
+
+    print(f"File totali dopo l'esclusione: {broad_band_files.shape[0]}") # Dovrebbe essere 36
+
+    # Imposta la larghezza massima delle colonne a "nessun limite"
+    pd.set_option('display.max_colwidth', None)
+
+    # Ora questo stamperà il percorso completo senza troncare
+    print(broad_band_files[['file_name', 'file_path']].head())
 
     tau_stages = 6
     abeta_stages = 6
@@ -176,8 +185,8 @@ def stage_metrics(root_folder = root_folder_global):
                 
                 fc_65x65_means[tau,abeta, band, 0] = np.mean(fc_matrix['normal_size'])
                 fc_65x65_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['normal_size']))
-                fc_reg_means[tau,abeta, band, 0] = np.mean(fc_matrix_sub)
-                fc_reg_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix_sub))
+                fc_reg_means[tau,abeta, band, 0] = np.mean(fc_matrix['normal_size'])
+                fc_reg_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['normal_size']))
                 fc_red_means[tau,abeta, band, 0] = np.mean(fc_matrix['reduced_size'])
                 fc_red_means[tau,abeta, band, 1] = np.mean(np.abs(fc_matrix['reduced_size']))
 
@@ -187,14 +196,14 @@ def stage_metrics(root_folder = root_folder_global):
             assert fc_matrix['normal_size'].shape[0] >= max(indices_65) + 1
             assert psd_all.shape[0] >= max(indices_65) + 1
             psd_all_ch = psd_all[indices_65, :]
-            psd = np.mean(psd_all_ch, axis=0)
+            psd = np.mean(psd_all, axis=0)
             freqs = psd_data['freqs']
-            aperiodic_exponent[tau, abeta] = aperiodic_slope_manual(psd_all_ch, freqs)
+            aperiodic_exponent[tau, abeta] = aperiodic_slope_manual(psd_all, freqs)
             psd_means[tau, abeta, 0] = np.sum(psd)                               #broad
             psd_means[tau, abeta, 1] = np.sum(psd[(freqs < 4)])                  #delta
             psd_means[tau, abeta, 2] = np.sum(psd[(freqs >= 4) & (freqs < 8)])   #theta
-            psd_means[tau, abeta, 3] = np.sum(psd[(freqs >= 8) & (freqs < 12)])  #alpha
-            psd_means[tau, abeta, 4] = np.sum(psd[(freqs >= 12) & (freqs < 30)]) #beta
+            psd_means[tau, abeta, 3] = np.sum(psd[(freqs >= 8) & (freqs < 13)])  #alpha
+            psd_means[tau, abeta, 4] = np.sum(psd[(freqs >= 13) & (freqs < 30)]) #beta
             psd_metrics[tau, abeta, 0] = psd_means[tau, abeta, 1]/psd_means[tau, abeta, 0] #Delta/broad
             psd_metrics[tau, abeta, 1] = psd_means[tau, abeta, 2]/psd_means[tau, abeta, 0] #Theta/Broad
             psd_metrics[tau, abeta, 2] = psd_means[tau, abeta, 3]/psd_means[tau, abeta, 0] #Alpha/broad
@@ -203,8 +212,8 @@ def stage_metrics(root_folder = root_folder_global):
             psd_max[tau, abeta, 0] = np.max(psd)
             psd_max[tau, abeta, 1] = np.max(psd[(freqs < 4)])
             psd_max[tau, abeta, 2] = np.max(psd[(freqs >= 4) & (freqs < 8)])
-            psd_max[tau, abeta, 3] = np.max(psd[(freqs >= 8) & (freqs < 12)])
-            psd_max[tau, abeta, 4] = np.max(psd[(freqs >= 12) & (freqs < 30)])
+            psd_max[tau, abeta, 3] = np.max(psd[(freqs >= 8) & (freqs < 13)])
+            psd_max[tau, abeta, 4] = np.max(psd[(freqs >= 13) & (freqs < 30)])
             idx_max = np.argmax(psd)
             freq_max[tau, abeta] = freqs[idx_max]
             #print("PSD total:", np.sum(psd))
@@ -233,7 +242,7 @@ def stage_metrics(root_folder = root_folder_global):
 fc_7x7_means, fc_reg_means, fc_red_means, psd_means, freqs, psd_max, freq_max, psd_metrics, fc_metrics = stage_metrics()
 
 os.makedirs(root_folder_global_save, exist_ok=True)
-output = os.path.join(root_folder_global_save, f"stage_metrics_del_25_01_(new_staging).npz")
+output = os.path.join(root_folder_global_save, f"stage_metrics_Stages_increase_b.npz")
 print(fc_metrics.shape)
 np.savez_compressed(
             output,
@@ -246,6 +255,49 @@ np.savez_compressed(
             fc_metrics=fc_metrics
         )
 
+def plot_PSDs(root_folder = root_folder_global):
+    # 1. Raccogli tutti i file
+    PSD_files = collect_files(root_folder, files_name="PSD_EEG_*")
+    
+    # 2. FORZA L'ESCLUSIONE di quelli 'interested'
+    # Usiamo l'operatore ~ (NOT) per tenere solo i file che NON contengono 'interested'
+    PSD_files = PSD_files[~PSD_files["file_name"].str.contains("interested", case=False)]
+    
+    print(f"File totali dopo l'esclusione: {PSD_files.shape[0]}") # Dovrebbe essere 36
+
+    # Imposta la larghezza massima delle colonne a "nessun limite"
+    pd.set_option('display.max_colwidth', None)
+
+    # Ora questo stamperà il percorso completo senza troncare
+    print(PSD_files[['file_name', 'file_path']].head())
+
+    # Crea una tabella pivot per vedere se c'è esattamente 1 file per ogni combinazione
+    check_table = PSD_files.groupby(['tau', 'abeta']).size().unstack(fill_value=0)
+    print(check_table)
+    for tau in range(6):
+        for abeta in range(6):
+            psd_data = file_extraction(PSD_files, tau, abeta)
+            psd_mean = psd_data['psd_mean']
+            freqs = psd_data['freqs']
+            # Plot
+            plt.figure(figsize=(10, 6))
+            plt.plot(freqs, psd_mean, linewidth=3)
+            fig_name = f'PSD abeta {abeta}, tau {tau}'
+            plt.title(f'PSD abeta {abeta}, tau {tau}', fontsize=20)
+            #plt.ylim(0, 1.01)
+            plt.xlim(0, 45)
+            plt.xlabel('Frequency [Hz]', fontsize=16)
+            plt.ylabel('PSD', fontsize=16)
+            plt.legend(fontsize=14)
+            plt.grid(True)
+            save_folder = os.path.join(root_folder, 'PSDs')
+            if not os.path.exists(save_folder):
+                os.makedirs(save_folder)
+            plt.savefig(os.path.join(save_folder, fig_name), dpi=200)
+            plt.close()
+
+
+
 def file_extraction(files_group, tau_stage, abeta_stage):
     file_sel = files_group[(files_group["tau"] == tau_stage) & (files_group["abeta"] == abeta_stage)]
     file_path_sel = file_sel["file_path"]
@@ -253,7 +305,7 @@ def file_extraction(files_group, tau_stage, abeta_stage):
     file_data = np.load(file_path_string)
     return file_data
 
-def plot_function(x, title, labels=['broad','delta','theta','alpha','beta'], y = np.linspace(0,5,6), tau = False):
+def plot_function(x, title, labels=['broad','delta','theta','alpha','beta'], y = np.linspace(0,5,6), tau = False, folder = root_folder_global_save):
     plt.figure(figsize=(10, 12))
     for i in range(len(labels)):
         if tau == True:
@@ -270,15 +322,19 @@ def plot_function(x, title, labels=['broad','delta','theta','alpha','beta'], y =
         title_figure = title + '_Abeta'
     else:
         title_figure = title + '_Tau'
-    folder = root_folder_global_save
     os.makedirs(folder, exist_ok=True)
     plt.savefig(os.path.join(folder, title_figure))
     plt.close()
 
 def plot_heatmap(x, title, idx, folder = root_folder_global_save):
     fig = plt.figure(figsize=(8, 5)) 
-    ax = fig.add_axes([0.15, 0.15, 0.7, 0.7]) 
-    im = ax.imshow(x[:,:,idx], cmap='bwr', vmin=None, vmax=None, aspect='equal')
+    ax = fig.add_axes([0.15, 0.15, 0.7, 0.7])
+    im = ax.imshow(
+        x[:, :, idx],
+        cmap='bwr',
+        origin='lower',
+        aspect='equal'
+    )
     title_text = title
     ax.set_title(title_text, fontsize=15)
     ax.set_ylabel('Tau Stage', fontsize=12)# Primo indice (righe)
@@ -324,12 +380,14 @@ def plot_functions():
     plot_function(x = fc_red_means[:, :, :, 1], title = 'EEG FC abs red mean')
     plot_function(x = psd_max, title = 'Frequency amplitude')
     plot_function(x = psd_means, title = 'PSD mean')
+    plot_function(x = psd_means, title = 'PSD mean')
     plot_function(x = fc_reg_means[:, :, :, 0], title = 'EEG FC reg mean',tau=True)
     plot_function(x = fc_red_means[:, :, :, 0], title = 'EEG FC red mean',tau=True)
     plot_function(x = fc_reg_means[:, :, :, 1], title = 'EEG FC abs reg mean',tau=True)
     plot_function(x = fc_red_means[:, :, :, 1], title = 'EEG FC abs red mean',tau=True)
     plot_function(x = psd_max, title = 'Frequency amplitude')
     plot_function(x = psd_means, title = 'PSD mean')
+    plot_function(x = psd_means, title = 'PSD mean', tau=True)
     plt.figure(figsize=(10, 12))
     stages = np.linspace(0,5,6)
     plt.plot(stages, freq_max[:, 0], label = 'tau stages')
@@ -344,15 +402,24 @@ def plot_functions():
     plt.close()
 
 def plot_metrics():
-    plot_heatmap(x=fc_metrics[:,:,:], title='delta abs FC mean reg', idx=0, folder = os.path.join(root_folder_global_save, 'metrics'))
-    plot_heatmap(x=fc_metrics[:,:,:], title='theta abs FC mean reg', idx=1, folder = os.path.join(root_folder_global_save, 'metrics'))
-    plot_heatmap(x=fc_metrics[:,:,:], title='alpha abs FC mean reg', idx=2, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_heatmap(x=fc_metrics[:,:,:], title='broad abs FC mean reg', idx=0, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_heatmap(x=fc_metrics[:,:,:], title='delta abs FC mean reg', idx=1, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_heatmap(x=fc_metrics[:,:,:], title='theta abs FC mean reg', idx=2, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_heatmap(x=fc_metrics[:,:,:], title='alpha abs FC mean reg', idx=3, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_heatmap(x=fc_metrics[:,:,:], title='beta abs FC mean reg', idx=4, folder = os.path.join(root_folder_global_save, 'metrics'))
     plot_heatmap(x=psd_metrics[:,:,:], title='delta power over broad power', idx=0, folder = os.path.join(root_folder_global_save, 'metrics'))
-    plot_heatmap(x=psd_metrics[:,:,:], title='alpha power over broad power', idx=1, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_heatmap(x=psd_metrics[:,:,:], title='theta power over broad power', idx=1, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_heatmap(x=psd_metrics[:,:,:], title='alpha power over broad power', idx=2, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_heatmap(x=psd_metrics[:,:,:], title='beta power over broad power', idx=3, folder = os.path.join(root_folder_global_save, 'metrics'))
+    plot_function(x=fc_metrics[:,:,:], title='abs FC mean reg', folder = os.path.join(root_folder_global_save, 'metrics'), labels=['broad', 'delta', 'theta', 'alpha', 'beta'])
+    plot_function(x=psd_metrics[:,:,:], title='band power over broad power', folder = os.path.join(root_folder_global_save, 'metrics'), labels=['Delta/broad', 'Theta/broad', 'Alpha/broad', 'Beta/broad'])
+    plot_function(x=fc_metrics[:,:,:], title='abs FC mean reg', folder = os.path.join(root_folder_global_save, 'metrics'), labels=['broad', 'delta', 'theta', 'alpha', 'beta'], tau=True)
+    plot_function(x=psd_metrics[:,:,:], title='band power over broad power', folder = os.path.join(root_folder_global_save, 'metrics'), labels=['Delta/broad', 'Theta/broad', 'Alpha/broad', 'Beta/broad'], tau=True)
 
-#plot_functions()
-#plot_heatmaps()
-#plot_metrics()
+plot_functions()
+plot_heatmaps()
+plot_metrics()
+plot_PSDs()
 """
 np.set_printoptions(precision=3)
 print(f"broad\n{fc_7x7_means[:,:,0,1]}")

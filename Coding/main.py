@@ -4,8 +4,8 @@ import numpy as np
 import argparse
 from tvb.simulator.lab import *
 
-from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot
-from utils import functional_connectivity, psd, functional_connectivity_band, functional_connectivity_img_coh
+from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot, simulate_different_combination_parameters, simulate_parametri_lorenzo
+from utils import functional_connectivity, psd, functional_connectivity_band, functional_connectivity_img_coh, psd_simil_lorenzo, Simulate2
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data, load_simulation_results
 import global_variable_creation as gv
 
@@ -15,6 +15,7 @@ def main():
     parser.add_argument("--no_sim", action="store_true", help="Search for simulated data")
     parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
     parser.add_argument("--save_folder", type=str, help="Folder to save figures and data")
+    parser.add_argument("--save_raw_data", action="store_true", help="Saving raw eeg and tavg data")
     parser.add_argument("--struct_conn", type=str, help="Path to structural connectivity file")
     parser.add_argument("--EEG", action="store_true", help="Perform eeg")
     parser.add_argument("--PSD", action="store_true", help="Perform psd")
@@ -31,6 +32,19 @@ def main():
     parser.add_argument("--b", type=float, help="JR b parameter")
     parser.add_argument("--tau", type=int, help="Tau stage (from 0 to 5)")
     parser.add_argument("--abeta", type=int, help="Beta Amyloid stage (from 0 to 5)")
+    parser.add_argument("--rnd", type=int, help="Simulation random seed")
+    parser.add_argument(
+    "--tau_array", 
+    type=int, 
+    nargs=3, 
+    help="Lista degli stadi Tau (es: --tau_array 0 0 0)"
+    )
+    parser.add_argument(
+    "--abeta_array", 
+    type=int, 
+    nargs=2, 
+    help="Lista degli stadi Abeta (es: --abeta_array 0 0)"
+    )
     parser.add_argument("--st", type=int, help="simulation time")
     parser.add_argument("--best_mod", action="store_true", help="Model parameters optimization to maximize simulation similarity with data")
     parser.add_argument("--fact", type=float, help="diminutive factor in a values")
@@ -40,12 +54,15 @@ def main():
         type=int,                # convert them to integers
         help="List of impaired region indices"
     )
+
 ################
 
 ################
     args = parser.parse_args()
+    print(args)
     gv.show_plots = args.show_plots
     gv.save_plots = args.save_plots
+    gv.save_raw_data = args.save_raw_data
     gv.eeg = args.EEG
     gv.psd = args.PSD
     gv.fc = args.FC
@@ -55,6 +72,9 @@ def main():
 
     if args.g:
         gv.coup = args.g
+
+    if args.rnd:
+        gv.random_seed = args.rnd
 
     if args.fact:
         gv.factor = args.fact
@@ -82,12 +102,18 @@ def main():
     if args.tau:
         gv.tau_stage = args.tau
     else:
-        gv.tau_stage = 0
+        if args.tau_array:
+            gv.tau_stage = args.tau_array
+        else:
+            gv.tau_stage = 0
     
     if args.abeta:
         gv.abeta_stage = args.abeta
     else:
-        gv.abeta_stage = 0
+        if args.abeta_array:
+            gv.abeta_stage = args.abeta_array
+        else:
+            gv.abeta_stage = 0
 
     if args.temp_avg_period:
         gv.temp_avg_period = args.temp_avg_period
@@ -115,6 +141,7 @@ def main():
     che voglio conservare in qualità di comandi per interfaccia"""
     time_index = 1000 ###############################
     skip_to_stim = False ############################
+    np.random.seed(gv.random_seed)
     if args.no_sim:
         sim_id = f"tau{args.tau}_abeta{args.abeta}_a{args.a:.4f}_b{args.b:.4f}_g{args.g:.4f}_v{args.vel:.2f}_n{args.noise:.4f}_simtime{args.st}"
         # 2. data loading
@@ -123,7 +150,9 @@ def main():
         teeg, eeg = preprocess(teeg, eeg)
 
     if not args.no_sim:
-        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor, save_raw = gv.save_raw_data)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        #ttavg, tavg, teeg, eeg = simulate_different_combination_parameters(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        #ttavg, tavg, teeg, eeg = Simulate()
         ttavg, tavg = preprocess(ttavg, tavg)
         teeg, eeg = preprocess(teeg, eeg)
 
@@ -151,24 +180,30 @@ def main():
         functional_connectivity(tavg, 'TAVG')
 """
     if gv.fc == True:
-        functional_connectivity_img_coh(eeg, 'EEG beta (13-30)Hz', lowcut=13, highcut=30)
-        functional_connectivity_img_coh(eeg, 'EEG alpha (8-13)Hz', lowcut=8, highcut=13)
-        functional_connectivity_img_coh(eeg, 'EEG theta (4-8)Hz', lowcut=4, highcut=8)
-        functional_connectivity_img_coh(eeg, 'EEG delta (0.5-4)Hz', lowcut=0.5, highcut=4)
-        functional_connectivity_img_coh(tavg, 'TAVG beta (12-30)Hz', lowcut=13, highcut=30)
-        functional_connectivity_img_coh(tavg, 'TAVG alpha (8-12)Hz', lowcut=8, highcut=13)
-        functional_connectivity_img_coh(tavg, 'TAVG theta (4-8)Hz', lowcut=4, highcut=8)
-        functional_connectivity_img_coh(tavg, 'TAVG delta (0.5-4)Hz', lowcut=0.5, highcut=4)
-        functional_connectivity_img_coh(eeg, 'EEG', lowcut=0.5, highcut=45)
-        functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0.5, highcut=45)
+        #functional_connectivity(eeg, label='eeg')
+        functional_connectivity_band(tavg, label='TAVG', lowcut=0.5, highcut=45)
+        functional_connectivity_band(tavg, 'TAVG delta', lowcut=0.5, highcut=4)
+        functional_connectivity_band(tavg, 'TAVG theta', lowcut=4, highcut=8)
+        functional_connectivity_band(tavg, 'TAVG alpha', lowcut=8, highcut=13)
+        functional_connectivity_band(tavg, 'TAVG beta', lowcut=13, highcut=30)
+        #functional_connectivity_img_coh(eeg, 'EEG beta', lowcut=13, highcut=30)
+        #functional_connectivity_img_coh(eeg, 'EEG alpha', lowcut=8, highcut=13)
+        #functional_connectivity_img_coh(eeg, 'EEG theta', lowcut=4, highcut=8)
+        #functional_connectivity_img_coh(eeg, 'EEG delta', lowcut=0.5, highcut=4)
+        #functional_connectivity_img_coh(tavg, 'TAVG beta', lowcut=13, highcut=30)
+        #functional_connectivity_img_coh(tavg, 'TAVG alpha', lowcut=8, highcut=13)
+        #functional_connectivity_img_coh(tavg, 'TAVG theta', lowcut=4, highcut=8)
+        #functional_connectivity_img_coh(tavg, 'TAVG delta', lowcut=0.5, highcut=4)
+        #functional_connectivity_img_coh(eeg, 'EEG', lowcut=0.5, highcut=45)
+        #functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0.5, highcut=45)
 
     if gv.psd == True:
         psd(eeg, 'EEG')
-        psd(tavg, 'TAVG')
+        #psd(tavg, 'TAVG')
 
     if gv.real_data == True:
-        analyze_regular_data(np.load(gv.real_FC_data))
-        analyze_reduced_data(np.load(gv.real_FC_data))
+        analyze_regular_data(np.load(gv.HC_FC_data))
+        analyze_reduced_data(np.load(gv.HC_FC_data))
 
     if gv.sim_vs_real == True:
         real_vs_simulated_FC(np.load(gv.HC_FC_data), eeg)

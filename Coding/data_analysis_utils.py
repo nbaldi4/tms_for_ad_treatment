@@ -125,40 +125,33 @@ def evaluate_simulation(row, sim_time=20000):
 def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
                                    label_real="Experimental", label_sim="Simulated", return_value = False, pass_psd_ev = False):
 
-    # =========================
-    # PSD reale
-    # =========================
+    # real PSD
     real_psd_mean = np.mean(matrix, axis=0)
 
-    # Taglio e normalizzazione reale
-    real_psd_mean = real_psd_mean[:n_bin].astype(float)
+    # Normalization
+    real_psd_mean = real_psd_mean[1:n_bin+1].astype(float)
 
-    # Evito divisione per zero
     if np.max(real_psd_mean) == 0:
         real_psd_mean = real_psd_mean + 1e-12
     real_psd_mean /= np.max(real_psd_mean)
 
 
-    # Frequenze reali (uniformi)
-    freqs_uniform = np.linspace(0, 45, n_bin)
+    # Build frequencies span
+    freqs_uniform = np.linspace(0.25, 45, n_bin)
 
-    # =========================
-    # PSD simulata
-    # =========================
+    # simulated PSD
     simulated_freqs, simulated_psd_mean = psd(time_series_original=time_series, label='sim_psd', return_psd=True)
     peak_freq = simulated_freqs[np.argmax(simulated_psd_mean)]
 
-    # Taglio frequenze a 45 Hz
+    # band cut to 0-45 freqs range
     mask = simulated_freqs <= 45
     simulated_freqs = simulated_freqs[mask]
     simulated_psd_mean = simulated_psd_mean[mask]
 
-    # =========================
-    # Interpolazione simulata su 180 bin
-    # =========================
+    # Interpolation between simulated and real
     simulated_psd_resampled = np.interp(freqs_uniform, simulated_freqs, simulated_psd_mean)
 
-    # Normalizzazione simulata
+    # Simulated psd normalization
     if np.max(simulated_psd_resampled) == 0:
         simulated_psd_resampled = simulated_psd_resampled + 1e-12
     simulated_psd_resampled /= np.max(simulated_psd_resampled)
@@ -308,14 +301,14 @@ def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
     normal_mae = np.mean(np.abs(normal_corr_mean - corr_eeg))
 
     # Normalize matrices to [-1, 1] only for visualization purpose
-    corr_eeg = 2 * (corr_eeg - np.min(corr_eeg)) / (np.max(corr_eeg) - np.min(corr_eeg)) - 1
-    normal_corr_mean = 2 * (normal_corr_mean - np.min(normal_corr_mean)) / (np.max(normal_corr_mean) - np.min(normal_corr_mean)) - 1
+    corr_eeg_viz = 2 * (corr_eeg - np.min(corr_eeg)) / (np.max(corr_eeg) - np.min(corr_eeg)) - 1
+    normal_corr_mean_viz = 2 * (normal_corr_mean - np.min(normal_corr_mean)) / (np.max(normal_corr_mean) - np.min(normal_corr_mean)) - 1
 
     # Plot comparison (regular scale)
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-    im1 = ax[0].imshow(corr_eeg, cmap='bwr', vmin=-1, vmax=1)
+    im1 = ax[0].imshow(corr_eeg_viz, cmap='bwr', vmin=-1, vmax=1)
     ax[0].set_title("Regular size simulated FC")
-    im2 = ax[1].imshow(normal_corr_mean, cmap='bwr', vmin=-1, vmax=1)
+    im2 = ax[1].imshow(normal_corr_mean_viz, cmap='bwr', vmin=-1, vmax=1)
     ax[1].set_title(f"Regular size real FC: MAE = {normal_mae:.3f}")
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
@@ -342,14 +335,14 @@ def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
 
 
     # Normalize for visualization
-    sub_corr_eeg = 2 * (sub_corr_eeg - np.min(sub_corr_eeg)) / (np.max(sub_corr_eeg) - np.min(sub_corr_eeg)) - 1
-    sub_corr_mean = 2 * (sub_corr_mean - np.min(sub_corr_mean)) / (np.max(sub_corr_mean) - np.min(sub_corr_mean)) - 1
+    sub_corr_eeg_viz = 2 * (sub_corr_eeg - np.min(sub_corr_eeg)) / (np.max(sub_corr_eeg) - np.min(sub_corr_eeg)) - 1
+    sub_corr_mean_viz = 2 * (sub_corr_mean - np.min(sub_corr_mean)) / (np.max(sub_corr_mean) - np.min(sub_corr_mean)) - 1
 
     # Plot comparison (reduced scale)
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-    im1 = ax[0].imshow(sub_corr_eeg, cmap='bwr', vmin=-1, vmax=1)
+    im1 = ax[0].imshow(sub_corr_eeg_viz, cmap='bwr', vmin=-1, vmax=1)
     ax[0].set_title("Reduced size simulated FC")
-    im2 = ax[1].imshow(sub_corr_mean, cmap='bwr', vmin=-1, vmax=1)
+    im2 = ax[1].imshow(sub_corr_mean_viz, cmap='bwr', vmin=-1, vmax=1)
     ax[1].set_title(f"Reduced size real FC: MAE = {reduced_mae:.3f}")
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
@@ -473,11 +466,12 @@ def to_common_indices(tvb_matrix, real_matrix):
         'TP8', 'Oz', 'Iz', 'PO4', 'PO3', 'CP5', 'CP6', 'CP1', 'CP2',
         'FT9', 'FT10', 'FC2', 'FC1', 'AF3', 'AF4', 'FC6', 'FC5', 'CPz',
         'P1', 'POz', 'P2', 'P6', 'C6', 'P5', 'C1', 'C2', 'C5', 'F2',
-        'F6', 'F1', 'AF8', 'F5', 'AF7', 'Fpz', 'FCz', 'Cz', 'T8', 'T7',
-        'P8', 'P7'
+        'F6', 'F1', 'AF8', 'F5', 'AF7', 'Fpz', 'FCz', 'Cz'
     ])
 
     common_names = extract_common_names()
+
+    print(eeg_real_data_names)
 
     # Find index positions of common channels in both naming systems
     indices_65 = [np.where(eeg_brainstorm_65_names == name)[0][0] for name in common_names]
@@ -486,6 +480,20 @@ def to_common_indices(tvb_matrix, real_matrix):
     # Extract the aligned submatrices
     tvb_matrix_sub = tvb_matrix[np.ix_(indices_65, indices_65)]
     real_matrix_sub = real_matrix[np.ix_(indices_62, indices_62)]
+
+    print(indices_65)
+    print(indices_62)
+
+    # Verifica che i nomi estratti corrispondano effettivamente
+    # Questo deve stampare True se l'allineamento è corretto
+    check_brainstorm = all(eeg_brainstorm_65_names[indices_65] == common_names)
+    check_real = all(eeg_real_data_names[indices_62] == common_names)
+
+    print(eeg_real_data_names[indices_62])
+    print(eeg_brainstorm_65_names[indices_65])
+
+    print(f"Allineamento Brainstorm corretto: {check_brainstorm}")
+    print(f"Allineamento Real corretto: {check_real}")
 
     return tvb_matrix_sub, real_matrix_sub
 

@@ -141,7 +141,6 @@ patient_data = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms
 patient_psd_metrics = patient_data['psd_metrics'] #num_patients, metrics [delta/broad; alpha/broad]
 patient_fc_metrics = patient_data['fc_metrics'] #num_patients, metrics [regular abs delta; regular abs theta; regular abs alpha]
 patient_number = len(patient_psd_metrics[:,0])
-
 patient_parameters = np.zeros((patient_number, 4))
 
 patient_metrics = np.zeros((patient_number, len(patient_psd_metrics[0,:]) + len(patient_fc_metrics[0,:])))

@@ -18,28 +18,28 @@ from additional_utils import extract_common_names
 from pymatreader import read_mat
 import mne
 
-start = time.time()
+#start = time.time()
 
 # Rimuove il limite di larghezza della colonna (None = nessun limite)
 
-root_folder_global_save = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\MCI_data"
+#root_folder_global_save = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\MCI_data"
 # Esempio caricamento soggetto 211 Occhi Chiusi
 
-base_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final"
-paths = []
+#base_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop\EC_EEG_PREVIEW_final"
+#paths = []
 
-for i in range(1, 211): # Da 1 a 12
-    path = f"{base_folder}\EC_EEG_PREVIEW_{i}_final.set"
-    paths.append(path)
+#for i in range(1, 211): # Da 1 a 12
+#    path = f"{base_folder}\EC_EEG_PREVIEW_{i}_final.set"
+#    paths.append(path)
 
-paths = np.array(paths)
+#paths = np.array(paths)
 
-print(paths.shape)
+#print(paths.shape)
 
-abeta_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_abeta.csv", skiprows=1)
-tau_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_p_tau.csv", skiprows=1)
-prot_lev = np.column_stack((abeta_level, tau_level))
-gv.save_plots = True
+#abeta_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_abeta.csv", skiprows=1)
+#tau_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_p_tau.csv", skiprows=1)
+#prot_lev = np.column_stack((abeta_level, tau_level))
+#gv.save_plots = True
 
 def fun(path_ec):
 
@@ -184,13 +184,13 @@ def build_patient_highlights_file(root_folder=r"C:\Users\User\OneDrive - Univers
         print(f"{num_patients} pazienti trovati")
     # 2. Inizializzazione contenitori (N_pazienti invece di 6x6)
     # Usiamo la stessa struttura di stage_metrics ma con la prima dimensione = num_patients
-    psd_means = np.zeros((num_patients, 5)) 
-    psd_max = np.zeros((num_patients, 5))
+    psd_means = np.zeros((num_patients, 6)) 
+    psd_max = np.zeros((num_patients, 6))
     freq_max = np.zeros(num_patients)
-    psd_metrics = np.zeros((num_patients, 2))
+    psd_metrics = np.zeros((num_patients, 5))
     fc_reg_means = np.zeros((num_patients, 5, 2))
     fc_red_means = np.zeros((num_patients, 5, 2))
-    fc_metrics = np.zeros((num_patients, 3))
+    fc_metrics = np.zeros((num_patients, 5))
 
     # Nodi critici per la sottomatrice 7x7 (se ti serve ancora)
     interested_nodes = [6, 7, 8, 9, 12, 13, 16]
@@ -203,6 +203,8 @@ def build_patient_highlights_file(root_folder=r"C:\Users\User\OneDrive - Univers
         # Estrazione FC per le 5 bande
         for b_idx in range(len(bands_files)):
             fc_matrix = file_extraction(bands_files[b_idx], p_idx)
+            if num_patients <= 5:
+                print(fc_matrix['normal_size'].shape())
 
             # Medie Regular e Reduced
             fc_reg_means[p_idx, b_idx, 0] = np.mean(fc_matrix['normal_size'])
@@ -224,34 +226,36 @@ def build_patient_highlights_file(root_folder=r"C:\Users\User\OneDrive - Univers
         # Calcolo quantità PSD (somme e max)
         masks = [
             (freqs >= 0.5),                      # Broad
-            (freqs < 4),                         # Delta
+            (freqs >= 0.5) & (freqs < 4),        # Delta
             (freqs >= 4) & (freqs < 8),          # Theta
-            (freqs >= 8) & (freqs < 12),         # Alpha
-            (freqs >= 12) & (freqs < 30)         # Beta
+            (freqs >= 8) & (freqs < 13),         # Alpha
+            (freqs >= 13) & (freqs < 30),        # Beta
+            (freqs >= 30) & (freqs < 45)         # Gamma
         ]
 
         for m_idx, mask in enumerate(masks):
-            psd_means[p_idx, m_idx] = np.sum(psd[mask])
+            psd_means[p_idx, m_idx] = np.mean(psd[mask]) #############################################################
             psd_max[p_idx, m_idx] = np.max(psd[mask])
 
-        # Metriche PSD (Rapporti)
-        psd_metrics[p_idx, 0] = psd_means[p_idx, 3] / psd_means[p_idx, 0] # Alpha/Broad
-        psd_metrics[p_idx, 1] = psd_means[p_idx, 1] / psd_means[p_idx, 0] # Delta/Broad
-        psd_metrics[p_idx, 2] = psd_means[p_idx, 2] / psd_means[p_idx, 0] # Theta/Broad
+         # Metriche PSD (Rapporti)
+        psd_metrics[p_idx, 0] = psd_means[p_idx, 1] / psd_means[p_idx, 0] # Delta/Broad
+        psd_metrics[p_idx, 1] = psd_means[p_idx, 2] / psd_means[p_idx, 0] # Theta/Broad
+        psd_metrics[p_idx, 2] = psd_means[p_idx, 3] / psd_means[p_idx, 0] # Alpha/Broad
         psd_metrics[p_idx, 3] = psd_means[p_idx, 4] / psd_means[p_idx, 0] # Beta/Broad
+        psd_metrics[p_idx, 4] = psd_means[p_idx, 5] / psd_means[p_idx, 0] # Gamma/Broad
 
         # Frequenza di picco globale
         freq_max[p_idx] = freqs[np.argmax(psd)]
 
     # Metriche FC finali (Delta, Theta, Alpha abs mean)
-    fc_metrics[:, 0] = fc_reg_means[:, 1, 1] # Delta
-    fc_metrics[:, 1] = fc_reg_means[:, 2, 1] # Theta
-    fc_metrics[:, 2] = fc_reg_means[:, 3, 1] # Alpha
-    fc_metrics[:, 3] = fc_reg_means[:, 4, 1] # Beta
-    fc_metrics[:, 4] = fc_reg_means[:, 0, 1] # Broad
+    fc_metrics[:, 0] = fc_reg_means[:, 0, 1] # Broad
+    fc_metrics[:, 1] = fc_reg_means[:, 1, 1] # Delta
+    fc_metrics[:, 2] = fc_reg_means[:, 2, 1] # Theta
+    fc_metrics[:, 3] = fc_reg_means[:, 3, 1] # Alpha
+    fc_metrics[:, 4] = fc_reg_means[:, 4, 1] # Beta
 
     os.makedirs(root_folder_global_save, exist_ok=True)
-    output = os.path.join(root_folder_global_save, f"patients_metrics.npz")
+    output = os.path.join(root_folder_global_save, f"patients_metrics_mean_psd.npz")
     np.savez_compressed(
             output,
             patient_id=np.linspace(1, num_patients, num_patients),
@@ -423,7 +427,7 @@ def build_reduced_patient_highlights_file(root_folder=r"C:\Users\User\OneDrive -
                 i = common_names.index(ch)
                 print(
                     f"{ch:>3} | "
-                    f"FC mean: {np.mean(real_matrix_sub[i]):.4e} | "
+                    #f"FC mean: {np.mean(real_matrix_sub[i]):.4e} | "
                     f"PSD mean: {np.mean(psd_all[i]):.4e}"
                 )
             i = common_names.index('Cz')
@@ -475,7 +479,7 @@ def build_reduced_patient_highlights_file(root_folder=r"C:\Users\User\OneDrive -
 
 #build_reduced_patient_highlights_file()
 #analyze_patients_parallel(paths=paths)
-analyze_patients(paths=paths)
-#build_reduced_patient_highlights_file()
+#analyze_patients(paths=paths)
+#build_patient_highlights_file()
 
 #data = np.load(os.path.join(root_folder_global_save, f"patients_common_indices_metrics.npz"))

@@ -178,12 +178,65 @@ for i in range(len(patient_fc_metrics[:,0])):
 
     # 2. Convertilo in coordinate (riga, colonna)
     riga, colonna = np.unravel_index(idx_flat, distances[i, :, :].shape)
-    if riga >=3:
-        riga = 3
-    if colonna >=3:
-        colonna = 3
     print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', riga, ' ', colonna, '\n')
 
+tau_stage_1 = 20.00 #28.81 + tau_delta*0.5553246833941619
+tau_stage_2 = 28.81 #+ tau_delta*0.8543703680827017
+tau_stage_3 = 28.81 + tau_delta*0.5553246833941619
+tau_stage_4 = 28.81 + tau_delta*0.8543703680827017
+tau_stage_5 = 28.81 + tau_delta*0.9500000000000001
+print ('INIZIO NEW STAGING')
+for i in range(len(patient_fc_metrics[:,0])):
+    if (prot_lev[i,0] == 0) & (prot_lev[i,1] == 0):
+        patients_stages[i,0] = np.nan
+        patients_stages[i,1] = np.nan
+
+    if (prot_lev[i,1] < tau_stage_1):
+        patients_stages[i,1] = 0
+    if (tau_stage_2 > prot_lev[i,1] >= tau_stage_1):
+        patients_stages[i,1] = 1
+    if (tau_stage_3 > prot_lev[i,1] >= tau_stage_2):
+        patients_stages[i,1] = 2
+    if (tau_stage_4 > prot_lev[i,1] >= tau_stage_3):
+        patients_stages[i,1] = 3
+    if (tau_stage_5 > prot_lev[i,1] >= tau_stage_4):
+        patients_stages[i,1] = 4
+    if (prot_lev[i,1] >= tau_stage_5):
+        patients_stages[i,1] = 5
+
+    if (prot_lev[i,0] > abeta_stage_1) & (prot_lev[i,1] < tau_stage_2):
+        patients_stages[i,0] = 0
+
+    if (prot_lev[i,0] > abeta_stage_1) & (prot_lev[i,1] >= tau_stage_2):
+        patients_stages[i,0] = 5
+
+    if (abeta_stage_2 < prot_lev[i,0] <= abeta_stage_1) & (prot_lev[i,1] < tau_stage_2):
+        patients_stages[i,0] = 1
+
+    if (abeta_stage_2 < prot_lev[i,0] <= abeta_stage_1) & (prot_lev[i,1] >= tau_stage_2):
+        patients_stages[i,0] = 5
+
+    if (abeta_stage_3 < prot_lev[i,0] <= abeta_stage_2) & (prot_lev[i,1] < tau_stage_2):
+        patients_stages[i,0] = 2
+
+    if (abeta_stage_3 < prot_lev[i,0] <= abeta_stage_2) & (prot_lev[i,1] >= tau_stage_2):
+        patients_stages[i,0] = 4
+
+    if (prot_lev[i,0] <= abeta_stage_3):
+        patients_stages[i,0] = 3
+
+    idx_abeta = np.argmin(distances_abeta[i, :])
+    idx_tau = np.argmin(distances_tau[i,:])
+    if prot_lev[i,0] != 0:
+        print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', idx_abeta, ' ', idx_tau)
+
+    idx_flat = np.argmin(distances[i, :, :])
+
+    # 2. Convertilo in coordinate (riga, colonna)
+    riga, colonna = np.unravel_index(idx_flat, distances[i, :, :].shape)
+    if prot_lev[i,0] != 0:
+        print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', riga, ' ', colonna, '\n')
+print ('FINE NEW STAGING')
 ########## ovviamente questi sono 3 stage mentre noi ne abbiamo 5, per come abbiamo strutturato i nostri stages
 ########## la corrispondenda stages_reali vs stages_simulati sarà la seguente:
 ########## stage_reale 1 --> stage_simulato 1
@@ -228,9 +281,5 @@ for i in range(len(abeta_MCI_patients)):
 
     # 2. Convertilo in coordinate (riga, colonna)
     riga, colonna = np.unravel_index(idx_flat, distances_mci[i, :, :].shape)
-    if riga >=3:
-        riga = 3
-    if colonna >=3:
-        colonna = 3
     if (prot_lev_mci[i,0] < 2000):
         print(i, ': ', prot_lev_mci[i], '; ', patients_stages_mci[i], '; ', riga, ' ', colonna)

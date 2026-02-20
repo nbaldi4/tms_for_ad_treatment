@@ -23,9 +23,8 @@ def extract_common_names():
         'TP8', 'Oz', 'Iz', 'PO4', 'PO3', 'CP5', 'CP6', 'CP1', 'CP2',
         'FT9', 'FT10', 'FC2', 'FC1', 'AF3', 'AF4', 'FC6', 'FC5', 'CPz',
         'P1', 'POz', 'P2', 'P6', 'C6', 'P5', 'C1', 'C2', 'C5', 'F2',
-        'F6', 'F1', 'AF8', 'F5', 'AF7', 'Fpz', 'FCz', 'Cz', 'T8', 'T7',
-        'P8', 'P7'
-    ])
+        'F6', 'F1', 'AF8', 'F5', 'AF7', 'Fpz', 'FCz', 'Cz'
+    ]) #from TVB eeg_brainstorm_65.txt
 
     eeg_real_set = set(eeg_real_data_names)
     eeg_brainstorm_set = set(eeg_brainstorm_65_names)

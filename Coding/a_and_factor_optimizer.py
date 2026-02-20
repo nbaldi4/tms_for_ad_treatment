@@ -54,7 +54,7 @@ def grid_search(factor_set=factor_values, a_set=a_values):
     df_results.insert(0, "a", [c[1] for c in couples])
     df_results.insert(0, "factor", [c[0] for c in couples])
 
-    file_path = "grid_search_2D_results_with_b_corrected.csv"
+    file_path = "grid_search_2D_results_with_b_corrected_04_02_prova_2.csv"
 
     file_exists = os.path.isfile(file_path)
 
@@ -65,7 +65,7 @@ def grid_search(factor_set=factor_values, a_set=a_values):
                       header=not file_exists)
 
 def heatmap():
-    df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\grid_search_2D_results_with_b_corrected.csv")
+    df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\grid_search_2D_results_with_b_corrected_04_02_prova_2.csv")
     df["factor"] = df["factor"].round(6)
     df["a"] = df["a"].round(6)
     
@@ -82,16 +82,31 @@ def heatmap():
     z1 = heatmap_data["M1_FC_MAE"].values
     z2 = heatmap_data["M2_Reduced_FC_MAE"].values
     z3 = heatmap_data["M3_PSD_MAE"].values
-
+    #print(z1.shape)
     mean_z1 = np.nanmean(z1)
     mean_z2 = np.nanmean(z2)
     mean_z3 = np.nanmean(z3)
+    print(mean_z1)
+    print(mean_z2)
+    print(mean_z3)
 
     dev_z1 = (z1 - mean_z1)/mean_z1
     dev_z2 = (z2 - mean_z2)/mean_z2
     dev_z3 = (z3 - mean_z3)/mean_z3
 
-    z = dev_z1 + dev_z2 + 2*dev_z3
+    z = dev_z1 + dev_z2 + 2*dev_z3 #
+    #print ('137: ', z1[11, 5], '; ', z2[11, 5], '; ', z3[11, 5], ': ', z[11, 5])
+    #print ('583: ', z1[7, 23], '; ', z2[7, 23], '; ', z3[7, 23], ': ', z[7, 23])
+    idx_min_flat = np.nanargmin(z)
+    row_idx_min, col_idx_min = np.unravel_index(idx_min_flat, z.shape)
+    print(z[row_idx_min,col_idx_min])
+    print(z1[row_idx_min,col_idx_min])
+    print(z2[row_idx_min,col_idx_min])
+    print(z3[row_idx_min,col_idx_min])
+    
+    #idx_max_flat = np.nanargmax(z)
+    #row_idx_max, col_idx_max = np.unravel_index(idx_max_flat, z.shape)
+    #print(z[row_idx_max,col_idx_max])
     masked_data = np.ma.masked_invalid(z)
     # Colormap (copiata per poter modificare i NaN)
     cmap = plt.cm.coolwarm.copy() #plt.cm.viridis.copy() sono altri colori
@@ -109,18 +124,23 @@ def heatmap():
     plt.colorbar(im, label="MAE_combination")
 
     factor_labels = heatmap_data["M1_FC_MAE"].columns
+    step = 3
+    ticks = np.arange(0, len(factor_labels), step)
     plt.xticks(
-        ticks=np.arange(len(factor_labels)),
-        labels=factor_labels,
-        size=5
+        ticks=ticks,
+        labels=factor_labels[ticks],
+        size=10
     )
+
+    step = 3
+    ticks = np.arange(0, len(heatmap_data.index), step)
 
     plt.yticks(
-        ticks=np.arange(len(heatmap_data.index)),
-        labels=heatmap_data.index
+        ticks=ticks,
+        labels=heatmap_data.index[ticks]
     )
 
-    plt.xlabel("factor")
+    plt.xlabel("slope")
     plt.ylabel("a")
     plt.title("MAE distribution")
 
@@ -151,4 +171,7 @@ def heatmap():
 #grid_search(factor_set=np.linspace(-0.9, -0.62, 15), a_set=np.linspace(0.055, 0.075, 17))
 ##grid_search(factor_set=np.linspace(-0.92, -0.04, 23), a_set=np.linspace(0.055, 0.085, 25))
 ##grid_search(factor_set=np.linspace(0.00, 0.40, 11), a_set=np.linspace(0.06, 0.105, 37))
+#grid_search(a_set=np.linspace(0.055, 0.085, 25), factor_set=np.linspace(-0.92, -0.04, 23))
+#grid_search(a_set=np.linspace(0.06, 0.105, 37), factor_set=np.linspace(0, 0.4, 11))
+#grid_search(a_set=np.linspace(0.055, 0.085, 1), factor_set=np.linspace(-0.92, -0.04, 1))
 heatmap()

@@ -25,8 +25,8 @@ noise_range = [0.1, 5] #[0.1, 5]
 a_range = [0.05, 0.150]
 b_range = [0.025, 0.075]
 
-pop_size = 10
-n_gen = 20
+pop_size = 100
+n_gen = 200
 ref_pt = np.array([2.0, 2.0, 30.0])
 max_to_improve = 2
 
@@ -48,7 +48,6 @@ def evaluate_simulation(row, sim_time=20000):
         return_value=True
     )
 
-    # Ritorna tutte e 4 le metriche
     return regular_mae, reduced_mae, psd_mae, peak_freq
 
 all_results = []
@@ -63,13 +62,13 @@ class EEGMetricProblem(Problem):
             delayed(evaluate_simulation)(row) for row in X
         )
         
-        # Per NSGA-II prendiamo solo le prime 3 metriche
+        # Fourth output is peakfreq and we do not use it
         F = np.array([res[:3] for res in results_with_peak])
         out["F"] = F
 
-        # Salviamo quintetto + metriche + frequenza di picco
+        # Save parameters quintet + metrics + peak freq
         for x, res in zip(X, results_with_peak):
-            all_results.append(list(x) + list(res))  # ora res ha 4 valori
+            all_results.append(list(x) + list(res))
 
 
 convergence_data = {
@@ -125,7 +124,7 @@ class CombinedTermination(Termination):
                  ref_point,
                  max_gen=100,
                  patience=5,
-                 min_rel_improv=1e-8,
+                 min_rel_improv=1e-5,
                  min_abs_improv=None):
         super().__init__()
         self.ref_point = np.array(ref_point)
@@ -213,9 +212,9 @@ pareto = pd.DataFrame(
     np.hstack([res.X, res.F]),
     columns=["g","velocity","noise","a","b","M1","M2","M3"]
 )
-pareto.to_csv("pareto_front_nsga2.csv", index=False)
+pareto.to_csv("pareto_front_nsga2_03_02.csv", index=False)
 
-pd.DataFrame(convergence_data).to_csv("nsga2_convergence_metrics.csv", index=False)
+pd.DataFrame(convergence_data).to_csv("nsga2_convergence_metrics_03_02.csv", index=False)
 
 def plot_convergence(convergence):
     gen = convergence["generation"]
@@ -227,7 +226,7 @@ def plot_convergence(convergence):
     plt.ylabel("Hypervolume")
     plt.title("Hypervolume convergence")
     plt.grid(True)
-    plt.savefig("hypervolume_convergence.png", dpi=150)
+    plt.savefig("hypervolume_convergence_03_02.png", dpi=150)
     plt.close()
 
     # ---- Spacing ----
@@ -237,7 +236,7 @@ def plot_convergence(convergence):
     plt.ylabel("Spacing (Diversity)")
     plt.title("Diversity convergence (Spacing)")
     plt.grid(True)
-    plt.savefig("spacing_convergence.png", dpi=150)
+    plt.savefig("spacing_convergence_03_02.png", dpi=150)
     plt.close()
 
     # ---- Numero ND ----
@@ -247,16 +246,16 @@ def plot_convergence(convergence):
     plt.ylabel("# non dominated solutions")
     plt.title("Non dominated solutions")
     plt.grid(True)
-    plt.savefig("nondominated_convergence.png", dpi=150)
+    plt.savefig("nondominated_convergence_03_02.png", dpi=150)
     plt.close()
 
 columns = ["g","velocity","noise","a","b","M1","M2","M3","peak_freq"]
 pareto_all = pd.DataFrame(all_results, columns=columns)
-pareto_all.to_csv("all_evaluated_quintets_with_peak.csv", index=False)
-print("Tutti i quintetti valutati salvati in all_evaluated_quintets_with_peak.csv")
+pareto_all.to_csv("all_evaluated_quintets_with_peak_03_02.csv", index=False)
+print("Tutti i quintetti valutati salvati in all_evaluated_quintets_with_peak_03_02.csv")
 
 plot_convergence(convergence_data)
 
-print("Pareto front saved in pareto_front_nsga2.csv")
-print("Convergence metrics saved in nsga2_convergence_metrics.csv")
-print("Plots saved: hypervolume_convergence.png, spacing_convergence.png, nondominated_convergence.png")
+print("Pareto front saved in pareto_front_nsga2_03_02.csv")
+print("Convergence metrics saved in nsga2_convergence_metrics_03_02.csv")
+print("Plots saved: hypervolume_convergence_03_02.png, spacing_convergence_03_02.png, nondominated_convergence_03_02.png")

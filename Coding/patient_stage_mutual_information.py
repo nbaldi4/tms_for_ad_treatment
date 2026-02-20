@@ -18,14 +18,14 @@ patient_fc_metrics = patient_data['fc_metrics'] #num_patients, metrics [regular 
 patient_metrics = np.zeros((len(patient_psd_metrics[:,0]), len(patient_psd_metrics[0,:]) + len(patient_fc_metrics[0,:])))
 for i in range(len(patient_psd_metrics[:,0])):
     patient_metrics[i,0] = patient_psd_metrics[i,0] #delta/broad
-    patient_metrics[i,1] = patient_psd_metrics[i,1] #alpha/broad
-    patient_metrics[i,2] = patient_psd_metrics[i,2] #theta/broad
+    patient_metrics[i,1] = patient_psd_metrics[i,1] #theta/broad
+    patient_metrics[i,2] = patient_psd_metrics[i,2] #alpha/broad
     patient_metrics[i,3] = patient_psd_metrics[i,3] #beta/broad
-    patient_metrics[i,4] = patient_fc_metrics[i,0] #regular abs delta
-    patient_metrics[i,5] = patient_fc_metrics[i,1] #regular abs theta
-    patient_metrics[i,6] = patient_fc_metrics[i,2] #regular abs alpha
-    patient_metrics[i,7] = patient_fc_metrics[i,2] #regular abs beta
-    patient_metrics[i,8] = patient_fc_metrics[i,2] #regular abs broad
+    patient_metrics[i,4] = patient_fc_metrics[i,0] #regular abs broad
+    patient_metrics[i,5] = patient_fc_metrics[i,1] #regular abs delta
+    patient_metrics[i,6] = patient_fc_metrics[i,2] #regular abs theta
+    patient_metrics[i,7] = patient_fc_metrics[i,3] #regular abs alpha
+    patient_metrics[i,8] = patient_fc_metrics[i,4] #regular abs beta
 
 abeta_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_abeta.csv", skiprows=1)
 tau_level = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\CSF_p_tau.csv", skiprows=1)
@@ -52,41 +52,72 @@ def calcola_ranking_mi(df_metriche, target, nome_target="Proteina"):
 
 # Analisi per Abeta
 # Metrics name 
-nomi_delle_mie_metriche = ['delta/broad', 'theta/broad', 'alpha/broad', 'beta/broad',
-                           'regular abs broad','regular abs delta', 'regular abs theta', 'regular abs alpha', 'regular abs beta'
+nomi_delle_mie_metriche = [    'delta/broad', 'theta/broad', 'alpha/broad', 'beta/broad', 'regular abs broad', 'regular abs delta', 
+                           'regular abs theta', 'regular abs alpha', 'regular abs beta'
                           ]
 
 #DataFrame convertion
 patient_metrics_df = pd.DataFrame(patient_metrics, columns=nomi_delle_mie_metriche)
 mi_abeta = calcola_ranking_mi(patient_metrics_df, abeta_level[:len(patient_psd_metrics[:,0])], "Abeta CSF")
 print(mi_abeta) 
-#le metriche con la mi più alta per abeta sono: 
-#regular abs theta  0.195262
-#regular abs alpha  0.061525
-#alpha/broad  0.048550
+#le metriche per abeta sono: 
+#regular abs theta  0.046920
+#regular abs beta  0.028926
+#regular abs broad  0.022283
+#alpha/broad  0.009598
+#regular abs alpha  0.005384
+#delta/broad  0.000000
+#theta/broad  0.000000
+#beta/broad  0.000000
+#regular abs delta  0.000000
 
 mi_tau = calcola_ranking_mi(patient_metrics_df, tau_level[:len(patient_psd_metrics[:,0])], "Tau CSF")
 print(mi_tau)
 #le metriche con la mi più alta per tau sono:
-#regular abs delta  0.223435
-#delta/broad  0.018876
+#alpha/broad  0.047697
+#regular abs broad  0.045865
+#regular abs alpha  0.037022
+#regular abs beta  0.014023
+#theta/broad  0.013335
+#regular abs theta  0.010902
+#delta/broad  0.000000
+#beta/broad  0.000000
+#regular abs delta  0.000000
 
 # Analisi per Tau
 #mi_tau = calcola_ranking_mi(df_metriche, df_csf['Tau_CSF'], "Tau CSF")
 
 stages_data = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Staging_del_25_01_(new_staging)\stage_metrics_del_25_01_(new_staging).npz")
-stages_psd_metrics = stages_data['psd_metrics'] #tau stage, abeta stage, metrics [delta/broad; alpha/broad]
-stages_fc_metrics = stages_data['fc_metrics'] #tau stage, abeta stage, metrics [regular abs delta; regular abs theta; regular abs alpha]
+stages_psd_metrics = stages_data['psd_metrics'] #tau stage, abeta stage, metrics ['delta/broad', 'theta/broad', 'alpha/broad', 'beta/broad']
+stages_fc_metrics = stages_data['fc_metrics'] #tau stage, abeta stage, metrics ['regular abs broad', 'regular abs delta', 'regular abs theta', 'regular abs alpha', 'regular abs beta']
 print(stages_fc_metrics.shape)
 distances = np.zeros((len(patient_fc_metrics[:,0]), len(stages_fc_metrics[:,0,0]), len(stages_fc_metrics[0,:,0])))
 for p_idx in range(len(patient_fc_metrics[:,0])):
     for tau_idx in range(len(stages_fc_metrics[:,0,0])):
         for abeta_idx in range(len(stages_fc_metrics[0,:,0])):
-            distances[p_idx, tau_idx, abeta_idx] = (np.abs(patient_psd_metrics[p_idx, 0] - stages_psd_metrics[tau_idx, abeta_idx, 0]) + 
-                                                   np.abs(patient_psd_metrics[p_idx, 1] - stages_psd_metrics[tau_idx, abeta_idx, 1]) +
+            distances[p_idx, tau_idx, abeta_idx] = (np.abs(patient_psd_metrics[p_idx, 2] - stages_psd_metrics[tau_idx, abeta_idx, 2]) + 
+                                                    np.abs(patient_fc_metrics[p_idx, 0] - stages_fc_metrics[tau_idx, abeta_idx, 0]) +
+                                                    np.abs(patient_fc_metrics[p_idx, 2] - stages_fc_metrics[tau_idx, abeta_idx, 2]) +
+                                                    np.abs(patient_fc_metrics[p_idx, 3] - stages_fc_metrics[tau_idx, abeta_idx, 3]) +
+                                                    np.abs(patient_fc_metrics[p_idx, 4] - stages_fc_metrics[tau_idx, abeta_idx, 4]) 
+                                                )
+            
+distances_tau = np.zeros((len(patient_fc_metrics[:,0]), len(stages_fc_metrics[:,0,0])))
+for p_idx in range(len(patient_fc_metrics[:,0])):
+    for tau_idx in range(len(stages_fc_metrics[:,0,0])):
+        distances_tau[p_idx, tau_idx] = (np.abs(patient_psd_metrics[p_idx, 2] - stages_psd_metrics[tau_idx, abeta_idx, 2]) + 
                                                    np.abs(patient_fc_metrics[p_idx, 0] - stages_fc_metrics[tau_idx, abeta_idx, 0]) +
-                                                   np.abs(patient_fc_metrics[p_idx, 2] - stages_fc_metrics[tau_idx, abeta_idx, 2]) 
+                                                   np.abs(patient_fc_metrics[p_idx, 3] - stages_fc_metrics[tau_idx, abeta_idx, 3])
                                                    )
+            
+distances_abeta = np.zeros((len(patient_fc_metrics[:,0]), len(stages_fc_metrics[0,:,0])))
+for p_idx in range(len(patient_fc_metrics[:,0])):
+    for abeta_idx in range(len(stages_fc_metrics[0,:,0])):
+        distances_abeta[p_idx, abeta_idx] = (np.abs(patient_fc_metrics[p_idx, 0] - stages_fc_metrics[tau_idx, abeta_idx, 0]) +
+                                                   np.abs(patient_fc_metrics[p_idx, 2] - stages_fc_metrics[tau_idx, abeta_idx, 2])+
+                                                   np.abs(patient_fc_metrics[p_idx, 4] - stages_fc_metrics[tau_idx, abeta_idx, 4])
+        )
+            
 
 patients_stages = np.zeros((len(prot_lev), 2)) # tau stage, abeta stage
 ######## ora determino lo stage dei pazienti in funzione dei protein levels determinati a partire dall'articolo"Clinical and biomarker trajectories in sporadic Alzheimer’s
@@ -119,6 +150,14 @@ tau_stage_2 = 28.81 + tau_delta*0.8543703680827017
 tau_stage_3 = 28.81 + tau_delta*0.9500000000000001
 
 #########con questa divisione in stage la performance dell'algoritmo sale a 10 match e 4 mismatch di 1 (su 30 confronti totali)
+tau_error = 0
+abeta_error = 0
+correclty_id = 0
+one_error = 0
+two_error = 0
+three_error = 0
+four_error = 0
+five_error = 0
 for i in range(len(patient_fc_metrics[:,0])):
     if (prot_lev[i,0] == 0) & (prot_lev[i,1] == 0):
         patients_stages[i,0] = np.nan
@@ -195,12 +234,40 @@ for i in range(len(patient_fc_metrics[:,0])):
 
     # 2. Convertilo in coordinate (riga, colonna)
     riga, colonna = np.unravel_index(idx_flat, distances[i, :, :].shape)
-    if riga >=3:
-        riga = 3
-    if colonna >=3:
-        colonna = 3
-    print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', riga, ' ', colonna)
+    #riga = np.argmin(distances_abeta[i, :])
+    #colonna = np.argmin(distances_tau[i, :])
+    if prot_lev[i,0] != 0:
+        #print(i, ': ', prot_lev[i], '; ', patients_stages[i], '; ', riga, ' ', colonna, '; ', patients_stages[i,0]-riga, ' ', patients_stages[i,1]-colonna)
+        print("{:3d} : {:>5} {:>5} ; {:>10} ; {:>7}".format(
+            i,
+            str(prot_lev[i, 0]),
+            str(prot_lev[i, 1]),
+            str(patients_stages[i]),
+            f"{riga} {colonna}"
+        ))
+        abeta_error += patients_stages[i,0]-riga
+        tau_error += patients_stages[i,1]-colonna
+        if np.abs(patients_stages[i,1]-colonna) == 0:
+            correclty_id += 1
+        if np.abs(patients_stages[i,1]-colonna) == 1:
+            one_error += 1
+        if np.abs(patients_stages[i,1]-colonna) == 2:
+            two_error += 1
+        if np.abs(patients_stages[i,1]-colonna) == 3:
+            three_error += 1
+        if np.abs(patients_stages[i,1]-colonna) == 4:
+            four_error += 1
+        if np.abs(patients_stages[i,1]-colonna) == 5:
+            five_error += 1 
 
+print('corretly identified patient: ', correclty_id)
+print('1 stage mismatch: ', one_error)
+print('2 stage mismatch: ', two_error)
+print('3 stage mismatch: ', three_error)
+print('4 stage mismatch: ', four_error)
+print('5 stage mismatch: ', five_error)
+print(abeta_error)
+print(tau_error)
 ########## ovviamente questi sono 3 stage mentre noi ne abbiamo 5, per come abbiamo strutturato i nostri stages
 ########## la corrispondenda stages_reali vs stages_simulati sarà la seguente:
 ########## stage_reale 1 --> stage_simulato 1
