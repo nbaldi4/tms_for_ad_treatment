@@ -363,7 +363,7 @@ def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
 
     if return_value:
         return normal_mae, reduced_mae
-    
+
 def real_vs_stages_FC(fc_real, fc_regular_stage, fc_reduced_stage, return_value=False):
     """
     Compares simulated functional connectivity (from TVB) with real EEG-based FC

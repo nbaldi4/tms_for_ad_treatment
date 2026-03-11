@@ -13,85 +13,164 @@ from data_analysis_utils import real_vs_stages_PSD, real_vs_stages_FC, to_common
 # Rimuove il limite di larghezza della colonna (None = nessun limite)
 pd.set_option('display.max_colwidth', None)
 
-root_path = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data"
-file_name = "Stages_16_02_N_stages_"
-
-mci_data = np.load(os.path.join(root_path, r"Patients_highlights\mci_summary_stats_ref_freqs.npz"), allow_pickle=True)
-mci_fc_abs_mean = mci_data['mci_fc_abs_mean']
-mci_psd_rel_pow = mci_data['mci_psd_rel_pow']
-mci_csf_values = mci_data['mci_csf']
-
-print('broad')
-print(np.max(mci_fc_abs_mean[:,0]))
-print(np.mean(mci_fc_abs_mean[:,0]))
-print(np.min(mci_fc_abs_mean[:,0]))
-print('delta')
-print(np.max(mci_fc_abs_mean[:,1]))
-print(np.mean(mci_fc_abs_mean[:,1]))
-print(np.min(mci_fc_abs_mean[:,1]))
-print('theta')
-print(np.max(mci_fc_abs_mean[:,2]))
-print(np.mean(mci_fc_abs_mean[:,2]))
-print(np.min(mci_fc_abs_mean[:,2]))
-print('alpha')
-print(np.max(mci_fc_abs_mean[:,3]))
-print(np.mean(mci_fc_abs_mean[:,3]))
-print(np.min(mci_fc_abs_mean[:,3]))
-print('beta')
-print(np.max(mci_fc_abs_mean[:,4]))
-print(np.mean(mci_fc_abs_mean[:,4]))
-print(np.min(mci_fc_abs_mean[:,4]))
-
-stages_fc_data = np.load(os.path.join(root_path, os.path.join("Staging_highlights", file_name + "fc.npz")), allow_pickle=True)
-fc_matrices=stages_fc_data['fc_matrices']
-stages_psd_data = np.load(os.path.join(root_path, os.path.join("Staging_highlights", file_name + "psd.npz")), allow_pickle=True)
-psd_arrays=stages_psd_data['psd_arrays']
-psd_freqs=stages_psd_data['psd_freqs']
-
-print('patient 0', mci_fc_abs_mean[0,:])
-print('patient 0', mci_psd_rel_pow[0,:])
-print('patient 0', mci_csf_values[0,:])
-print('patient 12', mci_fc_abs_mean[12,:])
-print('patient 12', mci_psd_rel_pow[12,:])
-print('patient 12', mci_csf_values[12,:])
-print('patient 20', mci_fc_abs_mean[20,:])
-print('patient 20', mci_psd_rel_pow[20,:])
-print('patient 20', mci_csf_values[20,:])
-
 abeta_stages = 6
 tau_stages = 6
 patients_number = 59
 
-stages_metrics = np.zeros((6, 6, 9))
-for abeta in range(abeta_stages):
-    for tau in range(tau_stages):
-        stages_metrics[abeta,tau,0] = np.mean(np.abs(fc_matrices[abeta,tau,0,0]))
-        stages_metrics[abeta,tau,1] = np.mean(np.abs(fc_matrices[abeta,tau,1,0]))
-        stages_metrics[abeta,tau,2] = np.mean(np.abs(fc_matrices[abeta,tau,2,0]))
-        stages_metrics[abeta,tau,3] = np.mean(np.abs(fc_matrices[abeta,tau,3,0]))
-        stages_metrics[abeta,tau,4] = np.mean(np.abs(fc_matrices[abeta,tau,4,0]))
-        freqs = psd_freqs[abeta,tau,0]
-        #print(psd_arrays[abeta,tau,0][(freqs>= 0.5) & (freqs < 45)].shape)
-        #print(psd_arrays[abeta,tau,0][(freqs>= 0.5) & (freqs < 4)].shape)
-        #print(psd_arrays[abeta,tau,0][(freqs>= 4) & (freqs < 8)].shape)
-        #print(psd_arrays[abeta,tau,0][(freqs>= 8) & (freqs < 13)].shape)
-        #print(psd_arrays[abeta,tau,0][(freqs>= 13) & (freqs < 30)].shape)
-        psd_broad = np.sum(psd_arrays[abeta,tau,0][(freqs>= 0.5) & (freqs < 45)])  #broad
-        psd_delta = np.sum(psd_arrays[abeta,tau,0][(freqs>= 0.5) & (freqs < 4)])  #delta
-        psd_theta = np.sum(psd_arrays[abeta,tau,0][(freqs >= 4) & (freqs < 8)])   #theta
-        psd_alpha = np.sum(psd_arrays[abeta,tau,0][(freqs >= 8) & (freqs < 13)])  #alpha
-        psd_beta = np.sum(psd_arrays[abeta,tau,0][(freqs >= 13) & (freqs < 30)])  #beta
-        stages_metrics[abeta,tau,5] = psd_delta/psd_broad
-        stages_metrics[abeta,tau,6] = psd_theta/psd_broad
-        stages_metrics[abeta,tau,7] = psd_alpha/psd_broad
-        stages_metrics[abeta,tau,8] = psd_beta/psd_broad
+
+def compute_metrics():
+    root_path = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data"
+    file_name = "Stages_16_02_N_stages_"
+
+    mci_data = np.load(os.path.join(root_path, r"Patients_highlights\mci_summary_stats_ref_freqs.npz"), allow_pickle=True)
+    mci_fc_abs_mean = mci_data['mci_fc_abs_mean']
+    mci_psd_rel_pow = mci_data['mci_psd_rel_pow']
+    mci_csf_values = mci_data['mci_csf']
+
+    stages_metrics = np.zeros((6, 6, 9))
+
+    print('broad')
+    print(np.max(mci_fc_abs_mean[:,0]))
+    print(np.mean(mci_fc_abs_mean[:,0]))
+    print(np.min(mci_fc_abs_mean[:,0]))
+    print('delta')
+    print(np.max(mci_fc_abs_mean[:,1]))
+    print(np.mean(mci_fc_abs_mean[:,1]))
+    print(np.min(mci_fc_abs_mean[:,1]))
+    print('theta')
+    print(np.max(mci_fc_abs_mean[:,2]))
+    print(np.mean(mci_fc_abs_mean[:,2]))
+    print(np.min(mci_fc_abs_mean[:,2]))
+    print('alpha')
+    print(np.max(mci_fc_abs_mean[:,3]))
+    print(np.mean(mci_fc_abs_mean[:,3]))
+    print(np.min(mci_fc_abs_mean[:,3]))
+    print('beta')
+    print(np.max(mci_fc_abs_mean[:,4]))
+    print(np.mean(mci_fc_abs_mean[:,4]))
+    print(np.min(mci_fc_abs_mean[:,4]))
+
+    stages_fc_data = np.load(os.path.join(root_path, os.path.join("Staging_highlights", file_name + "fc.npz")), allow_pickle=True)
+    fc_matrices=stages_fc_data['fc_matrices']
+    stages_psd_data = np.load(os.path.join(root_path, os.path.join("Staging_highlights", file_name + "psd.npz")), allow_pickle=True)
+    psd_arrays=stages_psd_data['psd_arrays']
+    psd_freqs=stages_psd_data['psd_freqs']
+
+    print('patient 0', mci_fc_abs_mean[0,:])
+    print('patient 0', mci_psd_rel_pow[0,:])
+    print('patient 0', mci_csf_values[0,:])
+    print('patient 12', mci_fc_abs_mean[12,:])
+    print('patient 12', mci_psd_rel_pow[12,:])
+    print('patient 12', mci_csf_values[12,:])
+    print('patient 20', mci_fc_abs_mean[20,:])
+    print('patient 20', mci_psd_rel_pow[20,:])
+    print('patient 20', mci_csf_values[20,:])
+
+    for abeta in range(abeta_stages):
+        for tau in range(tau_stages):
+            stages_metrics[abeta,tau,0] = np.mean(np.abs(fc_matrices[abeta,tau,0,0]))
+            stages_metrics[abeta,tau,1] = np.mean(np.abs(fc_matrices[abeta,tau,1,0]))
+            stages_metrics[abeta,tau,2] = np.mean(np.abs(fc_matrices[abeta,tau,2,0]))
+            stages_metrics[abeta,tau,3] = np.mean(np.abs(fc_matrices[abeta,tau,3,0]))
+            stages_metrics[abeta,tau,4] = np.mean(np.abs(fc_matrices[abeta,tau,4,0]))
+            freqs = psd_freqs[abeta,tau,0]
+            #print(psd_arrays[abeta,tau,0][(freqs>= 0.5) & (freqs < 45)].shape)
+            #print(psd_arrays[abeta,tau,0][(freqs>= 0.5) & (freqs < 4)].shape)
+            #print(psd_arrays[abeta,tau,0][(freqs>= 4) & (freqs < 8)].shape)
+            #print(psd_arrays[abeta,tau,0][(freqs>= 8) & (freqs < 13)].shape)
+            #print(psd_arrays[abeta,tau,0][(freqs>= 13) & (freqs < 30)].shape)
+            psd_broad = np.sum(psd_arrays[abeta,tau,0][(freqs>= 0.5) & (freqs < 45)])  #broad
+            psd_delta = np.sum(psd_arrays[abeta,tau,0][(freqs>= 0.5) & (freqs < 4)])  #delta
+            psd_theta = np.sum(psd_arrays[abeta,tau,0][(freqs >= 4) & (freqs < 8)])   #theta
+            psd_alpha = np.sum(psd_arrays[abeta,tau,0][(freqs >= 8) & (freqs < 13)])  #alpha
+            psd_beta = np.sum(psd_arrays[abeta,tau,0][(freqs >= 13) & (freqs < 30)])  #beta
+            stages_metrics[abeta,tau,5] = psd_delta/psd_broad
+            stages_metrics[abeta,tau,6] = psd_theta/psd_broad
+            stages_metrics[abeta,tau,7] = psd_alpha/psd_broad
+            stages_metrics[abeta,tau,8] = psd_beta/psd_broad
 
 
 
-print('abeta 0 tau 0', stages_metrics[0,0,:])
-print('abeta 3 tau 2', stages_metrics[3,2,:])
-print('abeta 4 tau 5', stages_metrics[4,5,:])
-print('abeta 5 tau 5', stages_metrics[5,5,:])
+    print('abeta 0 tau 0', stages_metrics[0,0,:])
+    print('abeta 3 tau 2', stages_metrics[3,2,:])
+    print('abeta 4 tau 5', stages_metrics[4,5,:])
+    print('abeta 5 tau 5', stages_metrics[5,5,:])
+
+    return mci_fc_abs_mean, mci_psd_rel_pow, mci_csf_values, stages_metrics
+
+def compute_metrics_seeds():
+    root_path = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data"
+    stages_folder = "Random_seeds_16_02_M"
+    seeds_number = 40
+    values_to_take = 20
+    assert(values_to_take <= seeds_number)
+
+    mci_data = np.load(os.path.join(root_path, r"Patients_highlights\mci_summary_stats_ref_freqs.npz"), allow_pickle=True)
+    mci_fc_abs_mean = mci_data['mci_fc_abs_mean']
+    mci_psd_rel_pow = mci_data['mci_psd_rel_pow']
+    mci_csf_values = mci_data['mci_csf']
+
+    output_path_fc = os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Staging_highlights", stages_folder + '_stages_fc.npz')
+
+    output_path_psd = os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Staging_highlights", stages_folder + '_stages_psd.npz')
+
+
+    loaded_psd_data = np.load(output_path_psd, allow_pickle=True)
+    loaded_fc_data = np.load(output_path_fc, allow_pickle=True)
+    fc_from_file = loaded_fc_data['fc_matrices']
+    psd_from_file = loaded_psd_data['psd_arrays']
+    freqs_from_file = loaded_psd_data['psd_freqs']
+    stages = 6
+    bands = 5
+    seeds = values_to_take
+    psd_metrics_seeds = np.zeros((stages,stages,bands-1,seeds))
+    stages_metrics = np.zeros((stages,stages,9))
+
+    for abeta in range(stages):
+        for tau in range(stages):
+            for seed in range(seeds):
+                freqs = freqs_from_file[abeta,tau,seed]
+                psd_broad = np.sum(psd_from_file[abeta,tau,seed][(freqs>= 0.5) & (freqs < 45)])  #broad
+                psd_delta = np.sum(psd_from_file[abeta,tau,seed][(freqs>= 0.5) & (freqs < 4)])  #delta
+                psd_theta = np.sum(psd_from_file[abeta,tau,seed][(freqs >= 4) & (freqs < 8)])   #theta
+                psd_alpha = np.sum(psd_from_file[abeta,tau,seed][(freqs >= 8) & (freqs < 13)])  #alpha
+                psd_beta = np.sum(psd_from_file[abeta,tau,seed][(freqs >= 13) & (freqs < 30)])  #beta
+                
+                psd_metrics_seeds[abeta,tau,0,seed] = psd_delta/psd_broad
+                psd_metrics_seeds[abeta,tau,1,seed] = psd_theta/psd_broad
+                psd_metrics_seeds[abeta,tau,2,seed] = psd_alpha/psd_broad
+                psd_metrics_seeds[abeta,tau,3,seed] = psd_beta/psd_broad 
+            top_idx_5 = np.argpartition(psd_metrics_seeds, -values_to_take, axis=3)[abeta, tau, 0, -values_to_take:]
+            data_bands_top_vals_5 = np.take_along_axis(psd_metrics_seeds[abeta, tau, 0, -values_to_take:], top_idx_5, axis=3)
+            stages_metrics[abeta, tau, 5] = np.median(data_bands_top_vals_5)
+            top_idx_6 = np.argpartition(psd_metrics_seeds, -values_to_take, axis=3)[abeta, tau, 0, -values_to_take:]
+            data_bands_top_vals_6 = np.take_along_axis(psd_metrics_seeds, top_idx_6, axis=3)
+            stages_metrics[abeta, tau, 6] = np.median(data_bands_top_vals_6)
+            top_idx_7 = np.argpartition(psd_metrics_seeds, -values_to_take, axis=3)[abeta, tau, 0, -values_to_take:]
+            data_bands_top_vals_7 = np.take_along_axis(psd_metrics_seeds, top_idx_7, axis=3)
+            stages_metrics[abeta, tau, 7] = np.median(data_bands_top_vals_7)
+            top_idx_8 = np.argpartition(psd_metrics_seeds, -values_to_take, axis=3)[abeta, tau, 0, -values_to_take:]
+            data_bands_top_vals_8 = np.take_along_axis(psd_metrics_seeds, top_idx_8, axis=3)
+            stages_metrics[abeta, tau, 8] = np.median(data_bands_top_vals_8)
+
+    print()
+
+    fc_means_tau_abeta = np.zeros((stages, stages, bands, seeds))
+    fc_metrics = np.zeros((stages, stages, bands))
+    for abeta in range(stages):
+        for tau in range(bands):
+            for band in range(bands):
+                for seed in range(seeds):
+                    fc_means_tau_abeta[abeta, tau, band, seed] = np.mean(np.abs(fc_from_file[abeta, tau, band, seed]))
+                top_idx = np.argpartition(fc_means_tau_abeta, -values_to_take, axis=3)[abeta, tau, band, -values_to_take:]
+                data_bands_top_vals = np.take_along_axis(fc_means_tau_abeta, top_idx, axis=3)
+                stages_metrics[abeta, tau, band] = np.median(data_bands_top_vals)
+
+    return mci_fc_abs_mean, mci_psd_rel_pow, mci_csf_values, stages_metrics
+
+
+mci_fc_abs_mean, mci_psd_rel_pow, mci_csf_values, stages_metrics = compute_metrics_seeds()
+
 
 def calcola_ranking_mi(df_metriche, target, nome_target="Proteina"):
 

@@ -4,8 +4,7 @@ import joblib
 from joblib import Parallel, delayed
 
 stages = np.array(["0", "1", "2", "3", "4", "5"])
-seeds = np.array(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"])
-#seeds = np.array(["20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39"])
+seeds = np.array(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39"])
 
 
 from contextlib import contextmanager
@@ -31,10 +30,10 @@ def launch_simulation(i, j, k):
     comando = [
         "python", 
         "main.py", 
-        #"--PSD",
-        "--FC",
+        "--PSD",
+        #"--FC",
         "--save_plots",
-        "--save_folder", f'Random_seeds_16_02_M_FC_pears_tavg\Stage_{i}_{j}',
+        "--save_folder", f'Rnd_seeds_M_FC_pears_tavg\Stage_{i}_{j}',
         "--tau", i,
         "--abeta", j,
         "--rnd", k,

@@ -2,7 +2,59 @@ import numpy as np
 import tvb.simulator.lab as tvb
 from tvb.simulator.lab import equations, connectivity, patterns
 from tvb.basic.neotraits.api import Attr, NArray, Final, List
+from tvb.simulator.simulator import Simulator as Simulator_fromTVB
 
+
+class Simulator_Modified(Simulator_fromTVB):
+
+        def _loop_update_stimulus(self, step, stimulus):
+            """Update stimulus values for current time step."""
+            if self.stimulus is not None:
+                # TODO stim_step != current step
+                stim_step = step - (self.current_step + 1)
+                #stimulus[self.model.stvar, :, :] = self.stimulus(stim_step).reshape((1, -1, 1)) #THIS IS THE ORIGINAL LINE FROM TVB AS IN THE FILE simulator.py (the lines below the current are not present in the original version)
+                if self.surface==None:
+                    stimulus[self.model.stvar, :, :] = self.stimulus(stim_step).reshape((1, -1, 1))
+                if self.surface!=None:
+                    stimulus[self.model.stvar, :, :] = np.append(self.stimulus(stim_step), np.zeros((int(self.connectivity.cortical.shape[0]-np.count_nonzero(self.connectivity.cortical)),1))).reshape((1, -1, 1))
+
+        def _configure_stimuli(self):
+            """ Configure the defined Stimuli for this Simulator """
+            if self.stimulus is not None:
+                if self.surface:
+                    # NOTE the region mapping of the stimuli should also include the subcortical areas
+                    #self.stimulus.configure_space(region_mapping=self.surface.region_mapping)
+                    pass
+                else:
+                    self.stimulus.configure_space()
+
+        def run(self, **kwds):
+            """Convenience method to call the simulator with **kwds and collect output data."""
+            import time # this line has been added respect to TVB original file, this is needed otherwise returns error as "time" is undefined...
+            ts, xs = [], []
+            for _ in self.monitors:
+                ts.append([])
+                xs.append([])
+            wall_time_start = time.time()
+            for data in self(**kwds):
+                for tl, xl, t_x in zip(ts, xs, data):
+                    if t_x is not None:
+                        t, x = t_x
+                        tl.append(t)
+                        xl.append(x)
+                        if np.any(np.isnan(x)): # this line and the next 4 lines have been added respect to TVB original file: they break the two "for" nested loops when the last output of variable "x" contains one or more "nan" values
+                            break
+                else:
+                    continue
+                break
+            elapsed_wall_time = time.time() - wall_time_start
+            #self.log.info("%.3f s elapsed, %.3fx real time", elapsed_wall_time,
+            #              elapsed_wall_time * 1e3 / self.simulation_length)
+            self.log.info("")
+            for i in range(len(ts)):
+                ts[i] = np.array(ts[i])
+                xs[i] = np.array(xs[i])
+            return list(zip(ts, xs)) 
 
 class MultiStimuliRegion(patterns.StimuliRegion):
     connectivity = Attr(connectivity.Connectivity, required=False)

@@ -1,5 +1,8 @@
 from tvb.simulator.lab import monitors, connectivity
 import numpy as np
+from tvb.datatypes.region_mapping import RegionMapping
+from tvb.datatypes.projections import  ProjectionSurfaceEEG#,ProjectionMatrix,
+from tvb.datatypes.sensors import SensorsEEG
 
 show_plots = False
 real_data = False
@@ -35,6 +38,55 @@ aa=0.06625#0.06897011085340124#                    0.0728044836955774#0.09806515
 bb=0.06602933308057984#0.06293568322880852#0.0680013974341444#
 factor = -0.08#0#
 ref_PT=np.array([2.0, 2.0, 30.0])
+connectivity_simnibs = False
+
+def real_eeg_monitor_factory(real_conn):
+    real_config = {
+        'sensors_fname': r'...\sub-CLB00044_EEG_Locations.txt',
+        'projection_fname': r'...\sub-CLB00044_EEGProjection.mat',
+        'projection_matlab_name': 'ProjectionMatrix',
+        'rm_fname': r'...\sub-CLB00044_region_mapping.txt',
+        'period': temp_avg_period
+    }
+    cached_mon = None
+    cached_conf = real_config.copy()
+
+    def create_real_eeg_monitor(**kwargs):
+        nonlocal real_config, cached_mon, cached_conf
+
+        if kwargs:
+            real_config.update(kwargs)
+
+        if cached_mon and real_config == cached_conf:
+            return cached_mon
+
+        rm = RegionMapping.from_file(real_config['rm_fname'])
+        rm.connectivity = real_conn
+
+        sensorsEEG = SensorsEEG.from_file(real_config['sensors_fname'])
+        sensorsEEG.configure()
+
+        prEEG = ProjectionSurfaceEEG.from_file(
+            real_config['projection_fname'],
+            matlab_data_name=real_config['projection_matlab_name']
+        )
+        prEEG.sensors = sensorsEEG
+
+        mon_eeg = monitors.EEG(
+            sensors=sensorsEEG,
+            projection=prEEG,
+            region_mapping=rm,
+            period=real_config['period'],
+            reference=None,
+            variables_of_interest=np.array([0])
+        )
+        mon_eeg.configure()
+
+        cached_mon = mon_eeg
+        cached_conf = real_config.copy()
+        return mon_eeg
+
+    return create_real_eeg_monitor
 
 def eeg_monitor_factory():
     """Factory che gestisce un monitor EEG con configurazione persistente."""
@@ -42,7 +94,7 @@ def eeg_monitor_factory():
         'sensors_fname': 'eeg_brainstorm_65.txt',
         'projection_fname': 'projection_eeg_65_surface_16k.npy',
         'rm_f_name': 'regionMapping_16k_76.txt',
-        'period': 1
+        'period': temp_avg_period
     }
     cached_mon = None
     cached_conf = config.copy()
@@ -97,9 +149,42 @@ def connectivity_factory():
 
     return create_connectivity
 
+def connectivity_factory():
+    """Factory che gestisce un oggetto Connectivity con configurazione persistente."""
+    config = {
+        'filename': 'connectivity_76.zip'
+    }
+    cached_conn = None
+    cached_conf = config.copy()
+
+    def create_connectivity(**kwargs):
+        nonlocal config, cached_conn, cached_conf
+
+        # Aggiorna la configurazione se arrivano nuovi parametri
+        if kwargs:
+            config.update(kwargs)
+
+        # Se la configurazione non è cambiata, usa la connessione in cache
+        if cached_conn and config == cached_conf:
+            return cached_conn
+
+        # Altrimenti crea una nuova Connectivity
+        conn = connectivity.Connectivity.from_file(config['filename'])
+        conn.configure()  # opzionale, se serve come per EEG
+
+        cached_conn = conn
+        cached_conf = config.copy()
+        return conn
+
+    return create_connectivity
+
 # Istanza globale unica — importabile ovunque
-get_eeg_monitor = eeg_monitor_factory()
-get_conn = connectivity_factory()
+if connectivity_simnibs == True:
+    get_conn = connectivity_factory(filename=r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\HC_data\real_patient_connectome.zip")
+    get_eeg_monitor = real_eeg_monitor_factory(real_conn=get_conn)
+else:
+    get_eeg_monitor = eeg_monitor_factory()
+    get_conn = connectivity_factory()
 
 #mon_eeg = get_eeg_monitor() # Questo chiama la tua factory
 #print("Nomi sensori EEG simulati:")

@@ -3,9 +3,12 @@ import os
 import numpy as np
 import argparse
 from tvb.simulator.lab import *
+from matplotlib import pyplot as plt
 
 from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot, simulate_different_combination_parameters, simulate_parametri_lorenzo
-from utils import functional_connectivity, psd, functional_connectivity_band, functional_connectivity_img_coh, psd_simil_lorenzo, Simulate2
+from utils import functional_connectivity, psd, functional_connectivity_band, functional_connectivity_img_coh, psd_simil_lorenzo, Simulate2, functional_connectivity_lorenzo
+from utils import make_train, simulate_with_stimulus, stimulus_visualization, new_parcellation_simulate
+from classes import MultiStimuliRegion
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data, load_simulation_results
 import global_variable_creation as gv
 
@@ -59,7 +62,6 @@ def main():
 
 ################
     args = parser.parse_args()
-    print(args)
     gv.show_plots = args.show_plots
     gv.save_plots = args.save_plots
     gv.save_raw_data = args.save_raw_data
@@ -148,14 +150,16 @@ def main():
         ttavg, tavg, teeg, eeg = load_simulation_results(sim_id)
         ttavg, tavg = preprocess(ttavg, tavg)
         teeg, eeg = preprocess(teeg, eeg)
-
+    
     if not args.no_sim:
-        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor, save_raw = gv.save_raw_data)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        gv.connectivity_simnibs = True
+        ttavg, tavg, teeg, eeg = new_parcellation_simulate()
+        #ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor, save_raw = gv.save_raw_data)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
         #ttavg, tavg, teeg, eeg = simulate_different_combination_parameters(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
         #ttavg, tavg, teeg, eeg = Simulate()
         ttavg, tavg = preprocess(ttavg, tavg)
         teeg, eeg = preprocess(teeg, eeg)
-
+    
     datas = {'data_healthy': {'tavg': tavg, 'eeg': eeg, 'label': 'Healthy', 'color': 'blue'}}
 
     if gv.skin_and_sensors == True:
@@ -180,12 +184,13 @@ def main():
         functional_connectivity(tavg, 'TAVG')
 """
     if gv.fc == True:
-        #functional_connectivity(eeg, label='eeg')
-        functional_connectivity_band(tavg, label='TAVG', lowcut=0.5, highcut=45)
-        functional_connectivity_band(tavg, 'TAVG delta', lowcut=0.5, highcut=4)
-        functional_connectivity_band(tavg, 'TAVG theta', lowcut=4, highcut=8)
-        functional_connectivity_band(tavg, 'TAVG alpha', lowcut=8, highcut=13)
-        functional_connectivity_band(tavg, 'TAVG beta', lowcut=13, highcut=30)
+        #functional_connectivity(tavg, label='tavg')
+        #functional_connectivity_lorenzo(tavg)
+        #functional_connectivity_band(tavg, label='TAVG', lowcut=0.5, highcut=45)
+        #functional_connectivity_band(tavg, label='TAVG delta', lowcut=0.5, highcut=4)
+        #functional_connectivity_band(tavg, label='TAVG theta', lowcut=4, highcut=8)
+        #functional_connectivity_band(tavg, label='TAVG alpha', lowcut=8, highcut=13)
+        #functional_connectivity_band(tavg, label='TAVG beta', lowcut=13, highcut=30)
         #functional_connectivity_img_coh(eeg, 'EEG beta', lowcut=13, highcut=30)
         #functional_connectivity_img_coh(eeg, 'EEG alpha', lowcut=8, highcut=13)
         #functional_connectivity_img_coh(eeg, 'EEG theta', lowcut=4, highcut=8)
@@ -194,12 +199,12 @@ def main():
         #functional_connectivity_img_coh(tavg, 'TAVG alpha', lowcut=8, highcut=13)
         #functional_connectivity_img_coh(tavg, 'TAVG theta', lowcut=4, highcut=8)
         #functional_connectivity_img_coh(tavg, 'TAVG delta', lowcut=0.5, highcut=4)
-        #functional_connectivity_img_coh(eeg, 'EEG', lowcut=0.5, highcut=45)
-        #functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0.5, highcut=45)
+        functional_connectivity_img_coh(eeg, 'EEG', lowcut=0.5, highcut=45)
+        functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0.5, highcut=45)
 
     if gv.psd == True:
         psd(eeg, 'EEG')
-        #psd(tavg, 'TAVG')
+        psd(tavg, 'TAVG')
 
     if gv.real_data == True:
         analyze_regular_data(np.load(gv.HC_FC_data))
@@ -218,68 +223,63 @@ def main():
 
     #FC_alpha_visualization(datas, FC_alpha_visualizing, mon_EEG, conn, period=period)
     #compare_matrix_and_computed_psd(path = matrix_path, values = eeg_healthy, values2 = eeg_very_healty, visualizing = True)
+    """
+    stim_weight = 1/5
+    scale_fact = 10
+    start_time = 500
 
+    train1 = make_train([35,73], 5.0/stim_weight, onset=start_time , T=1000.0, tau=40.0) #500
+    train2 = make_train([36,74], 4.5/stim_weight, onset=start_time + 10 * scale_fact, T=1000, tau=50.0) #600
+    train3 = make_train([34,72], 4.0/stim_weight, onset=start_time + 35 * scale_fact, T=1000, tau=80.0) #850
+    train4 = make_train([32,70], 4.0/stim_weight, onset=start_time + 40 * scale_fact, T=1000, tau=80.0) #900
+    train5 = make_train([24,62], 4.0/stim_weight, onset=start_time + 50 * scale_fact, T=1000, tau=80.0) #1000
+    stimulus = MultiStimuliRegion(train1, train2,train3, train4, train5)
+    stimulus.configure_space()
+    time = np.r_[1e3:3e3:15.0]
+    stimulus.configure_time(time)
+    pattern = stimulus()
+
+
+    sim_time = 4000
+    display_time = sim_time - 2000
+    ttavg_stim, tavg_healthy_stim, teeg_stim, eeg_healthy_stim = simulate_with_stimulus(stimulus = stimulus, sim_time = sim_time) #Less simulated time needed
+    ttavg_stim, tavg_healthy_stim = preprocess(ttavg_stim, tavg_healthy_stim)
+    teeg_stim, eeg_healthy_stim = preprocess(teeg_stim, eeg_healthy_stim)
+
+    datas_stim = {'data_healthy': {'tavg': tavg_healthy_stim, 'eeg': eeg_healthy_stim, 'label': 'Healthy', 'color': 'blue'}}
+
+    chlist_occipital = [30,32,33,8,9]
+
+    mon_EEG = gv.get_eeg_monitor()
+
+    for key, value in datas_stim.items():
+        tavg_stim = value['tavg']
+        eeg_stim = value['eeg']
+        label = value['label']
+        color = value['color']
+
+        #Plot EEG
+        plt.figure(figsize=(10,12))
+        plt.plot(teeg_stim[:display_time], eeg_stim[:display_time, 0, chlist_occipital, 0] + np.r_[:(len(chlist_occipital))], color = color)
+        plt.yticks(np.r_[:len(chlist_occipital)], mon_EEG.sensors.labels[chlist_occipital], fontsize = 12)
+        plt.title("EEG occipital sensors," + label, fontsize = 18)
+        plt.xlabel('time (ms)', fontsize = 16)
+        plt.show()
+
+        
+    ################################## USEFUL ONLY WHEN STIMULUS IS APPLIED ###################################################
+
+    #1500 is stimulus onset 
+    onset_stim = 1500
+    mask1 = onset_stim
+    mask2  = onset_stim + 4000
+
+    chlist_occipital = [30,32,33,8,9]
+
+    chlist = chlist_occipital
+
+    stimulus_visualization(True, onset_stim, datas_stim, teeg_stim, mask1, mask2, chlist)
+    """
 
 if __name__ == "__main__":
     main()
-
-"""
-stim_weight = 1
-scale_fact = 10
-start_time = 500
-
-train1 = make_train([35,73], 5.0/stim_weight, onset=start_time , T=1000.0, tau=40.0) #500
-train2 = make_train([36,74], 4.5/stim_weight, onset=start_time + 10 * scale_fact, T=1000, tau=50.0) #600
-train3 = make_train([34,72], 4.0/stim_weight, onset=start_time + 35 * scale_fact, T=1000, tau=80.0) #850
-train4 = make_train([32,70], 4.0/stim_weight, onset=start_time + 40 * scale_fact, T=1000, tau=80.0) #900
-train5 = make_train([24,62], 4.0/stim_weight, onset=start_time + 50 * scale_fact, T=1000, tau=80.0) #1000
-stimulus = MultiStimuliRegion(train1, train2,train3, train4, train5)
-stimulus.configure_space()
-time = np.r_[1e3:3e3:15.0]
-stimulus.configure_time(time)
-pattern = stimulus()
-
-
-sim_time = 4000
-display_time = sim_time - 2000
-ttavg_stim, tavg_healthy_stim, teeg_stim, eeg_healthy_stim = Simulate(lp=15, cp=26, impaired_regions=impaired_regions, structural_connectivities = struct_conn, np_parameter = 3, g=1, velocity=np.inf, noise=50e-3, 
-                                                stimulus = stimulus, sim_time = sim_time) #Less simulated time needed
-ttavg, tavg_healthy, teeg, eeg_healthy = preprocess(ttavg_stim, tavg_healthy_stim, teeg_stim, eeg_healthy_stim)
-
-ttavg_stim, tavg_MCI_stim, teeg_stim, eeg_MCI_stim = Simulate(lp=24, cp=48, impaired_regions=impaired_regions, structural_connectivities = struct_conn, np_parameter = 3, g=1, velocity=np.inf, noise=50e-3, 
-                                                stimulus = stimulus, sim_time = sim_time) #Less simulated time needed
-ttavg_stim, tavg_MCI_stim, teeg_stim, eeg_MCI_stim = preprocess(ttavg_stim, tavg_MCI_stim, teeg_stim, eeg_MCI_stim)
-
-datas_stim = {'data_healthy': {'tavg': tavg_healthy_stim, 'eeg': eeg_healthy_stim, 'label': 'Healthy', 'color': 'blue'},
-         'data_MCI': {'tavg': tavg_MCI_stim, 'eeg': eeg_MCI_stim,  'label': 'MCI', 'color': 'red'}}
-
-chlist_occipital = [30,32,33,8,9]
-
-for key, value in datas_stim.items():
-    tavg_stim = value['tavg']
-    eeg_stim = value['eeg']
-    label = value['label']
-    color = value['color']
-
-    #Plot EEG
-    plt.figure(figsize=(10,12))
-    plt.plot(teeg_stim[:display_time], eeg_stim[:display_time, 0, chlist_occipital, 0] + np.r_[:(len(chlist_occipital))], color = color)
-    plt.yticks(np.r_[:len(chlist_occipital)], mon_EEG.sensors.labels[chlist_occipital], fontsize = 12)
-    plt.title("EEG occipital sensors," + label, fontsize = 18)
-    plt.xlabel('time (ms)', fontsize = 16)
-    plt.show()
-
-    
-################################## USEFUL ONLY WHEN STIMULUS IS APPLIED ###################################################
-
-#1500 is stimulus onset 
-onset_stim = 1500
-mask1 = onset_stim + 60
-mask2  = onset_stim + 150
-
-chlist_occipital = [30,32,33,8,9]
-
-chlist = chlist_occipital
-
-stimulus_visualization(stim_visualizing, onset_stim, datas_stim, teeg_stim, mask1, mask2, chlist)
-"""

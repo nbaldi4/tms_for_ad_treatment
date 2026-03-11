@@ -28,7 +28,7 @@ b_range = [0.025, 0.075]
 pop_size = 100
 n_gen = 200
 ref_pt = np.array([2.0, 2.0, 30.0])
-max_to_improve = 2
+max_to_improve = 5
 
 def evaluate_simulation(row, sim_time=20000):
     g, velocity, noise, a, b = row

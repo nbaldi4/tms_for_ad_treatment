@@ -29,8 +29,11 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 from pymoo.indicators.hv import HV
 from pymoo.core.termination import Termination
+from tvb.datatypes.region_mapping import RegionMapping
+from tvb.datatypes.projections import  ProjectionSurfaceEEG#,ProjectionMatrix,
+from tvb.datatypes.sensors import SensorsEEG
 
-from classes import JRPSP
+from classes import JRPSP, Simulator_Modified
 from global_variable_creation import get_eeg_monitor, get_conn
 import global_variable_creation as gv
 from additional_utils import macro_fc
@@ -345,8 +348,12 @@ def functional_connectivity(time_series_original, label):
 
 def functional_connectivity_band(time_series_original, label, lowcut, highcut, patient = 0, real_patient = False):
 
-    fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
-    os.makedirs(fig_save_dir, exist_ok=True)
+    if real_patient == False:
+        fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}") #gv.fig_folder
+        os.makedirs(fig_save_dir, exist_ok=True)
+    else:
+        fig_save_dir = os.path.join(gv.fig_folder, f"patient_{patient}")
+        os.makedirs(fig_save_dir, exist_ok=True)
 
     conn = get_conn()
     #time_series = time_series[np.isnan(time_series)]
@@ -383,10 +390,16 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut, p
 
     corr_th_significance = np.multiply(corr_th, pmatrix_th)
 
-    data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}")
-    os.makedirs(data_save_dir, exist_ok=True)
+    if real_patient == False:
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}")#gv.data_folder
+        os.makedirs(data_save_dir, exist_ok=True)
+        file_txt_title = f"FC_means_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_{lowcut}-{highcut}_Hz.txt"
+    else:
+        data_save_dir = os.path.join(gv.data_folder, f"patient_{patient}")
+        os.makedirs(data_save_dir, exist_ok=True)
+        file_txt_title = f"FC_patient_{patient}_{lowcut}-{highcut}_Hz.txt"
     
-    with open(os.path.join(data_save_dir, f"FC_means_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_band_{lowcut}-{highcut}_Hz.txt"), "w") as f:
+    with open(os.path.join(data_save_dir, file_txt_title), "w") as f:
         f.write(f"Label: {label}\n")
         f.write(f"Mean Correlation (raw): {corr_mean:.6f}\n")
         f.write(f"Mean Absolute Correlation: {abs_corr_mean:.6f}\n")
@@ -495,59 +508,6 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut, p
     psd_std = np.std(psd_all, axis=0)
     functional_connectivity(time_series, label)
 """
-
-def make_train(node_idx, node_weights, **params):
-    conn = get_conn()
-    weighting = np.zeros(conn.weights.shape[0])
-    weighting[node_idx] = node_weights
-    eqn_t = equations.PulseTrain()
-    eqn_t.parameters.update(params)
-    stimulus = patterns.StimuliRegion(
-        temporal=eqn_t,
-        connectivity=conn,
-        weight=weighting)
-    return stimulus
-
-def mean_channels(mask1, mask2, signal, chlist):
-    summ = 0
-    for ch in chlist:
-        summ += signal[mask1:mask2, 0, ch, 0]
-    summ /= len(chlist)
-    return summ
-
-def std_channels(mask1, mask2, signal, chlist):
-    summ = 0
-    mean = mean_channels(mask1, mask2, signal, chlist)
-    for ch in chlist:
-        summ += (signal[mask1:mask2, 0, ch, 0] - mean)**2
-    #summ = sqrt(summ)
-    summ /= len(chlist)-1
-    return summ
-
-def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, mask1, mask2, chlist = [0, 10, 20, 30]):
-    if visualizing == True:
-        plt.figure(figsize=(10,10))
-            
-        for key, value in datas_stim.items():
-            tavg_stim = value['tavg']
-            eeg_stim = value['eeg']
-            label = value['label']
-            color = value['color']
-            mean_n1 = mean_channels(mask1, mask2, eeg_stim, chlist)
-            std_n1 =  std_channels(mask1, mask2, eeg_stim, chlist)
-            plt.plot(teeg_stim[mask1:mask2], mean_n1, color = color, linewidth = 3, alpha = 0.55, label =  label)
-            plt.fill_between(teeg_stim[mask1:mask2], mean_n1 + std_n1, mean_n1 - std_n1, color = color, linewidth = 3, alpha = 0.35 )
-            print(label, 'N1 depth is:', np.min(mean_n1))
-
-        plt.gca().spines['top'].set_visible(False)
-        plt.gca().spines['right'].set_visible(False)
-        plt.title("Simulated N1 component", fontsize = 29)
-        plt.xlabel('Time (ms)', fontsize = 29)
-        plt.ylabel(r'Voltage (10 $\mu$V)', fontsize = 29)
-        plt.xticks([mask1, mask2], [mask1-stimulus_onset,mask2-stimulus_onset], fontsize = 22) #1500 is stimulus onset 
-        plt.yticks(fontsize = 22)
-        plt.legend(fontsize = 29)
-        plt.show()
 
 def simulate(sim_time=20000,
              tau_stage=gv.tau_stage,
@@ -922,6 +882,7 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
         os.makedirs(fig_save_dir, exist_ok=True)
         data_save_dir = os.path.join(gv.data_folder, f"patient_{patient}")
         os.makedirs(data_save_dir, exist_ok=True)
+
 
     if len(filtered_signals[0, :]) > 75:
         psd_affected = []
@@ -2004,3 +1965,497 @@ def psd_simil_lorenzo(time_series_original, label, lowcut=0.5, highcut=45, n_seg
         plt.show()
     else:
         plt.close()
+
+def functional_connectivity_lorenzo(time_series_original, th=0.80):
+
+    time_series = time_series_original.copy()
+#     time_series = time_series[np.isnan(time_series)]
+
+    for i in range(len(time_series[0,0,:,0])):
+        time_series[:,0,i,0] = bandpass_filter(time_series[:,0,i,0], lowcut=0.5, highcut=45)
+    tsr_corr = ev(time_series)
+
+    corr= tsr_corr.array_data[..., 0, 0]
+    
+    corr -= np.eye(len(time_series[0,0,:,0]))
+
+    abs_corr_mean = np.mean(np.abs(corr))
+    corr_mean = np.mean(corr)
+
+    #Define a threshold for connections
+    th = th 
+
+    corr_th = (corr) > th * np.max(corr)
+
+    pmatrix = np.zeros((len(time_series[0,0,:,0]),len(time_series[0,0,:,0])))
+
+    for i in range(len(time_series[0,0,:,0])):
+        for j in range(len(time_series[0,0,:,0])):
+            
+            region_A = time_series[:,0, i, 0]
+            region_B = time_series[:,0, j, 0]
+            
+            pmatrix[i][j] = pearsonr(region_A, region_B)[1]
+
+    pmatrix_th = pmatrix < 0.05
+
+    corr_th_significance = np.multiply(corr_th, pmatrix_th)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
+
+    # Plot corr_tavg
+    im1 = ax1.imshow(corr, interpolation='nearest', cmap='bwr')
+    #ax1.set_yticks(np.arange(len(conn.region_labels)))
+    #ax1.set_yticklabels(conn.region_labels, fontsize=12)
+    #ax1.set_xticks(np.arange(len(conn.region_labels)))
+    #ax1.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
+    ax1.set_title(f"FC lorenzo: {corr_mean:.4f} ({abs_corr_mean:.4f})", fontsize=29)
+
+    # Plot corr_tavg_th
+    im2 = ax2.imshow(corr_th, interpolation='nearest', cmap='bwr')
+    #ax2.set_yticks(np.arange(len(conn.region_labels)))
+    #ax2.set_yticklabels(conn.region_labels, fontsize=12)
+    #ax2.set_xticks(np.arange(len(conn.region_labels)))
+    #ax2.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
+    ax2.set_title('FC lorenzo w/ threshold', fontsize=29)
+
+    # Colorbar
+    cax = fig.add_axes([ax2.get_position().x1 + 0.01, ax2.get_position().y0, 0.02, ax2.get_position().height])
+    cbar = plt.colorbar(im2, cax=cax)
+
+    plt.show()
+
+def simulate_with_stimulus(sim_time=20000,
+             tau_stage=gv.tau_stage,
+             abeta_stage=gv.abeta_stage,
+             g=gv.coup, #0.10004127233208432,
+             velocity=gv.vel, #10.374658598387436,
+             noise=gv.noi, #0.14480848489827142,
+             a=gv.aa, #0.0728044836955774,
+             b=gv.bb, #0.06293568322880852,
+             factor=gv.factor, #0.04,#0.03999999999999998,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
+             C_ip_values=np.linspace(33.75, 13.25, 10),
+             cip=0,
+             C_ep_values=np.linspace(108, 28, 10),
+             cep=0,
+             stimulus=None, 
+             save_raw=False):
+    """
+    Run a simulation of brain activity based on the Jansen–Rit neural mass model.
+
+    Args:
+        sim_time (float): Simulation duration in ms.
+        structural_connectivities (np.ndarray): Structural connectivity matrices.
+        noise (float): Noise level for stochastic integration.
+        cp (int): Connectivity pattern index.
+        np_parameter (int): Neuroplasticity parameter index.
+        g (float): Global coupling strength.
+        velocity (float): Signal conduction velocity.
+        cip, cep, taue: Model parameters controlling inhibitory and excitatory coupling.
+        tau_e_values, C_ip_values, C_ep_values: Parameter grids for tuning.
+        impaired_regions (list): Brain regions to apply hypoinhibition.
+        stimulus (object): Optional external stimulus object.
+
+    Returns:
+        tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
+    """
+    conn = get_conn()
+    conn.weights = np.load(gv.struct_path)[tau_stage, :, :]
+    conn.weights = conn.weights / 3 #np.max(conn.weights)
+    conn.weights *= g
+    conn.speed = np.array(velocity)
+    conn.configure()
+
+    # Model parameters (based on Jansen–Rit equations)
+    Cep_value = C_ep_values[cep]
+    Cip_value = C_ip_values[cip]
+    J_value = 128
+    J_stages = np.ones((76,1))
+
+    tau_stage_1 = [ #2 areas
+        24, 62  # PHC (parahippocampal gyrus)
+    ]
+
+    tau_stage_2 = [ #16 areas
+        2, 40,   # AMYG (amygdala)
+        9, 47,   # HC (hippocampus)
+        13, 51,  # PCI (inferor parietal cortex)
+        30, 68,  # TCC (central temporal)
+        31, 69,  # TCI (inferior temporal)
+        32, 70,  # TCPOL (temporal pole)
+        33, 71,  # TCS (superior temporal)
+        34, 72   # TCV (ventral temporal)
+    ]
+
+    tau_stage_3 = [ #34 areas
+        0, 38,   # A1 (primary uditivity cortex)
+        11, 49,  # IP (intraparietal cortex)
+        12, 50,  # M1 (primary motor cortex)
+        14, 52,  # PCIP (posterior inferor parietal cortex)
+        15, 53,  # PCM (medial parietal cortex)
+        16, 54,  # PCS (parietal sulcus)
+        17, 55,  # PFCCL (caudolateral prefrontal cortex)
+        18, 56,  # PFCDL (dorsolateral prefrontal cortex)
+        19, 57,  # PFCDM (dorsomedial prefrontal cortex)
+        21, 59,  # PFCORB (orbitofrontal)
+        22, 60,  # PFCPOL (prefrontal polar)
+        23, 61,  # PFCVL (ventrolateral prefrontal cortex)
+        25, 63,  # PMCDL (ventrolateral premotor cortex)
+        26, 64,  # PMCM (medial premotor cortex)
+        27, 65,  # PMCVL (ventrolaterl premotor cortex)
+        28, 66,  # S1 (primary somatosensorial cortex)
+        35, 73,  # V1 (primary visul cortex)
+    ]
+
+    Abeta_stage_1 = [ #12 areas
+        21, 59,   # PFCORB (orbitofrontal)
+        22, 60,   # PFCPOL (prefrontal polar)
+        30, 68,   # TCC (central temporal)
+        31, 69,   # TCI (inferior temporal)
+        32, 70,   # TCPOL (temporal pole)
+        34, 72    # TCV (ventral temporal)
+    ]
+
+    Abeta_stage_2 = [ #22 areas
+        2, 40,   # AMYG (amygdala)
+        3, 41,   # CCA (anterior cingulate cortex)
+        4, 42,   # CCP (posterior cingulate cortex)
+        5, 43,   # CCR (rostral cingulate cortex)
+        6, 44,   # CCS (subgenual cingulate cortex)
+        9, 47,   # HC (hippocampus)
+        10, 48,  # IA (insula = anterior + posterior)
+        23, 61,  # PFCVL (ventrolateral prefrontal cortex)
+        24, 62,  # PHC (parahippocampal gyrus)
+        33, 71,  # TCS (superior temporal)
+        37, 75   # CC (cingulate cortex)
+    ]
+
+    Abeta_stage_3 = [ #42 areas
+        0, 38,   # A1 (primary uditivity cortex)
+        1, 39,   # A2 (secondary uditivity cortex)
+        7, 45,   # FEF (frontal eyes field)
+        8, 46,   # G (gyrus)
+        11, 49,  # IP (intraparietal cortex)
+        12, 50,  # M1 (primary motor cortex)
+        13, 51,  # PCI (inferor parietal cortex)
+        14, 52,  # PCIP (posterior inferor parietal cortex)
+        15, 53,  # PCM (medial parietal cortex)
+        16, 54,  # PCS (parietal sulcus)
+        17, 55,  # PFCCL (caudolateral prefrontal cortex)
+        18, 56,  # PFCDL (dorsolateral prefrontal cortex)
+        19, 57,  # PFCDM (dorsomedial prefrontal cortex)
+        20, 58,  # PFCM (medial prefrontal cortex)
+        25, 63,  # PMCDL (ventrolateral premotor cortex)
+        26, 64,  # PMCM (medial premotor cortex)
+        27, 65,  # PMCVL (ventrolaterl premotor cortex)
+        28, 66,  # S1 (primary somatosensorial cortex)
+        29, 67,  # S2 (secondary somatosensorial cortex)
+        35, 73,  # V1 (primary visul cortex)
+        36, 74,  # V2 (secondary visual cortex)
+    ]
+
+    Abeta_stage_1_second_trial = [  #alternative abeta staging
+        30, 58, #Precuneus (PCu)
+        35, 73, #Superior Frontal
+        31, 69, #Superior Parietal
+        28, 66, #Posterior Cingulate
+        37, 75, #Middle Temporal
+        36,	74  #Superior Temporal
+    ]
+        
+    Abeta_stage_2_second_trial = [
+        12, 50, #Hippocampus
+        6, 44, #Entorhinal Cortex
+        1, 39, #Amygdala
+        13, 51, #Insula	
+        32, 2, 70, 40, #Anterior Cingulate (Ros/Caud)
+	    22, 60 #Parahippocampal Gyrus
+    ]
+
+    Abeta_stage_3_second_trial = [
+        34, 72, #Thalamus
+    	3, 41, #Caudate
+	    33, 71, #Putamen
+	    21, 59, #Pallidum
+	    0, 38, #Accumbens
+        ]
+
+    degeneration = [0, 0, 0, (1/(1+19**(1/3))), (1/(1+19**(-1/3))), 0.95, 0.95, 0.95] 
+    #stages derving from sigma function division in 3 parts (0, x1=1/3, x2=2/3, 1) s.t. f(0) = 0.05, f(1) = 0.95
+    #alternative stagings, different between abeta and tau
+    degeneration_tau = [0, 0, 0, 0.28, 0.78, 0.95, 0.95, 0.95]
+    degeneration_abeta = [0, 0, 0, 0.6116, 0.8664, 0.95, 0.95, 0.95]
+    degeneration_alpha = [[0, 0, 0], [0.11, 0.21, 0.31], [0.43, 0.53, 0.63], [0.75, 0.85, 0.95], [0.85, 0.95, 0.95], [0.95, 0.95, 0.95]]
+    degeneration_alpha_2 = [[0, 0, 0], [0.21, 0.26, 0.31], [0.53, 0.58, 0.63], [0.85, 0.90, 0.95], [0.90, 0.95, 0.95], [0.95, 0.95, 0.95]]
+
+    a_delta = (2.20*3.65/3.25)-1   ########################### Attenzione, valore di M
+    b_delta = 13.25/33.75-1           #0.03133/0.0593-1
+
+    a_array = np.ones((76,1))
+    b_array = np.ones((76,1))*b #*(1+b_delta*0.01*tau_stage)
+    regions_centers = conn.centres
+    distance = np.ones((76,1))
+    wide_y = np.max(regions_centers[:,1]) - np.min(regions_centers[:,1])
+    for i in range(len(regions_centers[:,1])):
+        region_coordinate_y = regions_centers[i,1]
+        distance[i] = (region_coordinate_y - np.max(regions_centers[:,1]))/wide_y
+        a_array[i] = a*(1 + distance[i]*factor)
+    J_delta = 0.3
+
+    #print('a iniziale', a_array[21:31])
+    #print('b iniziale', b_array[21:31])
+    #print('J iniziale', J_stages[21:31])
+    for i in tau_stage_1:
+        J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage + 2]))
+    
+    for i in tau_stage_2:
+        J_stages[i] = 1 - degeneration[tau_stage + 1]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage + 1]))
+
+    for i in tau_stage_3:
+        J_stages[i] = 1 - degeneration[tau_stage]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage]))
+
+    for i in Abeta_stage_1:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage + 2])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage+ 2]
+
+    for i in Abeta_stage_2:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage + 1])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage + 1]
+
+    for i in Abeta_stage_3:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage]
+    #print('a finale', a_array[21:31])
+    #print('b finale', b_array[21:31])
+    #print('J finale', J_stages[21:31])
+    model_pars = dict(
+        A=3.25, B=22, v0=6.0,
+        a=a_array, b=b_array, r=0.56,
+        nu_max=0.0025, J=J_value*J_stages,
+        a_1=1.0, a_2 = Cep_value / J_value, #a_2 around 0.84375
+        a_3=0.25, a_4 = Cip_value / J_value, #a_4 around 0.26367
+        mu=0.22
+    )
+
+    # Add stochastic noise
+    nsig = np.zeros((8, 76, 1))
+    nsig[4] = model_pars['A'] * model_pars['a'] * (.320 - .120) * noise
+    tvb_noise = tvb.noise.Additive(nsig=nsig, noise_seed=gv.random_seed)
+
+    # Define monitors
+    mon_eeg = get_eeg_monitor()
+    mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
+
+    sim = simulator.Simulator(
+        connectivity=conn,
+        conduction_speed=float(conn.speed),
+        model=JRPSP(
+            variables_of_interest=("y0", "y1", "y2", "y3", "y4", "y5", "y6", "y7"),
+            **{k: np.array(v) for k, v in model_pars.items()}
+        ),
+        coupling=tvb.coupling.Linear(a=np.r_[a_array * 10]),
+        integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=tvb_noise),
+        stimulus=stimulus,
+        monitors=(mon_tavg, mon_eeg),
+        simulation_length=sim_time
+    )
+    sim.configure()
+
+    (ttavg, tavg), (teeg, eeg) = sim.run(simulation_length=sim_time)
+    if save_raw==True:
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_rnd{gv.random_seed}")
+        os.makedirs(data_save_dir, exist_ok=True)
+        output = os.path.join(data_save_dir, f"eeg_and_teeg_raw_tau{gv.tau_stage}_abeta{gv.abeta_stage}_rnd{gv.random_seed}.npz")
+        metadata = {
+            "description": "File contains eeg (and time eeg) files and tavg (and time tavg) files"
+        }
+
+        np.savez_compressed(
+            output,
+            eeg=eeg,
+            teeg=teeg,
+            tavg=tavg,
+            ttavg=ttavg,
+            metadata=metadata
+        )
+            
+    return ttavg, tavg, teeg, eeg
+
+def new_parcellation_simulate(sim_time=20000,
+             tau_stage=gv.tau_stage,
+             abeta_stage=gv.abeta_stage,
+             g=gv.coup, #0.10004127233208432,
+             velocity=gv.vel, #10.374658598387436,
+             noise=gv.noi, #0.14480848489827142,
+             a=gv.aa, #0.0728044836955774,
+             b=gv.bb, #0.06293568322880852,
+             factor=0, #0.04,#0.03999999999999998,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
+             C_ip_values=np.linspace(33.75, 13.25, 10),
+             cip=0,
+             C_ep_values=np.linspace(108, 28, 10),
+             cep=0,
+             stimulus=None, 
+             save_raw=False):
+    """
+    Run a simulation of brain activity based on the Jansen–Rit neural mass model.
+
+    Args:
+        sim_time (float): Simulation duration in ms.
+        structural_connectivities (np.ndarray): Structural connectivity matrices.
+        noise (float): Noise level for stochastic integration.
+        cp (int): Connectivity pattern index.
+        np_parameter (int): Neuroplasticity parameter index.
+        g (float): Global coupling strength.
+        velocity (float): Signal conduction velocity.
+        cip, cep, taue: Model parameters controlling inhibitory and excitatory coupling.
+        tau_e_values, C_ip_values, C_ep_values: Parameter grids for tuning.
+        impaired_regions (list): Brain regions to apply hypoinhibition.
+        stimulus (object): Optional external stimulus object.
+
+    Returns:
+        tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
+    """
+    conn = get_conn(filename=r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\HC_data\real_patient_connectome.zip")
+    #conn.weights = np.load(gv.struct_path)[tau_stage, :, :]
+    #conn.weights = conn.weights / 3 #np.max(conn.weights)
+
+
+    region_number = 86
+    # Model parameters (based on Jansen–Rit equations)
+    Cep_value = C_ep_values[cep]
+    Cip_value = C_ip_values[cip]
+    J_value = 128
+    J_stages = np.ones((region_number,1))
+
+    a_array = np.ones((region_number,1))*a
+    b_array = np.ones((region_number,1))*b 
+    model_pars = dict(
+        A=3.25, B=22, v0=6.0,
+        a=a_array, b=b_array, r=0.56,
+        nu_max=0.0025, J=J_value*J_stages,
+        a_1=1.0, a_2 = Cep_value / J_value, #a_2 around 0.84375
+        a_3=0.25, a_4 = Cip_value / J_value, #a_4 around 0.26367
+        mu=0.22
+    )
+
+    # Add stochastic noise
+    nsig = np.zeros((8, region_number, 1))
+    nsig[4] = model_pars['A'] * model_pars['a'] * (.320 - .120) * noise
+    tvb_noise = tvb.noise.Additive(nsig=nsig, noise_seed=gv.random_seed)
+
+    # Define monitors
+    mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
+    mon_tavg.configure()
+
+    conn = get_conn(filename=r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\HC_data\real_patient_connectome.zip")
+    rm_f_name = (r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_region_mapping.txt")
+    rm = RegionMapping.from_file(rm_f_name)
+    rm.connectivity=conn
+    sensorsEEG = SensorsEEG.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_EEG_Locations.txt")
+    sensorsEEG.configure()
+    prEEG = ProjectionSurfaceEEG.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_EEGProjection.mat", matlab_data_name="ProjectionMatrix")
+    prEEG.sensors=sensorsEEG
+    mons = ( monitors.EEG(sensors=sensorsEEG, projection=prEEG, region_mapping=rm, period=gv.temp_avg_period, reference=None, variables_of_interest=np.array([0])),monitors.Raw(),monitors.ProgressLogger(period=10000),)
+    mons[0].configure()
+    mons[1].configure()
+    mons[2].configure()
+
+    mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
+
+    mon_EEG = monitors.EEG(
+        sensors=sensorsEEG,
+        projection=prEEG,
+        region_mapping=rm,
+        period=gv.temp_avg_period,
+        reference=None,
+        variables_of_interest=np.array([0])
+    )
+
+    mons = (
+        mon_tavg,                              # results[0] -> (ttavg, tavg)
+        mon_EEG,                               # results[1] -> (teeg, eeg)
+        monitors.ProgressLogger(period=10000)  # results[2]
+    )
+    mons[0].configure()
+    mons[1].configure()
+    mons[2].configure()
+    
+    sim = Simulator_Modified(        
+        model=JRPSP(
+                variables_of_interest=("y0", "y1", "y2", "y3", "y4", "y5", "y6", "y7"),
+                **{k: np.array(v) for k, v in model_pars.items()}
+            ),        
+        connectivity=conn,      
+        coupling=tvb.coupling.Linear(a=np.r_[0.1 * 10]),     
+        conduction_speed=float(conn.speed),       
+        integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=tvb_noise),     
+        monitors=mons,        
+        surface=None,        
+        stimulus=stimulus,  
+        simulation_length=sim_time
+    ) 
+    sim.configure()
+        #print(sim.model.__dict__)
+    results = sim.run(simulation_length=sim_time)
+
+    ttavg, tavg = results[0]   # TemporalAverage
+    teeg, eeg   = results[1]   # EEG
+ 
+    return ttavg, tavg, teeg, eeg
+
+def make_train(node_idx, node_weights, **params):
+    conn = get_conn()
+    weighting = np.zeros(conn.weights.shape[0])
+    weighting[node_idx] = node_weights
+    eqn_t = equations.PulseTrain()
+    eqn_t.parameters.update(params)
+    stimulus = patterns.StimuliRegion(
+        temporal=eqn_t,
+        connectivity=conn,
+        weight=weighting)
+    return stimulus
+
+def mean_channels(mask1, mask2, signal, chlist):
+    summ = 0
+    for ch in chlist:
+        summ += signal[mask1:mask2, 0, ch, 0]
+    summ /= len(chlist)
+    return summ
+
+def std_channels(mask1, mask2, signal, chlist):
+    summ = 0
+    mean = mean_channels(mask1, mask2, signal, chlist)
+    for ch in chlist:
+        summ += (signal[mask1:mask2, 0, ch, 0] - mean)**2
+    #summ = sqrt(summ)
+    summ /= len(chlist)-1
+    return summ
+
+
+def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, mask1, mask2, chlist = [0, 10, 20, 30]):
+    if visualizing == True:
+        plt.figure(figsize=(10,10))
+            
+        for key, value in datas_stim.items():
+            tavg_stim = value['tavg']
+            eeg_stim = value['eeg']
+            label = value['label']
+            color = value['color']
+            mean_n1 = mean_channels(mask1, mask2, eeg_stim, chlist)
+            std_n1 =  std_channels(mask1, mask2, eeg_stim, chlist)
+            plt.plot(teeg_stim[mask1:mask2], mean_n1, color = color, linewidth = 3, alpha = 0.55, label =  label)
+            plt.fill_between(teeg_stim[mask1:mask2], mean_n1 + std_n1, mean_n1 - std_n1, color = color, linewidth = 3, alpha = 0.35 )
+            print(label, 'N1 depth is:', np.min(mean_n1))
+
+        plt.gca().spines['top'].set_visible(False)
+        plt.gca().spines['right'].set_visible(False)
+        plt.title("Simulated N1 component", fontsize = 29)
+        plt.xlabel('Time (ms)', fontsize = 29)
+        plt.ylabel(r'Voltage (10 $\mu$V)', fontsize = 29)
+        plt.xticks([mask1, mask2], [mask1-stimulus_onset,mask2-stimulus_onset], fontsize = 22) #1500 is stimulus onset 
+        plt.yticks(fontsize = 22)
+        plt.legend(fontsize = 29)
+        plt.show()
