@@ -55,11 +55,12 @@ def skin_and_sensors():
     conn = get_conn()
 
     # Load and configure patient skin model
-    skin = surfaces.SkinAir.from_file()
+    skin = surfaces.SkinAir.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_outer_skin.zip")
     skin.configure()
 
+    mon_EEG = get_eeg_monitor()
     # Load and configure EEG sensor positions
-    sens_eeg = sensors.SensorsEEG.from_file()
+    sens_eeg = mon_EEG.sensors
     sens_eeg.configure()
 
     # === 3D Visualization of skin and sensors ===
@@ -2293,7 +2294,7 @@ def new_parcellation_simulate(sim_time=20000,
              noise=gv.noi, #0.14480848489827142,
              a=gv.aa, #0.0728044836955774,
              b=gv.bb, #0.06293568322880852,
-             factor=0, #0.04,#0.03999999999999998,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
+             factor=gv.factor, #0.04,#0.03999999999999998,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
              C_ip_values=np.linspace(33.75, 13.25, 10),
              cip=0,
              C_ep_values=np.linspace(108, 28, 10),
@@ -2320,6 +2321,7 @@ def new_parcellation_simulate(sim_time=20000,
         tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
     """
     conn = copy.deepcopy(get_conn())  # copia indipendente per ogni worker
+    #conn.weights = np.load(gv.struct_path_connectivity_86)[tau_stage, :, :]
     conn.weights = conn.weights / 820096.76119633  # .copy() non più necessario
     conn.weights = conn.weights * g
     conn.speed = np.array(velocity)
@@ -2333,7 +2335,266 @@ def new_parcellation_simulate(sim_time=20000,
     J_stages = np.ones((region_number,1))
 
     a_array = np.ones((region_number,1))*a
-    b_array = np.ones((region_number,1))*b 
+    """
+    print('a_array prima di essere calcolato')
+    print(a_array.shape)
+    print(a_array[:6])
+    """
+    b_array = np.ones((region_number,1))*b
+    regions_centers = conn.centres[:84]
+    distance = np.ones((region_number,1))
+    wide_y = np.max(regions_centers[:,1]) - np.min(regions_centers[:,1])
+    for i in range(len(regions_centers[:,1])):
+        region_coordinate_y = regions_centers[i,1]
+        distance[i] = (region_coordinate_y - np.max(regions_centers[:,1]))/wide_y
+        a_array[i] = a*(1 + distance[i]*factor)
+    """
+    print('y massima', np.max(regions_centers[:,1]))
+    print('y minima', np.min(regions_centers[:,1]))
+
+    print('coordinate dei centri delle regioni')
+    print(regions_centers.shape)
+    print(regions_centers[:6])
+
+    print('vettore delle distanze normalizzate')
+    print(distance.shape)
+    print(distance[:6])
+
+    print('a_array dopo essere calcolato')
+    print(a_array.shape)
+    print(a_array[:6])
+    """
+    #Prova 1:
+    """
+    tau_stage_1 = [ #2 areas
+        5,  54,   # EC   (entorhinal)
+        15, 64    # PHIG (parahippocampal gyrus)
+    ]
+
+    tau_stage_2 = [ #16 areas
+        7,  56,   # IPG (inferor parietal cortex)
+        8,  57,   # ITG (inferior temporal)
+        14, 63,   # MTG (middle temporal)
+        29, 78,   # STG (superior temporal)
+        32, 81,   # TP  (temporal pole)
+        33, 82,   # TTG (trasverse temporal)
+        40, 47,   # HI  (hippocampus)
+        41, 48    # AM  (amygdala)
+        ]
+
+    tau_stage_3 = [ #34 areas
+        0, 38,   # A1 (primary uditivity cortex)#######
+        11, 49,  # IP (intraparietal cortex)########
+        12, 50,  # M1 (primary motor cortex)##########
+        22, 71,  # PCG (posterior cingulate)
+        28, 77,  # SPG (superior parietal)
+        7,  56,  # SPG (inferior parietal)
+        16, 54,  # PCS (parietal sulcus)########
+        2,  51,  # CACG (caudal anterior cingulate)
+        3,  52,  # CMFG (caudal middle frontal)
+        18, 56,  # PFCDL (dorsolateral prefrontal cortex)#######
+        19, 57,  # PFCDM (dorsomedial prefrontal cortex)#######
+        21, 59,  # PFCORB (orbitofrontal)########
+        22, 60,  # PFCPOL (prefrontal polar)########
+        23, 61,  # PFCVL (ventrolateral prefrontal cortex)#########
+        25, 63,  # PMCDL (ventrolateral premotor cortex)#######
+        26, 64,  # PMCM (medial premotor cortex)########
+        27, 65,  # PMCVL (ventrolaterl premotor cortex)######
+        28, 66,  # S1 (primary somatosensorial cortex)######
+        35, 73,  # V1 (primary visual cortex)########
+    ]
+    """
+    #Prova 2:
+    tau_stage_1 = [ # 4 regions
+        5,  54,  # EC   (enthorinal cortex)
+        15, 64   # PHIG (parahippocampal cortex)
+    ]
+
+    tau_stage_2 = [ # 30 regions
+        2,  51,  # CACG (caudal anterior cingulate)
+        7,  56,  # IPG  (inferior parietal cortex)
+        8,  57,  # ITG  (inferior temporal gyrus)
+        9,  58,  # ICG  (isthmus cingulate) 
+        11, 60,  # LOFG (lateral orbitofrontal)
+        13, 62,  # MOFG (medial orbitofrontal)
+        14, 63,  # MTG  (middle temporal gyrus)
+        24, 73,  # PCU  (precuneus)
+        25, 74,  # RACG (rostral anterior cingulate)
+        26, 75,  # RMFG (rostral middle frontal gyrus)
+        27, 76,  # SFG  (superior frontal gyrus)
+        28, 77,  # SPG  (superior parietal cortex)
+        29, 78,  # STG  (superior temporal gyrus)
+        40, 47,  # HI   (hippocampus)
+        41, 48   # AM   (amygdala)
+    ]
+
+    tau_stage_3 = [ # 48 regions
+        1,  50,  # BSTS (banks of superior temporal sulcus)
+        3,  52,  # CMFG (caudal middle frontal gyrus)
+        4,  53,  # CU   (cuneus)
+        6,  55,  # FG   (fusiform gyrus)
+        10, 59,  # LOG  (lateral occipital)
+        12, 61,  # LG   (lingual gyrus)
+        16, 65,  # PaCG (paracentral lobule)
+        17, 66,  # POP  (pars opercularis)
+        18, 67,  # POR  (pars orbitalis)
+        19, 68,  # PTR  (pars triangularis)
+        20, 69,  # PCAL (pericalcarine / primary visual cortex)
+        21, 70,  # PoCG (postcentral gyrus / primary somatosensory cortex)
+        23, 72,  # PrCG (precentral gyrus / primary motor cortex)
+        30, 79,  # SMG  (supramarginal gyrus)
+        31, 80,  # FP   (frontal temporal)
+        32, 81,  # TP   (temporal pole)
+        33, 82,  # TTG  (transverse temporal gyrus / primary auditory cortex)
+        34, 83,  # IN   (insula)
+        35, 84,  # CER  (cerebellum cortex)
+        36, 43,  # TH   (thalamus)
+        37, 44,  # CA   (caudate)
+        38, 45,  # PU   (putamen)
+        39, 46,  # PA   (pallidum)
+        42, 49,  # AC   (accumbens) 
+    ]
+
+    #Prova 1:
+    """
+    Abeta_stage_1 = [ #14 areas
+        
+        8,  57,   # ITG (inferior temporal)
+        11, 60,   # LOFG (lateral orbitofrontal)
+        13, 62,   # MOFG (medial orbitofrontal)
+        14, 63,   # MTG (middle temporal)
+        18, 67,   # POR (parsorbitalis)
+        32, 81,   # TP  (temporal pole)
+        33, 82,   # TTG (trasverse temporal)
+    ]
+
+    Abeta_stage_2 = [ #18 areas
+        2,  51,  # CACG (caudal anterior cingulate)
+        9,  58,  # ICG (isthmus cingulate)
+        15, 64,  # PHIG (parahippocampal)
+        22, 71,  # PCG (posterior cingulate)
+        25, 74,  # RACG (rostral anterior cingulate)
+        29, 78,  # STG (superior temporal)
+        34, 83,  # IN (insula)
+        40, 47,  # HI (hippocampus)
+        41, 48   # AM (amygdala)
+        #23, 61  # PFCVL (ventrolateral prefrontal cortex)#########
+    ]
+
+    Abeta_stage_3 = [ #52 areas
+        1,  50,  # BSTS  (bankssts)
+        3,  52,  # CMFG  (caudalmiddlefrontal)
+        4,  53,  # CU    (cuneus)
+        5,  54,  # EC    (entorhinal)
+        6,  55,  # FG    (fusiform)
+        7,  56,  # IPG   (inferiorparietal)
+        10, 59,  # LOG   (lateraloccipital)
+        12, 61,  # LG    (lingual)
+        16, 65,  # PaCG  (paracentral)
+        17, 66,  # POP   (parsopercularis)
+        19, 68,  # PTR   (parstriangularis)
+        20, 69,  # PCAL  (pericalcarine)
+        21, 70,  # PoCG  (postcentral)
+        23, 72,  # PrCG  (precentral)
+        24, 73,  # PCU   (precuneus)
+        26, 75,  # RMFG  (rostralmiddlefrontal)
+        27, 76,  # SFG   (superiorfrontal)
+        28, 77,  # SPG   (superiorparietal)
+        30, 79,  # SMG   (supramarginal)
+        31, 80,  # FP    (frontalpole)
+        35, 84,  # CER   (Cerebellum-Cortex)
+        36, 43,  # TH    (Thalamus)
+        37, 44,  # CA    (Caudate)
+        38, 45,  # PU    (Putamen)
+        39, 46,  # PA    (Pallidum)
+        42, 49   # AC    (Accumbens-area)
+    ]
+    """
+
+    Abeta_stage_1 = [ # 26 regions
+        1,  50,
+        3,  52,
+        6,  55,
+        8,  57,
+        11, 60,
+        13, 62,
+        14, 63,
+        18, 67,
+        26, 75,
+        27, 76,
+        29, 78,        
+        31, 80, 
+        32, 81
+    ]
+
+    Abeta_stage_2 = [ # 22 regions
+        2,  51,
+        5,  54,
+        9,  58,
+        15, 64,
+        17, 66,
+        19, 68,
+        22, 71,
+        25, 74,
+        34, 83,
+        40, 47,
+        41, 48
+    ]
+
+    Abeta_stage_3 = [ # 36 regions
+        4,  53,
+        7,  56,
+        10, 59,
+        12, 61,
+        16, 65,
+        20, 69,
+        21, 70,
+        23, 72,
+        24, 73,
+        28, 77,
+        30, 79,
+        33, 82,
+        35, 84,
+        36, 43,
+        37, 44,
+        38, 45,
+        39, 46,
+        42, 49
+    ]
+
+    degeneration = [0, 0, 0, (1/(1+19**(1/3))), (1/(1+19**(-1/3))), 0.95, 0.95, 0.95] 
+
+    a_delta = (2.20*3.65/3.25)-1   ########################### Attenzione, valore di M
+    b_delta = 13.25/33.75-1           #0.03133/0.0593-1
+    J_delta = 0.3
+
+    #print('a iniziale', a_array[21:31])
+    #print('b iniziale', b_array[21:31])
+    #print('J iniziale', J_stages[21:31])
+    for i in tau_stage_1:
+        J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage + 2]))
+    
+    for i in tau_stage_2:
+        J_stages[i] = 1 - degeneration[tau_stage + 1]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage + 1]))
+
+    for i in tau_stage_3:
+        J_stages[i] = 1 - degeneration[tau_stage]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage]))
+
+    for i in Abeta_stage_1:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage + 2])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage+ 2]
+
+    for i in Abeta_stage_2:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage + 1])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage + 1]
+
+    for i in Abeta_stage_3:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage]
+
     model_pars = dict(
         A=3.25, B=22, v0=6.0,
         a=a_array, b=b_array, r=0.56,

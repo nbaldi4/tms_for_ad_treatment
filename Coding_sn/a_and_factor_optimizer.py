@@ -5,22 +5,22 @@ import os
 import matplotlib.pyplot as plt
 
 # tue funzioni
-from utils import preprocess, simulate
+from utils import preprocess, new_parcellation_simulate
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD
 import global_variable_creation as gv
 
 
-factor_range = [-0.4,0.4]
-a_range = [0.06, 0.085]
-factor_values = np.linspace(factor_range[0], factor_range[1], num=21)
-a_values = np.linspace(a_range[0], a_range[1], num=21) 
-
+factor_range = [-1.0,1.0]
+a_range = [0.05, 0.1]
+factor_values = np.linspace(factor_range[0], factor_range[1], num=26) #26
+a_values = np.linspace(a_range[0], a_range[1], num=41)  #41 
+gv.connectivity_simnibs == True
 # 2. Modifica la funzione evaluate per scompattare la tupla
 def evaluate(params):
     factor_val, a_val = params  # Unpacking della tupla
     
     # Chiamata alla simulazione (aggiungi i parametri fissi se necessario)
-    ttavg, tavg, teeg, eeg = simulate(a=a_val, factor=factor_val)
+    ttavg, tavg, teeg, eeg = new_parcellation_simulate(a=a_val, factor=factor_val)
     teeg, eeg = preprocess(teeg, eeg)
 
     regular_mae, reduced_mae = real_vs_simulated_FC(
@@ -54,7 +54,7 @@ def grid_search(factor_set=factor_values, a_set=a_values):
     df_results.insert(0, "a", [c[1] for c in couples])
     df_results.insert(0, "factor", [c[0] for c in couples])
 
-    file_path = "grid_search_2D_results_with_b_corrected_04_02_prova_2.csv"
+    file_path = "a_and_slope_grid_search_results.csv"
 
     file_exists = os.path.isfile(file_path)
 
@@ -65,7 +65,7 @@ def grid_search(factor_set=factor_values, a_set=a_values):
                       header=not file_exists)
 
 def heatmap():
-    df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\grid_search_2D_results_with_b_corrected_04_02_prova_2.csv")
+    df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\a_and_slope_grid_search_results.csv")
     df["factor"] = df["factor"].round(6)
     df["a"] = df["a"].round(6)
     
@@ -173,5 +173,5 @@ def heatmap():
 ##grid_search(factor_set=np.linspace(0.00, 0.40, 11), a_set=np.linspace(0.06, 0.105, 37))
 #grid_search(a_set=np.linspace(0.055, 0.085, 25), factor_set=np.linspace(-0.92, -0.04, 23))
 #grid_search(a_set=np.linspace(0.06, 0.105, 37), factor_set=np.linspace(0, 0.4, 11))
-#grid_search(a_set=np.linspace(0.055, 0.085, 1), factor_set=np.linspace(-0.92, -0.04, 1))
+#grid_search()
 heatmap()

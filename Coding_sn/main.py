@@ -164,15 +164,67 @@ def main():
         #ttavg, tavg, teeg, eeg = Simulate()
     """
     gv.connectivity_simnibs = True
-    ttavg, tavg, teeg, eeg = new_parcellation_simulate(sim_time=20000, g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb)
+    """
+    ttavg, tavg, teeg, eeg = new_parcellation_simulate(sim_time=20000, g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, factor=gv.factor)
     ttavg, tavg = preprocess(ttavg, tavg)
     teeg, eeg = preprocess(teeg, eeg)
-    """
+    
     datas = {'data_healthy': {'tavg': tavg, 'eeg': eeg, 'label': 'Healthy', 'color': 'blue'}}
-
+    """
     if gv.skin_and_sensors == True:
-        skin_and_sensors()
+        from scipy.spatial import KDTree
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        #skin_and_sensors()
+            # Plot cortical regions colorate per valore
+        skin = surfaces.SkinAir.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_outer_skin.zip")
+        skin.configure()
+        cortex = surfaces.CorticalSurface.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_Cortex.zip")
+        cortex.configure()
+        x_cortex, y_cortex, z_cortex = cortex.vertices.T
+        plt.figure(figsize=(6, 6))
+        ax = plt.subplot(111, projection='3d')
+        conn = gv.get_conn()
+        x_conn, y_conn, z_conn = conn.centres.T[:, :]
+        region_values = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\stimulus_vector_TVB.npy") 
+        if region_values is not None:
+            sc = ax.scatter(x_conn, y_conn, z_conn, c=region_values, cmap='hot', s=50, zorder=5)
+            plt.colorbar(sc, ax=ax, shrink=0.5, label='Valore')
+        else:
+            ax.plot(x_conn, y_conn, z_conn, 'ko')
+        #ax.plot_trisurf(x_cortex, y_cortex, z_cortex, triangles=cortex.triangles, alpha=0.1, edgecolor='k')
 
+            # Plot corteccia colorata per regione
+        if region_values is not None:
+            # Per ogni vertice, trova la regione più vicina
+            tree = KDTree(conn.centres)
+            _, nearest_region = tree.query(cortex.vertices)
+
+            # Mappa i valori delle regioni sui vertici
+            vertex_values = region_values[nearest_region]
+            
+            # Calcola il colore medio per ogni triangolo
+            tri_values = vertex_values[cortex.triangles].mean(axis=1)
+            norm = plt.Normalize(vmin=region_values.min(), vmax=region_values.max())
+            cmap = plt.cm.hot
+            face_colors = cmap(norm(tri_values))
+            # Costruisci i triangoli come lista di coordinate
+            verts = cortex.vertices[cortex.triangles]  # shape (M, 3, 3)
+
+            poly = Poly3DCollection(verts, alpha=0.8, edgecolor='none')
+            poly.set_facecolor(face_colors)
+            ax.add_collection3d(poly)
+
+            # Aggiorna i limiti degli assi manualmente
+            ax.set_xlim(x_cortex.min(), x_cortex.max())
+            ax.set_ylim(y_cortex.min(), y_cortex.max())
+            ax.set_zlim(z_cortex.min(), z_cortex.max())
+        else:
+            ax.plot_trisurf(x_cortex, y_cortex, z_cortex, triangles=cortex.triangles,
+                            alpha=0.1, edgecolor='k')
+        #x, y, z = skin.vertices.T
+        #ax.plot_trisurf(x, y, z, triangles=skin.triangles, alpha=0.1, edgecolor='k')
+        plt.show()
+    """
     if gv.brain_activity == True:
         brain_activity(eeg=eeg[:,0,:,0], tavg=tavg[:,0,:,0])
 
@@ -209,7 +261,7 @@ def main():
         #functional_connectivity_img_coh(tavg, 'TAVG delta', lowcut=0.5, highcut=4)
         functional_connectivity_img_coh(eeg, 'EEG', lowcut=0.5, highcut=45)
         functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0.5, highcut=45)
-
+    
     if gv.psd == True:
         psd(eeg, 'EEG')
         psd(tavg, 'TAVG')
@@ -217,11 +269,11 @@ def main():
     if gv.real_data == True:
         analyze_regular_data(np.load(gv.HC_FC_data))
         analyze_reduced_data(np.load(gv.HC_FC_data))
-    """
+    
     if gv.sim_vs_real == True:
         real_vs_simulated_FC(np.load(gv.HC_FC_data), eeg)
         real_vs_simulated_PSD(np.load(gv.HC_PSD_data), eeg)
-    """
+    
     if args.best_mod == True:
         NSGAII()
     """
@@ -231,19 +283,25 @@ def main():
 
     #FC_alpha_visualization(datas, FC_alpha_visualizing, mon_EEG, conn, period=period)
     #compare_matrix_and_computed_psd(path = matrix_path, values = eeg_healthy, values2 = eeg_very_healty, visualizing = True)
-    """
-    stim_weight = 1/10
-    scale_fact = 10
-    start_time = 500
-
-    train1 = make_train([35,73], 5.0/stim_weight, onset=start_time , T=1000.0, tau=40.0) #500
     
+    scale_fact = 0.22
+    start_time = 1000
+    end_time = 3000
+
+    weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\stimulus_vector_TVB.npy")#np.zeros(86)#
+    """
+    train = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, end_time=end_time, T=2000.0, tau=1.0)
+    
+    
+    train1 = make_train([35,73], 5.0/stim_weight, onset=start_time , T=1000.0, tau=40.0) #500
     train2 = make_train([36,74], 4.5/stim_weight, onset=start_time + 10 * scale_fact, T=1000, tau=50.0) #600
     train3 = make_train([34,72], 4.0/stim_weight, onset=start_time + 35 * scale_fact, T=1000, tau=80.0) #850
     train4 = make_train([32,70], 4.0/stim_weight, onset=start_time + 40 * scale_fact, T=1000, tau=80.0) #900
     train5 = make_train([24,62], 4.0/stim_weight, onset=start_time + 50 * scale_fact, T=1000, tau=80.0) #1000
     stimulus = MultiStimuliRegion(train1, train2,train3, train4, train5)
     
+
+    stimulus = MultiStimuliRegion(train)
     stimulus.configure_space()
     time = np.r_[1e3:3e3:15.0]
     stimulus.configure_time(time)
@@ -251,7 +309,7 @@ def main():
 
     
     sim_time = 4000
-    display_time = sim_time - 2000
+    display_time = sim_time
     ttavg_stim, tavg_healthy_stim, teeg_stim, eeg_healthy_stim = new_parcellation_simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, sim_time=sim_time, stimulus=stimulus)#simulate_with_stimulus(stimulus = stimulus, sim_time = sim_time) #Less simulated time needed
     ttavg_stim, tavg_healthy_stim = preprocess(ttavg_stim, tavg_healthy_stim)
     teeg_stim, eeg_healthy_stim = preprocess(teeg_stim, eeg_healthy_stim)
@@ -284,9 +342,10 @@ def main():
     mask1 = onset_stim
     mask2  = onset_stim + 4000
 
-    chlist_occipital = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]#[30,32,33,8,9]
+    #chlist_occipital = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]#[30,32,33,8,9]
 
-    chlist = chlist_occipital
+    chlist_all = np.arange(0,63)
+    chlist = chlist_all
 
     stimulus_visualization(True, onset_stim, datas_stim, teeg_stim, mask1, mask2, chlist)
     """

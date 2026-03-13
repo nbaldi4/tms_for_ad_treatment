@@ -16,6 +16,7 @@ temp_avg_period = 1.0 #ms
 fig_folder = r'..\Results_figures'
 data_folder = r'..\Results_data'
 struct_path = r'..\Degeneration_data\tau_matrices.npy'
+struct_path_connectivity_86 = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Degeneration_data\tau_matrices_connectivity_86.npy"
 a_path = r'..\Degeneration_data\a_stages.npy'
 b_path = r'..\Degeneration_data\b_stages.npy'
 HC_FC_data = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\HC_data\fc_ctr_preview.npy"
@@ -31,13 +32,14 @@ fc = True
 sim_time = 20000
 brain_activity = True
 skin_and_sensors = True
-coup=0.10333870704798209#0.10004127233208432#0.10245373952358368#
-vel=26.760911328133584#10.374658598387436#41.79385759129675#
-noi=0.1077485312389941#0.14480848489827142#0.10045650478858126#
-aa=0.06625#0.06897011085340124#                    0.0728044836955774#0.09806515133627744#
-bb=0.06602933308057984#0.06293568322880852#0.0680013974341444#
-factor = 0#
-ref_PT=np.array([2.0, 2.0, 30.0])
+coup=5.217348458621988#0.10333870704798209#0.10004127233208432#0.10245373952358368#
+vel=64.21898968502352#26.760911328133584#10.374658598387436#41.79385759129675#
+noi=0.040677673235302345#0.1077485312389941#0.14480848489827142#0.10045650478858126#
+aa=0.07125#0.07406834111496974#0.06625#0.06897011085340124#                    0.0728044836955774#0.09806515133627744#
+bb=0.0546595396476822#0.06602933308057984#0.06293568322880852#0.0680013974341444#
+factor = -0.12#0#      
+
+ref_PT=np.array([1.05, 1.05, 0.55])#ref_PT=np.array([2.0, 2.0, 30.0])
 connectivity_simnibs = True
 
 def eeg_monitor_factory():
