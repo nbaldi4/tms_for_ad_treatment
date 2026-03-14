@@ -176,24 +176,45 @@ def main():
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
         #skin_and_sensors()
             # Plot cortical regions colorate per valore
-        skin = surfaces.SkinAir.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_outer_skin.zip")
-        skin.configure()
-        cortex = surfaces.CorticalSurface.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_Cortex.zip")
-        cortex.configure()
-        x_cortex, y_cortex, z_cortex = cortex.vertices.T
-        plt.figure(figsize=(6, 6))
-        ax = plt.subplot(111, projection='3d')
-        conn = gv.get_conn()
-        x_conn, y_conn, z_conn = conn.centres.T[:, :]
-        region_values = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\stimulus_vector_TVB.npy") 
+        #skin = surfaces.SkinAir.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_outer_skin.zip")
+        #skin.configure()
+        #cortex = surfaces.CorticalSurface.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_Cortex.zip")
+        #cortex.configure()
+        #x_cortex, y_cortex, z_cortex = cortex.vertices.T
+        #plt.figure(figsize=(6, 6))
+        #ax = plt.subplot(111, projection='3d')
+        #conn = gv.get_conn()
+        #x_conn, y_conn, z_conn = conn.centres.T[:, :]
+        
+        #region_values = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\stimulus_vector_TVB.npy")
+    """ 
+        region_values = np.array([2., 2., 3., 3., 1., 2., 3., 2., 2., 2., 2., 2., 2., 2., 1., 3., 2.,
+       2., 2., 2., 2., 1., 3., 3., 2., 2., 3., 3., 2., 2., 2., 1., 2., 1.,
+       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 2., 2.,
+       3., 3., 1., 2., 3., 2., 2., 2., 2., 2., 2., 2., 1., 3., 2., 2., 2.,
+       2., 3., 2., 3., 3., 2., 2., 3., 3., 2., 2., 2., 1., 2., 1., 1., 1.,
+       1.])
+        region_values_76 = np.zeros((76,1))
+
+        for i in range(len(region_values_76)):
+            if i < 20:
+                region_values_76[i] = 1
+            if 20 <= i < 40:
+                region_values_76[i] = 2
+            if i >= 40:
+                region_values_76[i] = 3
+        region_values = region_values_76
         if region_values is not None:
             sc = ax.scatter(x_conn, y_conn, z_conn, c=region_values, cmap='hot', s=50, zorder=5)
             plt.colorbar(sc, ax=ax, shrink=0.5, label='Valore')
         else:
             ax.plot(x_conn, y_conn, z_conn, 'ko')
+        
+        ax.plot(x_conn, y_conn, z_conn, 'ko')
         #ax.plot_trisurf(x_cortex, y_cortex, z_cortex, triangles=cortex.triangles, alpha=0.1, edgecolor='k')
 
             # Plot corteccia colorata per regione
+        
         if region_values is not None:
             # Per ogni vertice, trova la regione più vicina
             tree = KDTree(conn.centres)
@@ -221,10 +242,12 @@ def main():
         else:
             ax.plot_trisurf(x_cortex, y_cortex, z_cortex, triangles=cortex.triangles,
                             alpha=0.1, edgecolor='k')
+        
         #x, y, z = skin.vertices.T
         #ax.plot_trisurf(x, y, z, triangles=skin.triangles, alpha=0.1, edgecolor='k')
         plt.show()
-    """
+
+    
     if gv.brain_activity == True:
         brain_activity(eeg=eeg[:,0,:,0], tavg=tavg[:,0,:,0])
 
@@ -284,22 +307,22 @@ def main():
     #FC_alpha_visualization(datas, FC_alpha_visualizing, mon_EEG, conn, period=period)
     #compare_matrix_and_computed_psd(path = matrix_path, values = eeg_healthy, values2 = eeg_very_healty, visualizing = True)
     
-    scale_fact = 0.22
-    start_time = 1000
+    scale_fact = 0.366343 #per ristabilire valore assoluto in output da simnibs
+    start_time = 1500
     end_time = 3000
 
     weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\stimulus_vector_TVB.npy")#np.zeros(86)#
-    """
+    
     train = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, end_time=end_time, T=2000.0, tau=1.0)
     
-    
+    """
     train1 = make_train([35,73], 5.0/stim_weight, onset=start_time , T=1000.0, tau=40.0) #500
     train2 = make_train([36,74], 4.5/stim_weight, onset=start_time + 10 * scale_fact, T=1000, tau=50.0) #600
     train3 = make_train([34,72], 4.0/stim_weight, onset=start_time + 35 * scale_fact, T=1000, tau=80.0) #850
     train4 = make_train([32,70], 4.0/stim_weight, onset=start_time + 40 * scale_fact, T=1000, tau=80.0) #900
     train5 = make_train([24,62], 4.0/stim_weight, onset=start_time + 50 * scale_fact, T=1000, tau=80.0) #1000
     stimulus = MultiStimuliRegion(train1, train2,train3, train4, train5)
-    
+    """
 
     stimulus = MultiStimuliRegion(train)
     stimulus.configure_space()
@@ -316,7 +339,8 @@ def main():
 
     datas_stim = {'data_healthy': {'tavg': tavg_healthy_stim, 'eeg': eeg_healthy_stim, 'label': 'Healthy', 'color': 'blue'}}
 
-    chlist_occipital = [30,32,33,8,9]
+    chlist_occipital = np.arange(0,63)
+    chlist_occipital = [3,17]#[30,32,33,8,9]
 
     mon_EEG = gv.get_eeg_monitor()
 
@@ -338,17 +362,18 @@ def main():
     ################################## USEFUL ONLY WHEN STIMULUS IS APPLIED ###################################################
 
     #1500 is stimulus onset 
-    onset_stim = 1500
-    mask1 = onset_stim
-    mask2  = onset_stim + 4000
+    mask1 = start_time
+    mask2  = start_time + 4000
 
+    mask1 = 0
+    mask2 = 5000
     #chlist_occipital = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]#[30,32,33,8,9]
 
     chlist_all = np.arange(0,63)
     chlist = chlist_all
 
-    stimulus_visualization(True, onset_stim, datas_stim, teeg_stim, mask1, mask2, chlist)
-    """
+    stimulus_visualization(visualizing=True, stimulus_onset=start_time, datas_stim=datas_stim, teeg_stim=teeg_stim, mask1=mask1, mask2=mask2, chlist=chlist_occipital)
+    
 
 if __name__ == "__main__":
     main()

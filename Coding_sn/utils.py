@@ -2692,12 +2692,14 @@ def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, m
             print(label, 'N1 peak is:', np.max(windowed_signal))
             print(label, 'N1 peak-to-peak:', np.max(windowed_signal) - np.min(windowed_signal))
 
+        plt.axvline(x=stimulus_onset, color='k', linestyle='--', linewidth=1.5, label='Stimulus onset')
         plt.gca().spines['top'].set_visible(False)
         plt.gca().spines['right'].set_visible(False)
         plt.title("Simulated N1 component", fontsize = 29)
         plt.xlabel('Time (ms)', fontsize = 29)
         plt.ylabel(r'Voltage (10 $\mu$V)', fontsize = 29)
-        plt.xticks([mask1, mask2], [mask1-stimulus_onset,mask2-stimulus_onset], fontsize = 22) #1500 is stimulus onset 
+        #plt.xticks([mask1, mask2], [mask1-stimulus_onset,mask2-stimulus_onset], fontsize = 22) #1500 is stimulus onset 
+        #plt.xticks(np.linspace(0,))
         plt.yticks(fontsize = 22)
         plt.legend(fontsize = 29)
         plt.show()
