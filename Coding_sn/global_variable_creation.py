@@ -29,6 +29,7 @@ eeg = True
 psd = True
 save_raw_data = False
 fc = True
+stim = True
 sim_time = 20000
 brain_activity = True
 skin_and_sensors = True

@@ -1,19 +1,11 @@
 import os
 
 import numpy as np
-import argparse
 from tvb.simulator.lab import *
 from matplotlib import pyplot as plt
 from scipy.spatial import KDTree
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy import stats
-
-from utils import skin_and_sensors, brain_activity, simulate, preprocess, eeg_plot, simulate_different_combination_parameters, simulate_parametri_lorenzo
-from utils import functional_connectivity, psd, functional_connectivity_band, functional_connectivity_img_coh, psd_simil_lorenzo, Simulate2, functional_connectivity_lorenzo
-from utils import make_train, simulate_with_stimulus, stimulus_visualization, new_parcellation_simulate
-from classes import MultiStimuliRegion
-from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data, load_simulation_results
-import global_variable_creation as gv
 
 def main():
     tau_stage_1 = [ #2 areas
@@ -284,17 +276,35 @@ def main():
         stages_2_counter = 0
         stages_3_counter = 0
 
+        stage_0_regions = []
+        stage_1_regions = []
+        stage_2_regions = []
+        stage_3_regions = []
+
         for region in range(86):
-            if regions_86_stages[region] == 0: stages_0_counter += 1
-            if regions_86_stages[region] == 1: stages_1_counter += 1
-            if regions_86_stages[region] == 2: stages_2_counter += 1
-            if regions_86_stages[region] == 3: stages_3_counter += 1        
+            if regions_86_stages[region] == 0: 
+                stages_0_counter += 1
+                stage_0_regions.append(region)
+            if regions_86_stages[region] == 1: 
+                stages_1_counter += 1
+                stage_1_regions.append(region)
+            if regions_86_stages[region] == 2: 
+                stages_2_counter += 1
+                stage_2_regions.append(region)
+            if regions_86_stages[region] == 3: 
+                stages_3_counter += 1
+                stage_3_regions.append(region)     
         
         print(title)
         print('number of regions in stage 0: ', stages_0_counter)
+        print(stage_0_regions)
         print('number of regions in stage 1: ', stages_1_counter)
+        print(stage_1_regions)
         print('number of regions in stage 2: ', stages_2_counter)
+        print(stage_2_regions)
         print('number of regions in stage 3: ', stages_3_counter)
+        print(stage_3_regions)
+        print('all regions stages')
         print(regions_86_stages)
 
         return regions_86_stages
@@ -351,18 +361,18 @@ def main():
         plt.savefig(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Immagini da far vedere a Lorenzo_20_03", title))
         plt.close()
     
-    """
-    region_mapping_abeta_values = region_mapping_staging(centres=conn_76.centres, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con region mapping before realignment: proteina abeta', region_mapping=region_mapping)
-    region_mapping_tau_values = region_mapping_staging(centres=conn_76.centres, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con region mapping before realignment: proteina tau', region_mapping=region_mapping)
     
-    nearest_vertices_abeta_values = nearest_vertices_staging(centres=conn_76.centres, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con nearest vertices before realignment: proteina abeta')
-    nearest_vertices_tau_values = nearest_vertices_staging(centres=conn_76.centres, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con nearest vertices before realignment: proteina tau')
+    #region_mapping_abeta_values = region_mapping_staging(centres=centres_76_rel, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con region mapping: proteina abeta', region_mapping=region_mapping)
+    #region_mapping_tau_values = region_mapping_staging(centres=centres_76_rel, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con region mapping: proteina tau', region_mapping=region_mapping)
+    
+    #nearest_vertices_abeta_values = nearest_vertices_staging(centres=centres_76_rel, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con nearest vertices: proteina abeta')
+    #nearest_vertices_tau_values = nearest_vertices_staging(centres=centres_76_rel, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con nearest vertices: proteina tau')
 
-    nearest_centre_abeta_values = nearest_center_staging(centres=conn_76.centres, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con KDTree sui centri before realignment: proteina abeta')
-    nearest_centre_tau_values = nearest_center_staging(centres=conn_76.centres, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con KDTree sui centri before realignment: proteina tau')
+    nearest_centre_abeta_values = nearest_center_staging(centres=centres_76_rel, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con KDTree sui centri: proteina abeta')
+    nearest_centre_tau_values = nearest_center_staging(centres=centres_76_rel, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con KDTree sui centri: proteina tau')
     
     
-    
+    """
     plot_regions(centres=centres_76_rel, region_values=regions_76_abeta_stages, title='stages_76_abeta')
     plot_regions(centres=centres_76_rel, region_values=regions_76_tau_stages, title='stages_76_tau')
     plot_regions(centres=conn_86.centres, region_values=region_mapping_abeta_values, title='stages_86_region_mapping_abeta_before_realignment')

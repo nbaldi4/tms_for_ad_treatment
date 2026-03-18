@@ -53,54 +53,18 @@ def compute_stage_matrix(matrix, stage1 = [], stage2= [], stage3= [],
                 matrix[j,i] = matrix2[j,i]*(1-(deg_perc[2] + deg_perc[3]) * w_ij_delta)
     return matrix
 
+    
 tau_stage_1 = [ # 4 regions
-    5,  54,  # EC   (enthorinal cortex)
-    15, 64   # PHIG (parahippocampal cortex)
+    4, 40, 47, 53
 ]
 
-tau_stage_2 = [ # 30 regions
-    2,  51,  # CACG (caudal anterior cingulate)
-    7,  56,  # IPG  (inferior parietal cortex)
-    8,  57,  # ITG  (inferior temporal gyrus)
-    9,  58,  # ICG  (isthmus cingulate) 
-    11, 60,  # LOFG (lateral orbitofrontal)
-    13, 62,  # MOFG (medial orbitofrontal)
-    14, 63,  # MTG  (middle temporal gyrus)
-    24, 73,  # PCU  (precuneus)
-    25, 74,  # RACG (rostral anterior cingulate)
-    26, 75,  # RMFG (rostral middle frontal gyrus)
-    27, 76,  # SFG  (superior frontal gyrus)
-    28, 77,  # SPG  (superior parietal cortex)
-    29, 78,  # STG  (superior temporal gyrus)
-    40, 47,  # HI   (hippocampus)
-    41, 48   # AM   (amygdala)
+tau_stage_2 = [ # 17 regions
+    7, 13, 14, 16, 18, 31, 37, 38, 39, 41, 45, 65, 66, 67, 80, 84, 85
 ]
 
-tau_stage_3 = [ # 48 regions
-    1,  50,  # BSTS (banks of superior temporal sulcus)
-    3,  52,  # CMFG (caudal middle frontal gyrus)
-    4,  53,  # CU   (cuneus)
-    6,  55,  # FG   (fusiform gyrus)
-    10, 59,  # LOG  (lateral occipital)
-    12, 61,  # LG   (lingual gyrus)
-    16, 65,  # PaCG (paracentral lobule)
-    17, 66,  # POP  (pars opercularis)
-    18, 67,  # POR  (pars orbitalis)
-    19, 68,  # PTR  (pars triangularis)
-    20, 69,  # PCAL (pericalcarine / primary visual cortex)
-    21, 70,  # PoCG (postcentral gyrus / primary somatosensory cortex)
-    23, 72,  # PrCG (precentral gyrus / primary motor cortex)
-    30, 79,  # SMG  (supramarginal gyrus)
-    31, 80,  # FP   (frontal temporal)
-    32, 81,  # TP   (temporal pole)
-    33, 82,  # TTG  (transverse temporal gyrus / primary auditory cortex)
-    34, 83,  # IN   (insula)
-    35, 84,  # CER  (cerebellum cortex)
-    36, 43,  # TH   (thalamus)
-    37, 44,  # CA   (caudate)
-    38, 45,  # PU   (putamen)
-    39, 46,  # PA   (pallidum)
-    42, 49,  # AC   (accumbens) 
+tau_stage_3 = [ # 38 regions
+    0, 2, 3, 6, 9, 11, 15, 17, 19, 21, 22, 23, 24, 25, 27, 29, 33, 34, 44, 46, 49, 51, 52,
+    55, 58, 62, 64, 68, 70, 71, 72, 73, 74, 75, 76, 81, 82, 83
 ]
 
 tau_stage_1 = np.array(tau_stage_1).astype(int)
@@ -149,12 +113,12 @@ conteggio = (tau_matrix_0 != 0).sum()
 print(np.sum(tau_matrix_0))
 print(conteggio)
 np.set_printoptions(precision=3, suppress=True)
-print(tau_matrix_0[12:16, 12:16])
-print(tau_matrix_1[12:16, 12:16])
-print(tau_matrix_2[12:16, 12:16])
-print(tau_matrix_3[12:16, 12:16])
-print(tau_matrix_4[12:16, 12:16])
-print(tau_matrix_5[12:16, 12:16])
+print(tau_matrix_0[4:8, 4:8])
+print(tau_matrix_1[4:8, 4:8])
+print(tau_matrix_2[4:8, 4:8])
+print(tau_matrix_3[4:8, 4:8])
+print(tau_matrix_4[4:8, 4:8])
+print(tau_matrix_5[4:8, 4:8])
 
 diagonale = np.diag(tau_matrix_0)
 

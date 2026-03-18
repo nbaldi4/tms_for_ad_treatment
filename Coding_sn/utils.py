@@ -412,18 +412,18 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut, p
     corr_viz = 2 * (corr - np.min(corr)) / (np.max(corr) - np.min(corr)) - 1
     # Plot corr_tavg
     im1 = ax1.imshow(corr_viz, interpolation='nearest', cmap='bwr')
-    ax1.set_yticks(np.arange(len(conn.region_labels)))
-    ax1.set_yticklabels(conn.region_labels, fontsize=12)
-    ax1.set_xticks(np.arange(len(conn.region_labels)))
-    ax1.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
+    #ax1.set_yticks(np.arange(len(conn.region_labels)))
+    #ax1.set_yticklabels(conn.region_labels, fontsize=12)
+    #ax1.set_xticks(np.arange(len(conn.region_labels)))
+    #ax1.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
     ax1.set_title(f"{label} FC mean = {corr_mean:.4f}, ({abs_corr_mean:.4f})", fontsize=15)
 
     # Plot corr_tavg_th
     im2 = ax2.imshow(corr_th, interpolation='nearest', cmap='bwr')
-    ax2.set_yticks(np.arange(len(conn.region_labels)))
-    ax2.set_yticklabels(conn.region_labels, fontsize=12)
-    ax2.set_xticks(np.arange(len(conn.region_labels)))
-    ax2.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
+    #ax2.set_yticks(np.arange(len(conn.region_labels)))
+    #ax2.set_yticklabels(conn.region_labels, fontsize=12)
+    #ax2.set_xticks(np.arange(len(conn.region_labels)))
+    #ax2.set_xticklabels(conn.region_labels, rotation='vertical', fontsize=12)
     ax2.set_title(label+' FC w/ threshold', fontsize=15)
 
     # Colorbar
@@ -466,6 +466,8 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut, p
         plt.savefig(os.path.join(fig_save_dir, fig_name), dpi=200)
     if gv.show_plots:
         plt.show()
+    else:
+        plt.close()
 
 
 #def functional_connectivity_alpha(time_series, label, lowcut, highcut):
@@ -820,40 +822,20 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     ]
 
     """
-    tau_stage_1 = [ #2 areas
-        24, 62  # PHC (parahippocampal gyrus)
+
+    tau_stage_1 = [ # 4 regions
+        4, 40, 47, 53
     ]
 
-    tau_stage_2 = [ #16 areas
-        2, 40,   # AMYG (amygdala)
-        9, 47,   # HC (hippocampus)
-        13, 51,  # PCI (inferor parietal cortex)
-        30, 68,  # TCC (central temporal)
-        31, 69,  # TCI (inferior temporal)
-        32, 70,  # TCPOL (temporal pole)
-        33, 71,  # TCS (superior temporal)
-        34, 72   # TCV (ventral temporal)
+    tau_stage_2 = [ # 17 regions
+        7, 13, 14, 16, 18, 31, 37, 38, 39, 41, 45, 65, 66, 67, 80, 84, 85
     ]
 
-    tau_stage_3 = [ #34 areas
-        0, 38,   # A1 (primary uditivity cortex)
-        11, 49,  # IP (intraparietal cortex)
-        12, 50,  # M1 (primary motor cortex)
-        14, 52,  # PCIP (posterior inferor parietal cortex)
-        15, 53,  # PCM (medial parietal cortex)
-        16, 54,  # PCS (parietal sulcus)
-        17, 55,  # PFCCL (caudolateral prefrontal cortex)
-        18, 56,  # PFCDL (dorsolateral prefrontal cortex)
-        19, 57,  # PFCDM (dorsomedial prefrontal cortex)
-        21, 59,  # PFCORB (orbitofrontal)
-        22, 60,  # PFCPOL (prefrontal polar)
-        23, 61,  # PFCVL (ventrolateral prefrontal cortex)
-        25, 63,  # PMCDL (ventrolateral premotor cortex)
-        26, 64,  # PMCM (medial premotor cortex)
-        27, 65,  # PMCVL (ventrolaterl premotor cortex)
-        28, 66,  # S1 (primary somatosensorial cortex)
-        35, 73,  # V1 (primary visul cortex)
+    tau_stage_3 = [ # 38 regions
+        0, 2, 3, 6, 9, 11, 15, 17, 19, 21, 22, 23, 24, 25, 27, 29, 33, 34, 44, 46, 49, 51, 52,
+        55, 58, 62, 64, 68, 70, 71, 72, 73, 74, 75, 76, 81, 82, 83
     ]
+
     psd_all = []
     fs_welch = 1 / (gv.temp_avg_period / 1000)
     for i in range(n_regions):
@@ -871,6 +853,14 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     psd_all = np.array(psd_all)
     psd_mean = np.mean(psd_all, axis=0)
     psd_std = np.std(psd_all, axis=0)
+
+    print(psd_mean)
+    print(freqs[(freqs >= 0.5) & (freqs < 4)])
+    print(freqs[(freqs >= 4) & (freqs < 8)])
+    print(freqs[(freqs >= 8) & (freqs < 13)])
+    print(freqs[(freqs >= 13) & (freqs < 30)])
+    print(freqs[(freqs >= 0.5) & (freqs < 45)])
+    print(np.max(psd_mean))
 
     # psd_all array dimensions are [n_regions, n_freqs]
     
@@ -2321,7 +2311,7 @@ def new_parcellation_simulate(sim_time=20000,
         tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
     """
     conn = copy.deepcopy(get_conn())  # copia indipendente per ogni worker
-    #conn.weights = np.load(gv.struct_path_connectivity_86)[tau_stage, :, :]
+    conn.weights = np.load(gv.struct_path_connectivity_86)[tau_stage, :, :]
     conn.weights = conn.weights / 820096.76119633  # .copy() non più necessario
     conn.weights = conn.weights * g
     conn.speed = np.array(velocity)
@@ -2348,6 +2338,7 @@ def new_parcellation_simulate(sim_time=20000,
         region_coordinate_y = regions_centers[i,1]
         distance[i] = (region_coordinate_y - np.max(regions_centers[:,1]))/wide_y
         a_array[i] = a*(1 + distance[i]*factor)
+
     """
     print('y massima', np.max(regions_centers[:,1]))
     print('y minima', np.min(regions_centers[:,1]))
@@ -2359,7 +2350,7 @@ def new_parcellation_simulate(sim_time=20000,
     print('vettore delle distanze normalizzate')
     print(distance.shape)
     print(distance[:6])
-
+    
     print('a_array dopo essere calcolato')
     print(a_array.shape)
     print(a_array[:6])
@@ -2403,7 +2394,7 @@ def new_parcellation_simulate(sim_time=20000,
         28, 66,  # S1 (primary somatosensorial cortex)######
         35, 73,  # V1 (primary visual cortex)########
     ]
-    """
+    
     #Prova 2:
     tau_stage_1 = [ # 4 regions
         5,  54,  # EC   (enthorinal cortex)
@@ -2456,7 +2447,7 @@ def new_parcellation_simulate(sim_time=20000,
     ]
 
     #Prova 1:
-    """
+    
     Abeta_stage_1 = [ #14 areas
         
         8,  57,   # ITG (inferior temporal)
@@ -2509,7 +2500,7 @@ def new_parcellation_simulate(sim_time=20000,
         39, 46,  # PA    (Pallidum)
         42, 49   # AC    (Accumbens-area)
     ]
-    """
+    
 
     Abeta_stage_1 = [ # 26 regions
         1,  50,
@@ -2561,16 +2552,44 @@ def new_parcellation_simulate(sim_time=20000,
         39, 46,
         42, 49
     ]
+    """
+    Abeta_stage_1 = [ # 9 regions
+        3, 11, 19, 31, 34, 58, 68, 80, 83
+    ]
+
+    Abeta_stage_2 = [ # 34 regions
+        1, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 26, 35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 47,
+        48, 50, 53, 54, 56, 57, 59, 61, 63, 84, 85
+    ]
+
+    Abeta_stage_3 = [ # 43 regions
+        0, 2, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 32, 33, 44, 46, 49, 51,
+        52, 55, 60, 62, 64, 65, 66, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 81, 82
+    ]
+
+    tau_stage_1 = [ # 4 regions
+        4, 40, 47, 53
+    ]
+
+    tau_stage_2 = [ # 17 regions
+        7, 13, 14, 16, 18, 31, 37, 38, 39, 41, 45, 65, 66, 67, 80, 84, 85
+    ]
+
+    tau_stage_3 = [ # 38 regions
+        0, 2, 3, 6, 9, 11, 15, 17, 19, 21, 22, 23, 24, 25, 27, 29, 33, 34, 44, 46, 49, 51, 52,
+        55, 58, 62, 64, 68, 70, 71, 72, 73, 74, 75, 76, 81, 82, 83
+    ]
 
     degeneration = [0, 0, 0, (1/(1+19**(1/3))), (1/(1+19**(-1/3))), 0.95, 0.95, 0.95] 
 
     a_delta = (2.20*3.65/3.25)-1   ########################### Attenzione, valore di M
     b_delta = 13.25/33.75-1           #0.03133/0.0593-1
     J_delta = 0.3
-
-    #print('a iniziale', a_array[21:31])
-    #print('b iniziale', b_array[21:31])
-    #print('J iniziale', J_stages[21:31])
+    """
+    print('a iniziale', a_array[0:8])
+    print('b iniziale', b_array[0:8])
+    print('J iniziale', J_stages[0:8])
+    """
     for i in tau_stage_1:
         J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
         b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage + 2]))
@@ -2594,7 +2613,11 @@ def new_parcellation_simulate(sim_time=20000,
     for i in Abeta_stage_3:
         a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage])
         b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage]
-
+    """
+    print('a finale', a_array[0:8])
+    print('b finale', b_array[0:8])
+    print('J finale', J_stages[0:8])
+    """
     model_pars = dict(
         A=3.25, B=22, v0=6.0,
         a=a_array, b=b_array, r=0.56,
@@ -2698,8 +2721,10 @@ def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, m
         plt.title("Simulated N1 component", fontsize = 29)
         plt.xlabel('Time (ms)', fontsize = 29)
         plt.ylabel(r'Voltage (10 $\mu$V)', fontsize = 29)
-        #plt.xticks([mask1, mask2], [mask1-stimulus_onset,mask2-stimulus_onset], fontsize = 22) #1500 is stimulus onset 
-        #plt.xticks(np.linspace(0,))
-        plt.yticks(fontsize = 22)
+        #plt.xticks(np.linspace(0, 3000, 21))#[mask1, mask2], [mask1-stimulus_onset,mask2-stimulus_onset], fontsize = 22) #1500 is stimulus onset 
+        plt.yticks(np.linspace(0,1,21))
+        #plt.yticks(fontsize = 22)
         plt.legend(fontsize = 29)
-        plt.show()
+        plt.grid()
+        plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Immagini da far vedere a Lorenzo_20_03\Stimulation_channels_Pz_CPz\20_mean.png")
+        plt.close()
