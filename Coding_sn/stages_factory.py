@@ -53,7 +53,7 @@ def compute_stage_matrix(matrix, stage1 = [], stage2= [], stage3= [],
                 matrix[j,i] = matrix2[j,i]*(1-(deg_perc[2] + deg_perc[3]) * w_ij_delta)
     return matrix
 
-    
+"""    
 tau_stage_1 = [ # 4 regions
     4, 40, 47, 53
 ]
@@ -65,6 +65,21 @@ tau_stage_2 = [ # 17 regions
 tau_stage_3 = [ # 38 regions
     0, 2, 3, 6, 9, 11, 15, 17, 19, 21, 22, 23, 24, 25, 27, 29, 33, 34, 44, 46, 49, 51, 52,
     55, 58, 62, 64, 68, 70, 71, 72, 73, 74, 75, 76, 81, 82, 83
+]
+"""
+
+tau_stage_1 = [ # 2 regions
+    14, 39
+]
+
+tau_stage_2 = [ # 16 regions
+    0, 4, 5, 7, 13, 20, 29, 34, 35, 40, 46, 54, 56, 63, 78, 83
+]
+
+tau_stage_3 = [ # 38 regions
+    1, 6, 11, 12, 15, 16, 17, 18, 19, 22, 23, 25, 26, 27, 28, 30,
+    31, 33, 37, 49, 50, 51, 52, 53, 55, 58, 59, 61, 64, 66, 68,
+    69, 71, 72, 75, 76, 79, 81
 ]
 
 tau_stage_1 = np.array(tau_stage_1).astype(int)

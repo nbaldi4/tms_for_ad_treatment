@@ -91,6 +91,17 @@ def main():
     ]
 
     regions_76_abeta_stages=np.zeros(76)
+    v1_76_vector = np.zeros(76)
+    v1_76_vector[35] = 1
+    v1_76_vector[73] = 1
+
+    precunesu_86_vector = np.zeros(86)
+    precunesu_86_vector[24] = 1
+    precunesu_86_vector[73] = 1
+
+    frontal_pole_86_vector = np.zeros(86)
+    frontal_pole_86_vector[31] = 1
+    frontal_pole_86_vector[80] = 1
 
     for i in Abeta_stage_1:
         regions_76_abeta_stages[i]=3
@@ -168,6 +179,9 @@ def main():
         x_conn_76_rel = x_conn_86_center + (x_conn_86_width / y_conn_76_width) * (y_conn_76 - y_conn_76_center)
         y_conn_76_rel = y_conn_86_center - (y_conn_86_width / x_conn_76_width) * (x_conn_76 - x_conn_76_center)
         z_conn_76_rel = z_conn_86_center + (z_conn_86_width / z_conn_76_width) * (z_conn_76 - z_conn_76_center)
+        #x_conn_76_rel = x_conn_86_center - (x_conn_86_width / y_conn_76_width) * (y_conn_76 - y_conn_76_center)
+        #y_conn_76_rel = y_conn_86_center + (y_conn_86_width / x_conn_76_width) * (x_conn_76 - x_conn_76_center)
+        #z_conn_76_rel = z_conn_86_center + (z_conn_86_width / z_conn_76_width) * (z_conn_76 - z_conn_76_center)
         x_conn_76_center_rel = (np.max(x_conn_76_rel)+np.min(x_conn_76_rel))/2
         y_conn_76_center_rel = (np.max(y_conn_76_rel)+np.min(y_conn_76_rel))/2
         z_conn_76_center_rel = (np.max(z_conn_76_rel)+np.min(z_conn_76_rel))/2
@@ -309,10 +323,86 @@ def main():
 
         return regions_86_stages
 
-    def plot_regions(centres, region_values, title):
+    def plot_regions(centres, region_values, title, cortex, simnibs):
         tree = KDTree(centres)
-        cortex = surfaces.CorticalSurface.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_Cortex.zip")
         cortex.configure()
+        if simnibs == True:
+            angle = np.radians(90)
+            R = np.array([
+                [np.cos(angle), -np.sin(angle), 0],
+                [np.sin(angle),  np.cos(angle), 0],
+                [0,              0,             1]
+            ])
+            cortex.vertices = cortex.vertices @ R.T
+        
+        x_cortex, y_cortex, z_cortex = cortex.vertices.T
+
+        _, nearest_region = tree.query(cortex.vertices)
+        vertex_values = region_values[nearest_region]
+        tri_values = vertex_values[cortex.triangles].mean(axis=1)
+        norm = plt.Normalize(vmin=region_values.min(), vmax=region_values.max())
+        cmap = plt.cm.hot
+        face_colors = cmap(norm(tri_values))
+        verts = cortex.vertices[cortex.triangles]
+
+        views = [
+            ('Top',      90,   -90),
+            ('Bottom',  -90,   -90),
+            ('Frontal',   0,     0),
+            ('Back',      0,   180),
+            ('Lateral sx',0,   -90),
+            ('Lateral dx',0,    90),
+        ]
+
+        fig = plt.figure(figsize=(18, 12))
+
+        for i, (view_name, elev, azim) in enumerate(views):
+            ax = fig.add_subplot(2, 3, i + 1, projection='3d')
+
+            poly = Poly3DCollection(verts, alpha=0.8, edgecolor='none')
+            poly.set_facecolor(face_colors)
+            ax.add_collection3d(poly)
+
+            ax.set_xlim(x_cortex.min(), x_cortex.max())
+            ax.set_ylim(y_cortex.min(), y_cortex.max())
+            ax.set_zlim(z_cortex.min(), z_cortex.max())
+            ax.set_title(view_name)
+            ax.view_init(elev=elev, azim=azim)
+
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        fig.colorbar(sm, ax=fig.get_axes(), shrink=0.5, pad=0.05, label='stages')
+
+        fig.suptitle(title)
+        plt.savefig(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop", title))
+        plt.close()
+
+    def plot_centres(centres, centres_2, region_values_76, regions_values_86, title):
+        plt.figure(figsize=(6, 6))
+        ax = plt.subplot(111, projection='3d')
+
+        x, y, z = centres.T
+        sc = ax.scatter(x, y, z, c=region_values_76, cmap='viridis', s=50, marker='o', label='conn_76')
+        x2,y2,z2= centres_2.T
+        sc = ax.scatter(x2, y2, z2, c=regions_values_86, cmap='viridis', s=50, marker='^', label='conn_86')
+        plt.colorbar(sc, ax=ax, shrink=0.5, label='Stage')
+        plt.legend()
+
+        ax.set_title(title)
+        plt.savefig(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Immagini da far vedere a Lorenzo_20_03", title))
+        plt.close()
+    
+    def plot_regions_2(centres, region_values, title):
+        tree = KDTree(centres)
+        cortex = surfaces.CorticalSurface.from_file()
+        cortex.configure()            
+        angle = np.radians(-90)
+        R = np.array([
+            [np.cos(angle), -np.sin(angle), 0],
+            [np.sin(angle),  np.cos(angle), 0],
+            [0,              0,             1]
+        ])
+        cortex.vertices = cortex.vertices @ R.T
         x_cortex, y_cortex, z_cortex = cortex.vertices.T
 
         _, nearest_region = tree.query(cortex.vertices)
@@ -343,35 +433,23 @@ def main():
         
         #x, y, z = skin.vertices.T
         #ax.plot_trisurf(x, y, z, triangles=skin.triangles, alpha=0.1, edgecolor='k')
-        plt.savefig(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Immagini da far vedere a Lorenzo_20_03",title))
-        plt.close()
-
-    def plot_centres(centres, centres_2, region_values_76, regions_values_86, title):
-        plt.figure(figsize=(6, 6))
-        ax = plt.subplot(111, projection='3d')
-
-        x, y, z = centres.T
-        sc = ax.scatter(x, y, z, c=region_values_76, cmap='viridis', s=50, marker='o', label='conn_76')
-        x2,y2,z2= centres_2.T
-        sc = ax.scatter(x2, y2, z2, c=regions_values_86, cmap='viridis', s=50, marker='^', label='conn_86')
-        plt.colorbar(sc, ax=ax, shrink=0.5, label='Stage')
-        plt.legend()
-
-        ax.set_title(title)
-        plt.savefig(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Immagini da far vedere a Lorenzo_20_03", title))
+        plt.savefig(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop",title))
         plt.close()
     
+    region_mapping_abeta_values = region_mapping_staging(centres=centres_76_rel, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con region mapping: proteina abeta', region_mapping=region_mapping)
+    region_mapping_tau_values = region_mapping_staging(centres=centres_76_rel, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con region mapping: proteina tau', region_mapping=region_mapping)
     
-    #region_mapping_abeta_values = region_mapping_staging(centres=centres_76_rel, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con region mapping: proteina abeta', region_mapping=region_mapping)
-    #region_mapping_tau_values = region_mapping_staging(centres=centres_76_rel, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con region mapping: proteina tau', region_mapping=region_mapping)
-    
-    #nearest_vertices_abeta_values = nearest_vertices_staging(centres=centres_76_rel, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con nearest vertices: proteina abeta')
-    #nearest_vertices_tau_values = nearest_vertices_staging(centres=centres_76_rel, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con nearest vertices: proteina tau')
+    nearest_vertices_abeta_values = nearest_vertices_staging(centres=centres_76_rel, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con nearest vertices: proteina abeta')
+    nearest_vertices_tau_values = nearest_vertices_staging(centres=centres_76_rel, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con nearest vertices: proteina tau')
 
     nearest_centre_abeta_values = nearest_center_staging(centres=centres_76_rel, region_76_staging=regions_76_abeta_stages, title='Suddivisione 86 regioni con KDTree sui centri: proteina abeta')
     nearest_centre_tau_values = nearest_center_staging(centres=centres_76_rel, region_76_staging=regions_76_tau_stages, title='Suddivisione 86 regioni con KDTree sui centri: proteina tau')
-    
-    
+    cortex_simnibs = r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_Cortex.zip"
+    #plot_regions(centres=conn_86.centres, region_values=region_mapping_abeta_values, simnibs=True, title='abeta_staging_connectivity_86_cortex_simnibs_region_mapping', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
+    #plot_regions(centres=conn_86.centres, region_values=nearest_vertices_abeta_values, simnibs=True, title='abeta_staging_connectivity_86_cortex_simnibs_nearest vertices', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
+    #plot_regions(centres=conn_86.centres, region_values=frontal_pole_86_vector, simnibs=True, title='frontal_pole_connectivity_86_cortex_simnibs', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
+    #plot_regions_2(centres=conn_76.centres, region_values=regions_76_abeta_stages, title='abeta_staging_connectivity_76_cortex_tvb_one_view_2')
+
     """
     plot_regions(centres=centres_76_rel, region_values=regions_76_abeta_stages, title='stages_76_abeta')
     plot_regions(centres=centres_76_rel, region_values=regions_76_tau_stages, title='stages_76_tau')

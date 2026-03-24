@@ -2553,6 +2553,7 @@ def new_parcellation_simulate(sim_time=20000,
         42, 49
     ]
     """
+    """
     Abeta_stage_1 = [ # 9 regions
         3, 11, 19, 31, 34, 58, 68, 80, 83
     ]
@@ -2578,6 +2579,36 @@ def new_parcellation_simulate(sim_time=20000,
     tau_stage_3 = [ # 38 regions
         0, 2, 3, 6, 9, 11, 15, 17, 19, 21, 22, 23, 24, 25, 27, 29, 33, 34, 44, 46, 49, 51, 52,
         55, 58, 62, 64, 68, 70, 71, 72, 73, 74, 75, 76, 81, 82, 83
+    ]
+    """
+    Abeta_stage_1 = [ # 8 regions
+        0, 5, 7, 31, 34, 54, 56, 83
+    ]
+
+    Abeta_stage_2 = [ # 26 regions
+        4, 8, 13, 14, 21, 24, 35, 36, 38, 39, 40, 41, 42, 43, 45,
+        46, 47, 48, 57, 60, 63, 70, 73, 80, 84, 85
+    ]
+
+    Abeta_stage_3 = [ # 52 regions
+        1, 2, 3, 6, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20, 22, 23,
+        25, 26, 27, 28, 29, 30, 32, 33, 37, 44, 49, 50, 51, 52, 53,
+        55, 58, 59, 61, 62, 64, 65, 66, 67, 68, 69, 71, 72, 74, 75,
+        76, 77, 78, 79, 81, 82
+    ]
+
+    tau_stage_1 = [ # 2 regions
+    14, 39
+    ]
+
+    tau_stage_2 = [ # 16 regions
+        0, 4, 5, 7, 13, 20, 29, 34, 35, 40, 46, 54, 56, 63, 78, 83
+    ]
+
+    tau_stage_3 = [ # 38 regions
+        1, 6, 11, 12, 15, 16, 17, 18, 19, 22, 23, 25, 26, 27, 28, 30,
+        31, 33, 37, 49, 50, 51, 52, 53, 55, 58, 59, 61, 64, 66, 68,
+        69, 71, 72, 75, 76, 79, 81
     ]
 
     degeneration = [0, 0, 0, (1/(1+19**(1/3))), (1/(1+19**(-1/3))), 0.95, 0.95, 0.95] 
@@ -2656,7 +2687,172 @@ def new_parcellation_simulate(sim_time=20000,
         integrator=tvb.integrators.EulerStochastic(dt=0.1, noise=tvb_noise),     
         monitors=mons,        
         surface=None,        
-        stimulus=stimulus,  
+        stimulus=stimulus,
+        simulation_length=sim_time
+    ) 
+    sim.configure()
+        #print(sim.model.__dict__)
+    results = sim.run(simulation_length=sim_time)
+
+    ttavg, tavg = results[0]   # TemporalAverage
+    teeg, eeg   = results[1]   # EEG
+ 
+    return ttavg, tavg, teeg, eeg
+
+def deterministic_new_parcellation_simulate(sim_time=20000,
+             tau_stage=gv.tau_stage,
+             abeta_stage=gv.abeta_stage,
+             g=gv.coup, #0.10004127233208432,
+             velocity=gv.vel, #10.374658598387436,
+             noise=gv.noi, #0.14480848489827142,
+             a=gv.aa, #0.0728044836955774,
+             b=gv.bb, #0.06293568322880852,
+             factor=gv.factor, #0.04,#0.03999999999999998,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
+             C_ip_values=np.linspace(33.75, 13.25, 10),
+             cip=0,
+             C_ep_values=np.linspace(108, 28, 10),
+             cep=0,
+             stimulus=None, 
+             save_raw=False):
+    """
+    Run a simulation of brain activity based on the Jansen–Rit neural mass model.
+
+    Args:
+        sim_time (float): Simulation duration in ms.
+        structural_connectivities (np.ndarray): Structural connectivity matrices.
+        noise (float): Noise level for stochastic integration.
+        cp (int): Connectivity pattern index.
+        np_parameter (int): Neuroplasticity parameter index.
+        g (float): Global coupling strength.
+        velocity (float): Signal conduction velocity.
+        cip, cep, taue: Model parameters controlling inhibitory and excitatory coupling.
+        tau_e_values, C_ip_values, C_ep_values: Parameter grids for tuning.
+        impaired_regions (list): Brain regions to apply hypoinhibition.
+        stimulus (object): Optional external stimulus object.
+
+    Returns:
+        tuple: (ttavg, tavg, teeg, eeg) — time vectors and simulated signals.
+    """
+    conn = copy.deepcopy(get_conn())  # copia indipendente per ogni worker
+    conn.weights = np.load(gv.struct_path_connectivity_86)[tau_stage, :, :]
+    conn.weights = conn.weights / 820096.76119633  # .copy() non più necessario
+    conn.weights = conn.weights * g
+    conn.speed = np.array(velocity)
+    conn.configure()
+
+    region_number = 86
+    # Model parameters (based on Jansen–Rit equations)
+    Cep_value = C_ep_values[cep]
+    Cip_value = C_ip_values[cip]
+    J_value = 128
+    J_stages = np.ones((region_number,1))
+
+    a_array = np.ones((region_number,1))*a
+    b_array = np.ones((region_number,1))*b
+
+    Abeta_stage_1 = [ # 8 regions
+        0, 5, 7, 31, 34, 54, 56, 83
+    ]
+
+    Abeta_stage_2 = [ # 26 regions
+        4, 8, 13, 14, 21, 24, 35, 36, 38, 39, 40, 41, 42, 43, 45,
+        46, 47, 48, 57, 60, 63, 70, 73, 80, 84, 85
+    ]
+
+    Abeta_stage_3 = [ # 52 regions
+        1, 2, 3, 6, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20, 22, 23,
+        25, 26, 27, 28, 29, 30, 32, 33, 37, 44, 49, 50, 51, 52, 53,
+        55, 58, 59, 61, 62, 64, 65, 66, 67, 68, 69, 71, 72, 74, 75,
+        76, 77, 78, 79, 81, 82
+    ]
+
+    tau_stage_1 = [ # 2 regions
+    14, 39
+    ]
+
+    tau_stage_2 = [ # 16 regions
+        0, 4, 5, 7, 13, 20, 29, 34, 35, 40, 46, 54, 56, 63, 78, 83
+    ]
+
+    tau_stage_3 = [ # 38 regions
+        1, 6, 11, 12, 15, 16, 17, 18, 19, 22, 23, 25, 26, 27, 28, 30,
+        31, 33, 37, 49, 50, 51, 52, 53, 55, 58, 59, 61, 64, 66, 68,
+        69, 71, 72, 75, 76, 79, 81
+    ]
+
+    degeneration = [0, 0, 0, (1/(1+19**(1/3))), (1/(1+19**(-1/3))), 0.95, 0.95, 0.95] 
+
+    a_delta = (2.20*3.65/3.25)-1   ########################### Attenzione, valore di M
+    b_delta = 13.25/33.75-1           #0.03133/0.0593-1
+    J_delta = 0.3
+    for i in tau_stage_1:
+        J_stages[i] = 1 - degeneration[tau_stage + 2]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage + 2]))
+    
+    for i in tau_stage_2:
+        J_stages[i] = 1 - degeneration[tau_stage + 1]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage + 1]))
+
+    for i in tau_stage_3:
+        J_stages[i] = 1 - degeneration[tau_stage]*J_delta
+        b_array[i] = min(b_array[i], b*(1+b_delta*(1.8/2.2)*degeneration[tau_stage]))
+
+    for i in Abeta_stage_1:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage + 2])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage+ 2]
+
+    for i in Abeta_stage_2:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage + 1])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage + 1]
+
+    for i in Abeta_stage_3:
+        a_array[i] = a_array[i]*(1+a_delta*degeneration[abeta_stage])
+        b_array[i] = b_array[i] + b*b_delta*(0.4/2.2)*degeneration[abeta_stage]
+
+    model_pars = dict(
+        A=3.25, B=22, v0=6.0,
+        a=a_array, b=b_array, r=0.56,
+        nu_max=0.0025, J=J_value*J_stages,
+        a_1=1.0, a_2 = Cep_value / J_value, #a_2 around 0.84375
+        a_3=0.25, a_4 = Cip_value / J_value, #a_4 around 0.26367
+        mu=0
+    )
+
+    # Add stochastic noise
+    nsig = np.zeros((8, region_number, 1))
+
+    # Define monitors
+    mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
+    mon_EEG = get_eeg_monitor()
+
+    mons = (
+        mon_tavg,                              # results[0] -> (ttavg, tavg)
+        mon_EEG,                               # results[1] -> (teeg, eeg)
+        monitors.ProgressLogger(period=10000)  # results[2]
+    )
+    mons[0].configure()
+    mons[1].configure()
+    mons[2].configure()
+
+    initial_conditions = np.zeros((1, 8, region_number, 1))
+    initial_conditions[:,0,:,:] = 0.00363
+    initial_conditions[:,1,:,:] = 1.06187
+    initial_conditions[:,2,:,:] = 2.42773
+    initial_conditions[:,6,:,:] = 0.00121
+    
+    sim = Simulator_Modified(        
+        model=JRPSP(
+                variables_of_interest=("y0", "y1", "y2", "y3", "y4", "y5", "y6", "y7"),
+                **{k: np.array(v) for k, v in model_pars.items()}
+            ),        
+        connectivity=conn,      
+        coupling=tvb.coupling.Linear(a=np.r_[a_array * 10]),     
+        conduction_speed=float(conn.speed),
+        integrator = tvb.integrators.HeunDeterministic(dt=0.1),
+        monitors=mons,        
+        surface=None,        
+        stimulus=stimulus,
+        initial_conditions=initial_conditions,  
         simulation_length=sim_time
     ) 
     sim.configure()
@@ -2700,31 +2896,42 @@ def std_channels(mask1, mask2, signal, chlist):
 def stimulus_visualization(visualizing, stimulus_onset, datas_stim, teeg_stim, mask1, mask2, chlist = [0, 10, 20, 30]):
     if visualizing == True:
         plt.figure(figsize=(10,10))
-            
+        stimulus_onset = 0
+        mask1 = 0
+        mask2 = 4000
         for key, value in datas_stim.items():
             tavg_stim = value['tavg']
             eeg_stim = value['eeg']
             label = value['label']
             color = value['color']
-            mean_n1 = mean_channels(mask1, mask2, eeg_stim, chlist)
-            std_n1 =  std_channels(mask1, mask2, eeg_stim, chlist)
-            plt.plot(teeg_stim[mask1:mask2], mean_n1, color = color, linewidth = 3, alpha = 0.55, label =  label)
-            plt.fill_between(teeg_stim[mask1:mask2], mean_n1 + std_n1, mean_n1 - std_n1, color = color, linewidth = 3, alpha = 0.35 )
+            mean_n1 = mean_channels(stimulus_onset+mask1, stimulus_onset+mask2, eeg_stim, chlist)
+            std_n1 =  std_channels(stimulus_onset+mask1, stimulus_onset+mask2, eeg_stim, chlist)
+            plt.plot(teeg_stim[stimulus_onset+mask1:stimulus_onset+mask2], mean_n1, color = color, linewidth = 3, alpha = 0.55)
+            plt.fill_between(teeg_stim[stimulus_onset+mask1:stimulus_onset+mask2], mean_n1 + std_n1, mean_n1 - std_n1, color = color, linewidth = 3, alpha = 0.35 )
             windowed_signal = mean_n1  # mean_n1 è già sliced con mask1:mask2
-            print(label, 'N1 depth is:', np.min(windowed_signal))
-            print(label, 'N1 peak is:', np.max(windowed_signal))
-            print(label, 'N1 peak-to-peak:', np.max(windowed_signal) - np.min(windowed_signal))
+            #print(label, 'N1 depth is:', np.min(windowed_signal))
+            #print(label, 'N1 peak is:', np.max(windowed_signal))
+            #print(label, 'N1 peak-to-peak:', np.max(windowed_signal) - np.min(windowed_signal))
 
-        plt.axvline(x=stimulus_onset, color='k', linestyle='--', linewidth=1.5, label='Stimulus onset')
+        plt.axvline(x=2500, color='k', linestyle='--', linewidth=1.5, label='Stimulus onset')
         plt.gca().spines['top'].set_visible(False)
         plt.gca().spines['right'].set_visible(False)
-        plt.title("Simulated N1 component", fontsize = 29)
+        plt.title("EEG sensors Cz", fontsize = 29)
         plt.xlabel('Time (ms)', fontsize = 29)
         plt.ylabel(r'Voltage (10 $\mu$V)', fontsize = 29)
-        #plt.xticks(np.linspace(0, 3000, 21))#[mask1, mask2], [mask1-stimulus_onset,mask2-stimulus_onset], fontsize = 22) #1500 is stimulus onset 
+        plt.xticks(np.linspace(stimulus_onset+mask1, stimulus_onset+mask2, 21))#[mask1, mask2], [mask1-stimulus_onset,mask2-stimulus_onset], fontsize = 22) #1500 is stimulus onset 
         plt.yticks(np.linspace(0,1,21))
+        plt.xlim(stimulus_onset+mask1+1000, stimulus_onset+mask2)
         #plt.yticks(fontsize = 22)
         plt.legend(fontsize = 29)
         plt.grid()
-        plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Immagini da far vedere a Lorenzo_20_03\Stimulation_channels_Pz_CPz\20_mean.png")
+        if gv.save_plots == True:
+            plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Immagini da far vedere a Lorenzo_20_03\Stimulation_channels_Pz_CPz\20_mean.png")
+        if gv.show_plots == True:
+            plt.show()
         plt.close()
+
+def compute_new_parameters(no_stim_ratio, stim_ratio, maximum_value, parameter):
+    parameter_new = (stim_ratio/no_stim_ratio)*maximum_value*parameter
+    return parameter_new
+    

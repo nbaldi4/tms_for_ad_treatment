@@ -34,7 +34,7 @@ def launch_simulation(i, j, k):
         "--FC",
         "--conn_sim",
         "--save_plots",
-        "--save_folder", f'Stages_simnibs\Stage_{i}_{j}',
+        "--save_folder", f'Stages_simnibs_2\Stage_{i}_{j}',
         "--tau", i,
         "--abeta", j,
         "--rnd", k,
