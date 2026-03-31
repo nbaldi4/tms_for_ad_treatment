@@ -17,8 +17,12 @@ import global_variable_creation as gv
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--show_plots", action="store_true", help="Show plots on screen")
+    parser.add_argument("--supth", action="store_true", help="Switch to supra threshold tms stimulation")
+    parser.add_argument("--pot", action="store_true", help="Switch to tms potentiation effect")
+    parser.add_argument("--tms", action="store_true", help="Applay TMS")
     parser.add_argument("--conn_sim", action="store_true", help="Use 86 regions connectivity")
     parser.add_argument("--no_sim", action="store_true", help="Search for simulated data")
+    parser.add_argument("--no_stim_sim", action="store_true", help="Perform unstimulated simuation")
     parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
     parser.add_argument("--save_folder", type=str, help="Folder to save figures and data")
     parser.add_argument("--save_raw_data", action="store_true", help="Saving raw eeg and tavg data")
@@ -40,6 +44,7 @@ def main():
     parser.add_argument("--tau", type=int, help="Tau stage (from 0 to 5)")
     parser.add_argument("--abeta", type=int, help="Beta Amyloid stage (from 0 to 5)")
     parser.add_argument("--rnd", type=int, help="Simulation random seed")
+    parser.add_argument("--tms_freq", type=float, help="Frequqncy of stimulation (choose between 0.5, 10, 20 Hz)")
     parser.add_argument(
     "--tau_array", 
     type=int, 
@@ -77,6 +82,16 @@ def main():
     gv.sim_vs_real = args.sim_vs_real
     gv.connectivity_simnibs = args.conn_sim
     gv.stim = args.stim
+    gv.no_stim_simulation = args.no_stim_sim
+    gv.tms_param_variation = args.tms
+    gv.supra_threshold =args.supth
+    gv.potent_effect = args.pot
+
+    if args.tms_freq:
+        if (args.tms_freq == 0.5) | (args.tms_freq == 10.0) | (args.tms_freq == 20.0):
+            gv.tms_freq = args.tms_freq
+        else:
+            print('invalid value of tms_freq, default value stimulus set')
 
     if args.g:
         gv.coup = args.g
@@ -148,9 +163,9 @@ def main():
     solo a inserire i parametri d'interesse e a scegliere se visualizzare o meno alcuni plots. Proprio a questo scopo ho messo degli hastag accanto agli elementi
     che voglio conservare in qualità di comandi per interfaccia"""
 
+    gv.connectivity_simnibs = True
     np.random.seed(gv.random_seed)
-    no_stim_simulation = False
-    if no_stim_simulation == True:
+    if gv.no_stim_simulation == True:
         if args.no_sim:
             sim_id = f"tau{args.tau}_abeta{args.abeta}_a{args.a:.4f}_b{args.b:.4f}_g{args.g:.4f}_v{args.vel:.2f}_n{args.noise:.4f}_simtime{args.st}"
             # 2. data loading
@@ -160,8 +175,8 @@ def main():
         
         if not args.no_sim:
             if gv.connectivity_simnibs == True:
-                print('86 regioni')
-                print(gv.connectivity_simnibs)
+                #print('86 regioni')
+                #print(gv.connectivity_simnibs)
                 ttavg, tavg, teeg, eeg = new_parcellation_simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, factor=gv.factor, abeta_stage=gv.abeta_stage, tau_stage=gv.tau_stage)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
             else:
                 ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor, save_raw = gv.save_raw_data)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
@@ -170,7 +185,6 @@ def main():
             ttavg, tavg = preprocess(ttavg, tavg)
             teeg, eeg = preprocess(teeg, eeg)
         
-        gv.connectivity_simnibs = True
         
         datas = {'data_healthy': {'tavg': tavg, 'eeg': eeg, 'label': 'Healthy', 'color': 'blue'}}
         
@@ -269,23 +283,20 @@ def main():
             functional_connectivity(eeg, 'EEG')
             functional_connectivity(tavg, 'TAVG')
         """
-        print(gv.fc)
-        print(gv.psd)
-        print(gv.stim)
         if gv.fc == True:
             #functional_connectivity(tavg, label='tavg')
             
             #functional_connectivity_lorenzo(tavg)
-            functional_connectivity_band(tavg, label='TAVG', lowcut=0.5, highcut=45)
+            #functional_connectivity_band(tavg, label='TAVG', lowcut=0.5, highcut=45)
             functional_connectivity_band(tavg, label='TAVG delta', lowcut=0.5, highcut=4)
-            functional_connectivity_band(tavg, label='TAVG theta', lowcut=4, highcut=8)
+            #functional_connectivity_band(tavg, label='TAVG theta', lowcut=4, highcut=8)
             functional_connectivity_band(tavg, label='TAVG alpha', lowcut=8, highcut=13)
             functional_connectivity_band(tavg, label='TAVG beta', lowcut=13, highcut=30)
-            functional_connectivity_band(eeg, label='EEG', lowcut=0.5, highcut=45)
-            functional_connectivity_band(eeg, label='EEG delta', lowcut=0.5, highcut=4)
-            functional_connectivity_band(eeg, label='EEG theta', lowcut=4, highcut=8)
-            functional_connectivity_band(eeg, label='EEG alpha', lowcut=8, highcut=13)
-            functional_connectivity_band(eeg, label='EEG beta', lowcut=13, highcut=30)
+            #functional_connectivity_band(eeg, label='EEG', lowcut=0.5, highcut=45)
+            #functional_connectivity_band(eeg, label='EEG delta', lowcut=0.5, highcut=4)
+            #functional_connectivity_band(eeg, label='EEG theta', lowcut=4, highcut=8)
+            #functional_connectivity_band(eeg, label='EEG alpha', lowcut=8, highcut=13)
+            #functional_connectivity_band(eeg, label='EEG beta', lowcut=13, highcut=30)
             
             #functional_connectivity_img_coh(eeg, 'EEG beta', lowcut=13, highcut=30)
             #functional_connectivity_img_coh(eeg, 'EEG alpha', lowcut=8, highcut=13)
@@ -348,17 +359,21 @@ def main():
             mask_TMS = ttavg > stimulus_onset
             tavg_TMS  = tavg[mask_TMS]
             amplitude_TMS = np.abs(np.max(tavg_TMS)- np.min(tavg_TMS))
+            return amplitude_baseline, amplitude_TMS
 
-            print(amplitude_TMS/amplitude_baseline)
 
-        scale_fact = 1 #con 0.63 otteniamo un rapporto 2picco/1picco = 3.23 #per ristabilire valore assoluto in output da simnibs sarebbe 0.366343
+
+        scale_fact = 38#10000 #con 0.63 otteniamo un rapporto 2picco/1picco = 3.23 #per ristabilire valore assoluto in output da simnibs sarebbe 0.366343
         start_time = 2500
 
         weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\stimulus_vector_TVB.npy")#np.zeros(86)#
         weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\simnibs_simulation_M1_stimulus_vector_TVB.npy")
-        print(weights_vector)
+        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\prova_protocollo_1_stimulus_vector_TVB.npy")
+        #print(weights_vector)
         
-        train = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, T=2000.0, tau=1.0)
+        train_05Hz = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, T=2000.0, tau=1.0)
+        train_10Hz = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, T=100.0, tau=1.0)
+        train_20Hz = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, T=50.0, tau=1.0)
         
         """
         train1 = make_train([35,73], 5.0/stim_weight, onset=start_time , T=1000.0, tau=40.0) #500
@@ -369,7 +384,7 @@ def main():
         stimulus = MultiStimuliRegion(train1, train2,train3, train4, train5)
         """
         
-        stimulus = MultiStimuliRegion(train)
+        stimulus = MultiStimuliRegion(train_05Hz)
         stimulus.configure_space()
         time = np.r_[1e3:3e3:15.0]
         stimulus.configure_time(time)
@@ -379,8 +394,9 @@ def main():
         sim_time = 4000
         display_time = sim_time ###########################################
 
-        ttavg_stim, tavg_healthy_stim, teeg_stim, eeg_healthy_stim = new_parcellation_simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, sim_time=sim_time, stimulus=stimulus, tau_stage=5, abeta_stage=5)#simulate_with_stimulus(stimulus = stimulus, sim_time = sim_time) #Less simulated time needed
-        ttavg_stim, tavg_healthy_stim = preprocess(ttavg_stim, tavg_healthy_stim)
+        ttavg_stim, tavg_healthy_stim, teeg_stim, eeg_healthy_stim = new_parcellation_simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, sim_time=sim_time, stimulus=stimulus, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)#simulate_with_stimulus(stimulus = stimulus, sim_time = sim_time) #Less simulated time needed
+        ttavg_stim = ttavg_stim[1000:]
+        tavg_healthy_stim = tavg_healthy_stim[1000:, :, :, :]
         teeg_stim, eeg_healthy_stim = preprocess(teeg_stim, eeg_healthy_stim)
 
         datas_stim = {'data_healthy': {'tavg': tavg_healthy_stim, 'eeg': eeg_healthy_stim, 'label': 'Healthy', 'color': 'blue'}}
@@ -436,9 +452,18 @@ def main():
                 plt.show()
             plt.close()
 
-            
+        
+        amplitude_TMS = []
+        amplitude_baseline = []
         for i in range(len(tavg_stim[0, 0, :, 0])):
-            actual_weights(ttavg=ttavg_stim, tavg=tavg_stim[:, 0, i, 0], stimulus_onset=start_time)
+            amp_b, amp_TMS = actual_weights(ttavg=ttavg_stim, tavg=tavg_stim[:, 0, i, 0], stimulus_onset=start_time)
+            amplitude_baseline.append(amp_b)
+            amplitude_TMS.append(amp_TMS)
+        
+        amplitude_baseline = np.array(amplitude_baseline)
+        amplitude_TMS = np.array(amplitude_TMS)
+        np.save("amplitude_base_stage_11_05_Hz_38_stim.npy", amplitude_baseline)
+        np.save("amplitude_TMS_stage_11_05_Hz_38_stim.npy", amplitude_TMS)
         
             
         ################################## USEFUL ONLY WHEN STIMULUS IS APPLIED ###################################################
@@ -449,12 +474,6 @@ def main():
         #chlist_occipital = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]#[30,32,33,8,9]
         ration_P30_N100(teeg=teeg_stim, eeg=eeg_stim[:,0,0,0], stimulus_onset=start_time)
         stimulus_visualization(visualizing=True, stimulus_onset=start_time, datas_stim=datas_stim, teeg_stim=teeg_stim, mask1=mask1, mask2=mask2, chlist=chlist)
-
-
-
-
-
-        
 
 if __name__ == "__main__":
     main()

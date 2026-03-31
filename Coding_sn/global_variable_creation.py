@@ -38,7 +38,33 @@ vel=64.21898968502352#26.760911328133584#10.374658598387436#41.79385759129675#
 noi=0.040677673235302345#0.1077485312389941#0.14480848489827142#0.10045650478858126#
 aa=0.07125#0.07406834111496974#0.06625#0.06897011085340124#                    0.0728044836955774#0.09806515133627744#
 bb=0.0546595396476822#0.06602933308057984#0.06293568322880852#0.0680013974341444#
-factor = -0.12#0#      
+factor = -0.12#0#
+no_stim_simulation = False
+tms_param_variation = False
+supra_threshold = False
+potent_effect = False
+
+high_tms_freq = True
+tms_intensity = 1
+stimulation_spot = 0
+
+baseline_amplitude_0_0 = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\baseline_amplitude_abeta_0_tau_0.txt")
+tms_amp_00_05_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_TMS_stage_00_05_Hz_38_stim.npy")
+tms_amp_00_10_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_TMS_stage_00_10_Hz_38_stim.npy")
+tms_amp_00_20_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_TMS_stage_00_20_Hz_38_stim.npy")
+tms_amp_33_05_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_TMS_stage_33_05_Hz_38_stim.npy")
+tms_amp_33_10_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_TMS_stage_33_10_Hz_38_stim.npy")
+tms_amp_33_20_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_TMS_stage_33_20_Hz_38_stim.npy")
+base_amp_00_05_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_base_stage_00_05_Hz_38_stim.npy")
+base_amp_00_10_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_base_stage_00_10_Hz_38_stim.npy")
+base_amp_00_20_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_base_stage_00_20_Hz_38_stim.npy")
+base_amp_33_05_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_base_stage_33_05_Hz_38_stim.npy")
+base_amp_33_10_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_base_stage_33_10_Hz_38_stim.npy")
+base_amp_33_20_Hz_stim_38 = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\ampltiude_values_tavg\amplitude_base_stage_33_20_Hz_38_stim.npy")
+
+stimulations_amplitude_0_0 = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_amplitude_abeta_0_tau_0.txt")
+stimulations_amplitude_3_3 = np.loadtxt(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_amplitude_abeta_3_tau_3.txt")
+threshold_requirements_0_0_05_Hz = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\best_majority.npy")
 
 ref_PT=np.array([1.05, 1.05, 0.55])#ref_PT=np.array([2.0, 2.0, 30.0])
 connectivity_simnibs = True

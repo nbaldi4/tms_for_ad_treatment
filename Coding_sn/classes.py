@@ -101,8 +101,12 @@ class JRPSP(tvb.models.JansenRit):
         short_range_coupling = local_coupling*(y1 - y2)
 
         # --- CORREZIONE: tutte colonne (n,1) ---
+        self.A = np.asarray(self.A).reshape(-1,1)
+        self.B = np.asarray(self.B).reshape(-1,1)
         a_d = np.asarray(self.a).reshape(-1,1) / 3.0
         a_d_2 = np.asarray(self.a).reshape(-1,1)
+        self.a_2 = self.a_2.reshape(-1, 1)
+        self.a_4 = self.a_4.reshape(-1, 1)
         b_d = np.asarray(self.b).reshape(-1,1)
         J_d = np.asarray(self.J).reshape(-1,1)
         sigm_y1_y2 = 2 * self.nu_max / (1 + np.exp(self.r * (self.v0 - (y1 - y2))))    

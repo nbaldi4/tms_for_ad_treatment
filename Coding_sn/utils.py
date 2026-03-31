@@ -854,6 +854,7 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     psd_mean = np.mean(psd_all, axis=0)
     psd_std = np.std(psd_all, axis=0)
 
+    """
     print(psd_mean)
     print(freqs[(freqs >= 0.5) & (freqs < 4)])
     print(freqs[(freqs >= 4) & (freqs < 8)])
@@ -861,6 +862,7 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     print(freqs[(freqs >= 13) & (freqs < 30)])
     print(freqs[(freqs >= 0.5) & (freqs < 45)])
     print(np.max(psd_mean))
+    """
 
     # psd_all array dimensions are [n_regions, n_freqs]
     
@@ -2290,7 +2292,8 @@ def new_parcellation_simulate(sim_time=20000,
              C_ep_values=np.linspace(108, 28, 10),
              cep=0,
              stimulus=None, 
-             save_raw=False):
+             save_raw=False,
+             tms=False):
     """
     Run a simulation of brain activity based on the Jansen–Rit neural mass model.
 
@@ -2318,6 +2321,7 @@ def new_parcellation_simulate(sim_time=20000,
     conn.configure()
 
     region_number = 86
+
     # Model parameters (based on Jansen–Rit equations)
     Cep_value = C_ep_values[cep]
     Cip_value = C_ip_values[cip]
@@ -2649,12 +2653,70 @@ def new_parcellation_simulate(sim_time=20000,
     print('b finale', b_array[0:8])
     print('J finale', J_stages[0:8])
     """
+
+    mltdep = -0.2 # max_long_term_depotentiation_percentage
+    mltpot = 0.6 # max_long_term_potentiation_percentage
+
+    Cep_value_array = Cep_value*np.ones((region_number,1))
+    Cip_value_array = Cip_value*np.ones((region_number,1))
+    A_value = 3.25
+    B_value = 22
+    A_value_array = A_value*np.ones((region_number,1))
+    B_value_array = B_value*np.ones((region_number,1))
+    subth_param = np.array([0.4, 0.6])
+    suprath_param = np.array([1.0, 0.6])
+
+    if gv.high_tms_freq == False:
+        mlt = mltdep
+    else:
+        mlt = mltpot
+
+    """
+    if gv.supra_threshold == True:
+        par = suprath_param
+    else:
+        par = subth_param
+
+    if gv.potent_effect == True:
+        mlt = mltpot
+    else:
+        mlt = mltdep
+    """
+
+    if gv.tms_param_variation == True:
+        for i in range(region_number):
+            
+            if gv.threshold_requirements[i]==True: #gv.stimulations_amplitude_0_0[i]/gv.baseline_amplitude_0_0[i] > 1.25:
+                par = suprath_param
+            else:
+                par = subth_param
+            
+            #Cep_value_array[i] += Cep_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+            #Cip_value_array[i] += Cip_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+            A_value_array[i] += A_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+            B_value_array[i] += B_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+            #J_stages[i] += J_stages[i]*tms_percentage_effects*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+
+        old_weights = conn.weights
+        new_weights = conn.weights
+        for i in range(region_number):
+            
+            if gv.threshold_requirements[i]==True: #gv.stimulations_amplitude_0_0[i]/gv.baseline_amplitude_0_0[i] > 1.25:
+                par = suprath_param
+            else:
+                par = subth_param
+            
+            new_weights[i,:] = new_weights[i,:] + 0.5*old_weights[i,:]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+            new_weights[:,i] = new_weights[:,i] + 0.5*old_weights[:,i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+
+        conn.weights = new_weights
+        
     model_pars = dict(
-        A=3.25, B=22, v0=6.0,
+        A=A_value_array, B=B_value_array, v0=6.0,
         a=a_array, b=b_array, r=0.56,
         nu_max=0.0025, J=J_value*J_stages,
-        a_1=1.0, a_2 = Cep_value / J_value, #a_2 around 0.84375
-        a_3=0.25, a_4 = Cip_value / J_value, #a_4 around 0.26367
+        a_1=1.0, a_2 = Cep_value_array / J_value, #a_2 around 0.84375
+        a_3=0.25, a_4 = Cip_value_array / J_value, #a_4 around 0.26367
         mu=0.22
     )
 
