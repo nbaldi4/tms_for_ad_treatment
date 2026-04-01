@@ -13,6 +13,7 @@ from utils import make_train, simulate_with_stimulus, stimulus_visualization, ne
 from classes import MultiStimuliRegion
 from data_analysis_utils import real_vs_simulated_FC, real_vs_simulated_PSD, NSGAII, analyze_regular_data, analyze_reduced_data, load_simulation_results
 import global_variable_creation as gv
+from tms_application_utils import tms_seeds_analysis
 
 def main():
 
@@ -30,10 +31,11 @@ def main():
     parser.add_argument("--show_plots", action="store_true", help="Show plots on screen")
     parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
     parser.add_argument("--save_folder", type=str, help="Folder to save figures and data")
-    parser.add_argument("--spot", type=int, help="0 = PCU, 1 = Fp, 2 = T3/T7, 3 = T4/T8")
+    parser.add_argument("--spot", type=int, help="0 = PCU, 1 = Fp1, 2 = Fp2, 3 = T3/T7, 4 = T4/T8")
     args = parser.parse_args()
 
     # Per ogni parametro: se non passato da CLI, chiedi interattivamente
+    """
     if args.tau is None:
         args.tau = int(input("Tau stage (0-5): "))
 
@@ -41,19 +43,22 @@ def main():
         args.abeta = int(input("Beta Amyloid stage (0-5): "))
 
     if args.rnd is None:
-        args.rnd = int(input("Random seed: "))
+        val = input("Random seed [default: 0]: ")
+        args.rnd = int(val) if val.strip() else 0
 
     if args.tms_intensity is None:
-        args.tms_intensity = float(input("Intensity: "))
+        val = input("Intensity [default: 0]: ")
+        args.tms_intensity = float(val) if val.strip() else 0
 
     if args.spot is None:
-        args.spot = int(input("Spot (0 = PCU, 1 = Fp, 2 = T3/T7, 3 = T4/T8): "))
+        args.spot = int(input("Spot (0 = PCU, 1 = Fp1, 2 = Fp2, 3 = T3/T7, 4 = T4/T8): "))
 
     if args.high_f and args.low_f:
         raise ValueError('you cannot simulate both high and low intenisty')
 
     if args.low_f is True:
         gv.high_tms_freq = False
+    
 
     # high_f è un bool (store_true), quindi il default è già False
     # ma se vuoi chiederlo esplicitamente:
@@ -61,19 +66,28 @@ def main():
         risposta = input("High intensity? (y/n): ").strip().lower()
         args.high_f = risposta == 'y'
 
-    print(args.spot)
-
-    if (args.spot < 0) | (args.spot > 3):
-        raise ValueError('Spot codes range from 0 to 3')
+    if (args.spot < 0) | (args.spot > 4):
+        raise ValueError('Spot codes range from 0 to 4')
+    """
 
     gv.show_plots = args.show_plots
     gv.save_plots = args.save_plots
-    gv.random_seed = args.rnd
-    gv.tau_stage = args.tau
-    gv.abeta_stage = args.abeta
-    gv.tms_intensity = args.tms_intensity
+    if args.rnd:
+        gv.random_seed = args.rnd
+    if args.tau:
+        gv.tau_stage = args.tau
+    if args.abeta:
+        gv.abeta_stage = args.abeta
+    if args.tms_intensity:
+        gv.tms_intensity = args.tms_intensity
     gv.high_tms_freq = args.high_f
-    gv.stimulation_spot = args.spot
+    if args.spot:
+        gv.stimulation_spot = args.spot
+
+    if gv.high_tms_freq:
+        freq = 10
+    else:
+        freq = 0.5
 
     if args.save_folder:
         gv.fig_folder = os.path.join(gv.fig_folder, args.save_folder)
@@ -92,11 +106,12 @@ def main():
     
     gv.stim = False
 
-    print(gv.abeta_stage)
-    print(gv.tau_stage)
-    print(gv.random_seed)
-    print(gv.tms_intensity)
-    print(gv.high_tms_freq)
+    #print(gv.abeta_stage)
+    #print(gv.tau_stage)
+    #print(gv.random_seed)
+    #print(gv.tms_intensity)
+    #print(gv.high_tms_freq)
+    #print(gv.stimulation_spot)
 
     def actual_weights(ttavg, tavg, stimulus_onset):
         mask_baseline = ttavg < (stimulus_onset-100)
@@ -107,47 +122,51 @@ def main():
         amplitude_TMS = np.abs(np.max(tavg_TMS)- np.min(tavg_TMS))
         return amplitude_baseline, amplitude_TMS
 
+    stimulus_onset = 2500
+    weights_vector = np.ones(86)
 
+    if gv.stimulation_spot == 0:
+        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\PCU_1_mm_stimulus_vector_TVB.npy")
 
-    scale_fact = gv.tms_intensity
-    start_time = 2500
+    if gv.stimulation_spot == 1:
+        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\Fp1_1_mm_stimulus_vector_TVB.npy")
 
-    weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\stimulus_vector_TVB.npy")#np.zeros(86)#
-    weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\simnibs_simulation_M1_stimulus_vector_TVB.npy")
-    weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\prova_protocollo_1_stimulus_vector_TVB.npy")
-    #print(weights_vector)
-    
-    train_05Hz = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, T=2000.0, tau=1.0)
-    train_10Hz = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, T=100.0, tau=1.0)
+    if gv.stimulation_spot == 2:
+        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\Fp2_1_mm_stimulus_vector_TVB.npy")
+
+    if gv.stimulation_spot == 3:
+        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\T7_T3_1_mm_stimulus_vector_TVB.npy")
+        
+    if gv.stimulation_spot == 4:
+        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\T8_T4_1_mm_stimulus_vector_TVB.npy")
 
     if gv.high_tms_freq:
-        stimulus = MultiStimuliRegion(train_10Hz)
+        period = 100.0 # time is in ms so f=1/(100/1000)=10 Hz
     else:
-        stimulus = MultiStimuliRegion(train_05Hz)
-        
-    stimulus = MultiStimuliRegion(train_05Hz)
+        period = 2000.0 # time is in ms so f=1/(2000/1000)=1/2=0.5 Hz
+       
+    print('period:', period)
+    """
+    train = make_train(np.arange(0,86), gv.tms_intensity*weights_vector, onset=stimulus_onset, T=period, tau=1.0)
+    stimulus = MultiStimuliRegion(train)
     stimulus.configure_space()
-    time = np.r_[1e3:3e3:15.0]
+    time = np.r_[stimulus_onset - 500:stimulus_onset + 500 + period:0.5]
     stimulus.configure_time(time)
     pattern = stimulus()
+    """
+    sim_time = stimulus_onset + period + 500
+    seeds_number= 2
+    tested_values = 2
+    threshold = 1.5
     
-    sim_time = 4000
-    ttavg_stim, tavg_healthy_stim, teeg_stim, eeg_healthy_stim = new_parcellation_simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, sim_time=sim_time, stimulus=stimulus, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)#simulate_with_stimulus(stimulus = stimulus, sim_time = sim_time) #Less simulated time needed
-    ttavg_stim = ttavg_stim[1000:]
-    tavg_stim = tavg_healthy_stim[1000:, :, :, :]
-    teeg_stim, eeg_healthy_stim = preprocess(teeg_stim, eeg_healthy_stim)
+    seeds_analysis = False
+    if seeds_analysis == True:
+        results_dir = os.path.join('..', 'Tms_results_3')
+        os.makedirs(results_dir, exist_ok=True)
+        file_path = os.path.join(results_dir, f"tms_seeds_a{args.abeta}_t{args.tau}_f{freq}_s{gv.stimulation_spot}")
+        df = tms_seeds_analysis(file_path, abeta=args.abeta, tau=args.tau, period=period, weights_vector=weights_vector, stimulus_onset=stimulus_onset, tested_values=tested_values, n_seeds=seeds_number)
 
-    amplitude_TMS = []
-    amplitude_baseline = []
-    for i in range(len(tavg_stim[0, 0, :, 0])):
-        amp_b, amp_TMS = actual_weights(ttavg=ttavg_stim, tavg=tavg_stim[:, 0, i, 0], stimulus_onset=start_time)
-        amplitude_baseline.append(amp_b)
-        amplitude_TMS.append(amp_TMS)
-        
-    amplitude_baseline = np.array(amplitude_baseline)
-    amplitude_TMS = np.array(amplitude_TMS)
-    np.save("amplitude_base_stage_11_05_Hz_38_stim.npy", amplitude_baseline)
-    np.save("amplitude_TMS_stage_11_05_Hz_38_stim.npy", amplitude_TMS)
+
 
 if __name__ == "__main__":
     main()

@@ -135,7 +135,7 @@ def main():
     pairs = [(sf, seed) for sf in scale_factor_span for seed in seed_span]
 
     # Una simulazione per coppia (sf, seed), parallelizzata
-    all_results = Parallel(n_jobs=-2)(
+    all_results = Parallel(n_jobs=10)(
         delayed(tms_pulse_kick_all_channels)(sf, seed) for sf, seed in pairs
     )
 
@@ -147,8 +147,8 @@ def main():
     df["channel"] = df["channel"].astype(int)
     df["seed"] = df["seed"].astype(int)
 
-    df.to_csv("tavg_protocollo_1.csv", index=False)
-    np.save("tavg_protocollo_1.npy", df.to_numpy())
+    df.to_csv("prova_disperata.csv", index=False)
+    np.save("prova_disperata.npy", df.to_numpy())
 
     print(f"Completed: {tested_values} sf × {n_seeds} seeds × {df['channel'].nunique()} channels = {len(df)} total rows.")
 

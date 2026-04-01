@@ -99,6 +99,7 @@ def main():
     ]
 
     df = pd.DataFrame(data, columns=columns)
+    #df= pd.read_pickle(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Tms_app_results_2\tms_seeds_a3_t3_f0.5_s0")
     visualize_stimulus_amplitude(df=df)
 
     amplitude_threshold = 1.5

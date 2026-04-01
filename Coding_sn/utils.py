@@ -2286,6 +2286,7 @@ def new_parcellation_simulate(sim_time=20000,
              noise=gv.noi, #0.14480848489827142,
              a=gv.aa, #0.0728044836955774,
              b=gv.bb, #0.06293568322880852,
+             noise_seed=None,
              factor=gv.factor, #0.04,#0.03999999999999998,#0.8356062043764902, #1.7591351809125855e-03, #0.8581280031180116,
              C_ip_values=np.linspace(33.75, 13.25, 10),
              cip=0,
@@ -2321,6 +2322,11 @@ def new_parcellation_simulate(sim_time=20000,
     conn.configure()
 
     region_number = 86
+
+    print(f"noise_seed ricevuto: {noise_seed}, gv.random_seed attuale: {gv.random_seed}")
+
+    if noise_seed is None:
+        noise_seed = gv.random_seed
 
     # Model parameters (based on Jansen–Rit equations)
     Cep_value = C_ep_values[cep]
@@ -2682,10 +2688,10 @@ def new_parcellation_simulate(sim_time=20000,
     else:
         mlt = mltdep
     """
-
+    #print('tms_param_variation', gv.tms_param_variation)
     if gv.tms_param_variation == True:
         for i in range(region_number):
-            
+            print('HO CAMBIATO I PARAMETRI')
             if gv.threshold_requirements[i]==True: #gv.stimulations_amplitude_0_0[i]/gv.baseline_amplitude_0_0[i] > 1.25:
                 par = suprath_param
             else:
@@ -2693,8 +2699,8 @@ def new_parcellation_simulate(sim_time=20000,
             
             #Cep_value_array[i] += Cep_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
             #Cip_value_array[i] += Cip_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
-            A_value_array[i] += A_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
-            B_value_array[i] += B_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+            A_value_array[i] += A_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.baseline_amplitude_0_0)
+            B_value_array[i] += B_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.baseline_amplitude_0_0)
             #J_stages[i] += J_stages[i]*tms_percentage_effects*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
 
         old_weights = conn.weights
@@ -2723,7 +2729,7 @@ def new_parcellation_simulate(sim_time=20000,
     # Add stochastic noise
     nsig = np.zeros((8, region_number, 1))
     nsig[4] = model_pars['A'] * model_pars['a'] * (.320 - .120) * noise
-    tvb_noise = tvb.noise.Additive(nsig=nsig, noise_seed=gv.random_seed)
+    tvb_noise = tvb.noise.Additive(nsig=nsig, noise_seed=noise_seed)
 
     # Define monitors
     mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
