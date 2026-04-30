@@ -43,8 +43,9 @@ no_stim_simulation = False
 tms_param_variation = False
 supra_threshold = False
 potent_effect = False
+frequence=0
 
-high_tms_freq = True
+high_tms_freq = False
 tms_intensity = 1
 stimulation_spot = 0
 
@@ -68,70 +69,6 @@ threshold_requirements_0_0_05_Hz = np.load(r"C:\Users\User\OneDrive - University
 
 ref_PT=np.array([1.05, 1.05, 0.55])#ref_PT=np.array([2.0, 2.0, 30.0])
 connectivity_simnibs = True
-
-def eeg_monitor_factory():
-    """Factory che gestisce un monitor EEG con configurazione persistente."""
-    if connectivity_simnibs == True:
-        """Crea un monitor EEG, ricreandolo ad ogni chiamata perché dipende da conn."""
-        SENSORS_FNAME = r'C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_EEG_Locations.txt'
-        PROJECTION_FNAME = r'C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_EEGProjection.mat'
-        RM_FNAME = r'C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_region_mapping.txt'
-
-        # Carica una volta sola i file statici
-        sensorsEEG = SensorsEEG.from_file(SENSORS_FNAME)
-        sensorsEEG.configure()
-
-        def create_eeg_monitor(conn=get_conn(), period=temp_avg_period):
-            # rm dipende da conn -> ricreato ad ogni chiamata
-            rm = RegionMapping.from_file(RM_FNAME)
-            rm.connectivity = conn
-
-            prEEG = ProjectionSurfaceEEG.from_file(
-                PROJECTION_FNAME,
-                matlab_data_name='ProjectionMatrix'
-            )
-            prEEG.sensors = sensorsEEG
-
-            mon_eeg = monitors.EEG(
-                sensors=sensorsEEG,
-                projection=prEEG,
-                region_mapping=rm,
-                period=period,
-                reference=None,
-                variables_of_interest=np.array([0])
-            )
-            mon_eeg.configure()
-            return mon_eeg
-    else:
-        config = {
-            'sensors_fname': 'eeg_brainstorm_65.txt',
-            'projection_fname': 'projection_eeg_65_surface_16k.npy',
-            'rm_f_name': 'regionMapping_16k_76.txt',
-            'period': temp_avg_period
-        }
-        cached_mon = None
-        cached_conf = config.copy()
-
-        def create_eeg_monitor(**kwargs):
-            nonlocal config, cached_mon, cached_conf
-
-            # Aggiorna la configurazione se arrivano nuovi parametri
-            if kwargs:
-                config.update(kwargs)
-
-            # Se la configurazione non è cambiata, usa il monitor in cache
-            if cached_mon and config == cached_conf:
-                return cached_mon
-
-            # Altrimenti ricrea il monitor
-            mon_EEG = monitors.EEG.from_file(**config)
-            mon_EEG.configure()
-
-            cached_mon = mon_EEG
-            cached_conf = config.copy()
-            return mon_EEG
-
-    return create_eeg_monitor
 
 def connectivity_factory():
     if connectivity_simnibs == True:
@@ -192,6 +129,74 @@ def connectivity_factory():
 
 # Istanza globale unica — importabile ovunque
 get_conn = connectivity_factory()
+
+def eeg_monitor_factory(connectivity=get_conn()):
+    """Factory che gestisce un monitor EEG con configurazione persistente."""
+    if connectivity_simnibs == True:
+        """Crea un monitor EEG, ricreandolo ad ogni chiamata perché dipende da conn."""
+        SENSORS_FNAME = r'C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_EEG_Locations.txt'
+        PROJECTION_FNAME = r'C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_EEGProjection.mat'
+        RM_FNAME = r'C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_region_mapping.txt'
+
+        # Carica una volta sola i file statici
+        sensorsEEG = SensorsEEG.from_file(SENSORS_FNAME)
+        sensorsEEG.configure()
+
+        def create_eeg_monitor(conn=connectivity, period=temp_avg_period):
+            # rm dipende da conn -> ricreato ad ogni chiamata
+            rm = RegionMapping.from_file(RM_FNAME)
+            rm.connectivity = conn
+
+            prEEG = ProjectionSurfaceEEG.from_file(
+                PROJECTION_FNAME,
+                matlab_data_name='ProjectionMatrix'
+            )
+            prEEG.sensors = sensorsEEG
+
+            mon_eeg = monitors.EEG(
+                sensors=sensorsEEG,
+                projection=prEEG,
+                region_mapping=rm,
+                period=period,
+                reference=None,
+                variables_of_interest=np.array([0])
+            )
+            mon_eeg.configure()
+            return mon_eeg
+    else:
+        config = {
+            'sensors_fname': 'eeg_brainstorm_65.txt',
+            'projection_fname': 'projection_eeg_65_surface_16k.npy',
+            'rm_f_name': 'regionMapping_16k_76.txt',
+            'period': temp_avg_period
+        }
+        cached_mon = None
+        cached_conf = config.copy()
+
+        def create_eeg_monitor(**kwargs):
+            nonlocal config, cached_mon, cached_conf
+
+            # Aggiorna la configurazione se arrivano nuovi parametri
+            if kwargs:
+                config.update(kwargs)
+
+            # Se la configurazione non è cambiata, usa il monitor in cache
+            if cached_mon and config == cached_conf:
+                return cached_mon
+
+            # Altrimenti ricrea il monitor
+            mon_EEG = monitors.EEG.from_file(**config)
+            mon_EEG.configure()
+
+            cached_mon = mon_EEG
+            cached_conf = config.copy()
+            return mon_EEG
+
+    return create_eeg_monitor
+
+
+
+
 get_eeg_monitor = eeg_monitor_factory()
 
 #mon_eeg = get_eeg_monitor() # Questo chiama la tua factory

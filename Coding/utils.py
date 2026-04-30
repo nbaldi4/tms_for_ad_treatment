@@ -1050,11 +1050,11 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     plt.figure(figsize=(10, 6))
     plt.plot(freqs, psd_mean_normalized, label=label, linewidth=3)
     #plt.fill_between(freqs, psd_mean + psd_std, psd_mean - psd_std, alpha=0.35)
-    plt.title(label + ' mean PSD', fontsize=20)
+    plt.title(label + r' A$\beta=5$ ' r'$\tau=5$', fontsize=20)
     plt.ylim(0, 1.01)
     plt.xlim(0, 45)
     plt.xlabel('Frequency [Hz]', fontsize=16)
-    plt.ylabel('PSD che dovrebbe essere giusta', fontsize=16)
+    plt.ylabel('PSD', fontsize=16)
     plt.legend(fontsize=14)
     plt.grid(True)
 

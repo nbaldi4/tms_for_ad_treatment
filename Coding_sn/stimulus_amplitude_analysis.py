@@ -81,14 +81,14 @@ def visualize_stimulus_amplitude(df, channel=0, seed=0):
     plt.legend()
     plt.ylabel('amplitude')
     plt.xlabel('weights multiplication factor')
-    plt.title('Post stimulus amplitude vs stimulus intensity')
+    plt.title(f"Post stimulus amplitude vs stimulus intensity channel {channel}, seed{seed}")
     plt.grid()
     plt.show()
 
 def main():
 
-    data= np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\tavg_protocollo_1.npy")
-
+    #data= np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding_sn\tavg_protocollo_1.npy")
+    """
     columns = [
         "baseline",
         "amplitude_pre_stimulus",
@@ -99,7 +99,8 @@ def main():
     ]
 
     df = pd.DataFrame(data, columns=columns)
-    #df= pd.read_pickle(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Tms_app_results_2\tms_seeds_a3_t3_f0.5_s0")
+    """
+    df= pd.read_pickle(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Tms_results_3\tms_seeds_a0_t0_f0.5_s0")
     visualize_stimulus_amplitude(df=df)
 
     amplitude_threshold = 1.5

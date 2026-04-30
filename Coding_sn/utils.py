@@ -351,7 +351,7 @@ def functional_connectivity(time_series_original, label):
 def functional_connectivity_band(time_series_original, label, lowcut, highcut, patient = 0, real_patient = False):
 
     if real_patient == False:
-        fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}") #gv.fig_folder
+        fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_rs{gv.random_seed}") #_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}") #gv.fig_folder
         os.makedirs(fig_save_dir, exist_ok=True)
     else:
         fig_save_dir = os.path.join(gv.fig_folder, f"patient_{patient}")
@@ -393,7 +393,7 @@ def functional_connectivity_band(time_series_original, label, lowcut, highcut, p
     corr_th_significance = np.multiply(corr_th, pmatrix_th)
 
     if real_patient == False:
-        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}")#gv.data_folder
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_rs{gv.random_seed}") #_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}")#gv.data_folder
         os.makedirs(data_save_dir, exist_ok=True)
         file_txt_title = f"FC_means_{label}_tau_{gv.tau_stage}_abeta_{gv.abeta_stage}_{lowcut}-{highcut}_Hz.txt"
     else:
@@ -867,9 +867,9 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     # psd_all array dimensions are [n_regions, n_freqs]
     
     if real_patient == False:
-        fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}") #gv.fig_folder
+        fig_save_dir = os.path.join(gv.fig_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_rs{gv.random_seed}") #_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}") #gv.fig_folder
         os.makedirs(fig_save_dir, exist_ok=True)
-        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}")  #gv.data_folder
+        data_save_dir = os.path.join(gv.data_folder, f"tau{gv.tau_stage}_abeta{gv.abeta_stage}_rs{gv.random_seed}") #_a{gv.aa:.4f}_b{gv.bb:.4f}_g{gv.coup:.4f}_v{gv.vel:.2f}_n{gv.noi:.4f}_simtime{gv.sim_time}_rs{gv.random_seed}")  #gv.data_folder
         os.makedirs(data_save_dir, exist_ok=True)
     else:
         fig_save_dir = os.path.join(gv.fig_folder, f"patient_{patient}")
@@ -1048,7 +1048,7 @@ def psd(time_series_original, label, lowcut=0.5, highcut=45, n_seg=2048, window=
     plt.ylim(0, 1.01)
     plt.xlim(0, 45)
     plt.xlabel('Frequency [Hz]', fontsize=16)
-    plt.ylabel('PSD che dovrebbe essere giusta', fontsize=16)
+    plt.ylabel('PSD', fontsize=16)
     plt.legend(fontsize=14)
     plt.grid(True)
 
@@ -2293,6 +2293,9 @@ def new_parcellation_simulate(sim_time=20000,
              C_ep_values=np.linspace(108, 28, 10),
              cep=0,
              stimulus=None, 
+             freq= None,
+             spot=None,
+             intensity=None,
              save_raw=False,
              tms=False):
     """
@@ -2316,6 +2319,8 @@ def new_parcellation_simulate(sim_time=20000,
     """
     conn = copy.deepcopy(get_conn())  # copia indipendente per ogni worker
     conn.weights = np.load(gv.struct_path_connectivity_86)[tau_stage, :, :]
+    #mask = conn.weights < 100000
+    #conn.weights[mask] = 0
     conn.weights = conn.weights / 820096.76119633  # .copy() non più necessario
     conn.weights = conn.weights * g
     conn.speed = np.array(velocity)
@@ -2323,10 +2328,14 @@ def new_parcellation_simulate(sim_time=20000,
 
     region_number = 86
 
-    print(f"noise_seed ricevuto: {noise_seed}, gv.random_seed attuale: {gv.random_seed}")
-
     if noise_seed is None:
         noise_seed = gv.random_seed
+    if freq is None:
+        freq = gv.high_tms_freq
+    if spot is None:
+        spot = gv.stimulation_spot
+    if intensity is None:
+        intensity = gv.tms_intensity
 
     # Model parameters (based on Jansen–Rit equations)
     Cep_value = C_ep_values[cep]
@@ -2660,22 +2669,35 @@ def new_parcellation_simulate(sim_time=20000,
     print('J finale', J_stages[0:8])
     """
 
-    mltdep = -0.2 # max_long_term_depotentiation_percentage
-    mltpot = 0.6 # max_long_term_potentiation_percentage
+    mltlow = [-1,-1, 1, 1]#[-0.2,-0.2, 0.6, 0.6]#A, a, B, b  # -0.2 # max_long_term_depotentiation_percentage
+    mlthigh =[0 ,-1,-1,-1]#[0   ,-0.2,-0.2,-0.2]#A, a, B, b # 0.6 # max_long_term_potentiation_percentage
 
     Cep_value_array = Cep_value*np.ones((region_number,1))
     Cip_value_array = Cip_value*np.ones((region_number,1))
     A_value = 3.25
     B_value = 22
+    
     A_value_array = A_value*np.ones((region_number,1))
     B_value_array = B_value*np.ones((region_number,1))
     subth_param = np.array([0.4, 0.6])
     suprath_param = np.array([1.0, 0.6])
 
-    if gv.high_tms_freq == False:
-        mlt = mltdep
+    print('Parameter of the actual simulation')
+    print('stimulation_spot', spot)
+    print('high_tms_freq', freq)
+    print('abeta', abeta_stage)
+    print('tau', tau_stage)
+    print('Noise seed utlizzato:',noise_seed)
+    print('intensity:',intensity)
+
+    if freq == False:
+        mlt = mltlow
+        searching_freq = 0.5
+        print('depression')
     else:
-        mlt = mltpot
+        mlt = mlthigh
+        searching_freq = 10
+        print('potentiation')
 
     """
     if gv.supra_threshold == True:
@@ -2688,35 +2710,104 @@ def new_parcellation_simulate(sim_time=20000,
     else:
         mlt = mltdep
     """
+    """
     #print('tms_param_variation', gv.tms_param_variation)
     if gv.tms_param_variation == True:
+        
+        #file_name = f"super_th_reg_a{abeta_stage}_t{tau_stage}_f{gv.frequence}_s{gv.stimulation_spot}"
+        #df = pd.read_pickle(os.path.join('../Tms_app_results_2', file_name))
+        #suprath_regions = df["is_greater"]
+        #stim_amplitudes = df["mean_amp_post"]
+                
         for i in range(region_number):
-            print('HO CAMBIATO I PARAMETRI')
-            if gv.threshold_requirements[i]==True: #gv.stimulations_amplitude_0_0[i]/gv.baseline_amplitude_0_0[i] > 1.25:
+            #print('HO CAMBIATO I PARAMETRI')
+            if gv.stimulations_amplitude_0_0[i]/gv.baseline_amplitude_0_0[i] > 1.5:#suprath_regions[i]==True: #
                 par = suprath_param
             else:
                 par = subth_param
             
+            par = suprath_param
             #Cep_value_array[i] += Cep_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
-            #Cip_value_array[i] += Cip_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
-            A_value_array[i] += A_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.baseline_amplitude_0_0)
-            B_value_array[i] += B_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.baseline_amplitude_0_0)
+            #Cip_value_array[i] += Cip_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)#
+            A_value_array[i] += A_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)#stim_amplitudes[i]/np.max(stim_amplitudes)#
+            B_value_array[i] += B_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)#stim_amplitudes[i]/np.max(stim_amplitudes)#
             #J_stages[i] += J_stages[i]*tms_percentage_effects*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
 
         old_weights = conn.weights
         new_weights = conn.weights
         for i in range(region_number):
             
-            if gv.threshold_requirements[i]==True: #gv.stimulations_amplitude_0_0[i]/gv.baseline_amplitude_0_0[i] > 1.25:
+            if gv.stimulations_amplitude_0_0[i]/gv.baseline_amplitude_0_0[i] > 1.5:#suprath_regions[i]==True: #
                 par = suprath_param
             else:
                 par = subth_param
             
-            new_weights[i,:] = new_weights[i,:] + 0.5*old_weights[i,:]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
-            new_weights[:,i] = new_weights[:,i] + 0.5*old_weights[:,i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+            par=suprath_param
+            new_weights[i,:] = new_weights[i,:] + 0.5*old_weights[i,:]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)#stim_amplitudes[i]/np.max(stim_amplitudes)#
+            new_weights[:,i] = new_weights[:,i] + 0.5*old_weights[:,i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)#stim_amplitudes[i]/np.max(stim_amplitudes)#
 
         conn.weights = new_weights
+    """
+
+    #norm = 0.75
+    norm = 0.2 #prima era 0.2
+    #print('A_array originale')
+    #print(A_value_array)
+    if gv.tms_param_variation == True:
+        print("STO CAMBIANDO I PARAMETRI")
+
+        file_name = f"super_th_reg_a{abeta_stage}_t{tau_stage}_f{searching_freq}_s{spot}"
+        base_dir = os.path.dirname(os.path.abspath(__file__))  # cartella di utils.py
+        path = os.path.join(base_dir, '..', 'Tms_results_10', file_name)
+        df = pd.read_pickle(path)
+
+        intensityplus = intensity + 0.01
+        intensityminus = intensity - 0.01
+        df=df.query("sf <= @intensityplus and sf >= @intensityminus")
         
+        pre_stim_amp = df["mean_amp_pre"].reset_index(drop=True)
+        post_stim_amp = df["mean_amp_post"].reset_index(drop=True)
+        baseline = df["mean_baseline"].reset_index(drop=True)
+        threshold = df["is_greater"].reset_index(drop=True)
+
+        #print(post_stim_amp)
+                
+        for i in range(region_number):
+            #print('HO CAMBIATO I PARAMETRI')
+            if  threshold[i] == True:
+                par = suprath_param
+            else:
+                par = subth_param
+                #print('sub region ', i)
+
+            #par = subth_param
+
+            #Cep_value_array[i] += Cep_value_array[i]*mlt*par[0]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+            #Cip_value_array[i] += Cip_value_array[i]*mlt*par[1]*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)#
+            A_value_array[i] += A_value_array[i]*mlt[0]*par[0]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
+            B_value_array[i] += B_value_array[i]*mlt[2]*par[1]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
+            a_array[i]       +=       a_array[i]*mlt[1]*par[0]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
+            b_array[i]       +=       b_array[i]*mlt[3]*par[1]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
+            #J_stages[i] += J_stages[i]*tms_percentage_effects*gv.stimulations_amplitude_3_3[i]/np.max(gv.stimulations_amplitude_0_0)
+
+        old_weights = conn.weights.copy()
+        new_weights = conn.weights.copy()
+        for i in range(region_number):
+            
+            if threshold[i] == True:
+                par = suprath_param
+            else:
+                par = subth_param
+            
+            #par = subth_param
+
+            new_weights[i,:] = new_weights[i,:] + 0.5*old_weights[i,:]*mlt[2]*par[0]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
+            new_weights[:,i] = new_weights[:,i] + 0.5*old_weights[:,i]*mlt[2]*par[0]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
+
+        conn.weights = new_weights
+    
+    #print('A_array curato')
+    #print(A_value_array)
     model_pars = dict(
         A=A_value_array, B=B_value_array, v0=6.0,
         a=a_array, b=b_array, r=0.56,
@@ -2733,7 +2824,7 @@ def new_parcellation_simulate(sim_time=20000,
 
     # Define monitors
     mon_tavg = monitors.TemporalAverage(period=gv.temp_avg_period)
-    mon_EEG = get_eeg_monitor()
+    mon_EEG = get_eeg_monitor(conn=conn)
 
     mons = (
         mon_tavg,                              # results[0] -> (ttavg, tavg)

@@ -162,7 +162,9 @@ def main():
     """ L'idea è di scrivere un codice che possa replicare e confrontare segnali neurali (stimolati e non) dati una serie di parametri, l'interfaccia servirà quindi
     solo a inserire i parametri d'interesse e a scegliere se visualizzare o meno alcuni plots. Proprio a questo scopo ho messo degli hastag accanto agli elementi
     che voglio conservare in qualità di comandi per interfaccia"""
-
+    if gv.skin_and_sensors == True:
+            skin_and_sensors()
+    
     gv.connectivity_simnibs = True
     np.random.seed(gv.random_seed)
     if gv.no_stim_simulation == True:
@@ -189,8 +191,6 @@ def main():
         datas = {'data_healthy': {'tavg': tavg, 'eeg': eeg, 'label': 'Healthy', 'color': 'blue'}}
         
         
-        if gv.skin_and_sensors == True:
-            skin_and_sensors()
                 # Plot cortical regions colorate per valore
             #skin = surfaces.SkinAir.from_file(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_outer_skin.zip")
             #skin.configure()

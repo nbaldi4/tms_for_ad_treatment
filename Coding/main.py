@@ -152,9 +152,8 @@ def main():
         teeg, eeg = preprocess(teeg, eeg)
     
     if not args.no_sim:
-        gv.connectivity_simnibs = True
-        ttavg, tavg, teeg, eeg = new_parcellation_simulate()
-        #ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor, save_raw = gv.save_raw_data)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
+        #ttavg, tavg, teeg, eeg = new_parcellation_simulate()
+        ttavg, tavg, teeg, eeg = simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor, save_raw = gv.save_raw_data)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
         #ttavg, tavg, teeg, eeg = simulate_different_combination_parameters(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb,tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage, factor=gv.factor)#simulate(g=gv.coup, velocity=gv.vel, noise=gv.noi, a=gv.aa, b=gv.bb, tau_stage=gv.tau_stage, abeta_stage=gv.abeta_stage)
         #ttavg, tavg, teeg, eeg = Simulate()
         ttavg, tavg = preprocess(ttavg, tavg)
