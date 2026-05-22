@@ -185,8 +185,8 @@ def main():
     if gv.fc == True:
         #functional_connectivity(tavg, label='tavg')
         #functional_connectivity_lorenzo(tavg)
-        #functional_connectivity_band(tavg, label='TAVG', lowcut=0.5, highcut=45)
-        #functional_connectivity_band(tavg, label='TAVG delta', lowcut=0.5, highcut=4)
+        functional_connectivity_band(tavg, label='TAVG', lowcut=0.5, highcut=45)
+        functional_connectivity_band(tavg, label='TAVG delta', lowcut=0.5, highcut=4)
         #functional_connectivity_band(tavg, label='TAVG theta', lowcut=4, highcut=8)
         #functional_connectivity_band(tavg, label='TAVG alpha', lowcut=8, highcut=13)
         #functional_connectivity_band(tavg, label='TAVG beta', lowcut=13, highcut=30)
@@ -198,8 +198,8 @@ def main():
         #functional_connectivity_img_coh(tavg, 'TAVG alpha', lowcut=8, highcut=13)
         #functional_connectivity_img_coh(tavg, 'TAVG theta', lowcut=4, highcut=8)
         #functional_connectivity_img_coh(tavg, 'TAVG delta', lowcut=0.5, highcut=4)
-        functional_connectivity_img_coh(eeg, 'EEG', lowcut=0.5, highcut=45)
-        functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0.5, highcut=45)
+        #functional_connectivity_img_coh(eeg, 'EEG', lowcut=0.5, highcut=45)
+        #functional_connectivity_img_coh(tavg, 'TAVG', lowcut=0.5, highcut=45)
 
     if gv.psd == True:
         psd(eeg, 'EEG')

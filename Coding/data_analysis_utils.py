@@ -159,22 +159,52 @@ def real_vs_simulated_PSD(matrix, time_series, n_bin=180, fs=100,
     psd_mae = np.sum(np.abs(simulated_psd_resampled-real_psd_mean))
 
         # Plot
-    plt.figure(figsize=(10,4))
-    plt.plot(simulated_freqs, simulated_psd_mean, color='b', linewidth=2, label=label_sim)
-    plt.plot(freqs_uniform, real_psd_mean, color='r', linewidth=2, label=label_real)
-    plt.xlabel("Frequency [Hz]")
-    plt.ylabel("Normalized PSD")
-    plt.title(f"PSD: MAE = {psd_mae:.3f}")
-    plt.legend()
-    plt.grid()
+    # Crea la figura E l'asse correttamente
+    fig, ax = plt.subplots(figsize=(10, 6)) # Aumentata l'altezza da 4 a 6 per dare aria ai font grandi
+
+    # RIMOZIONE BORDI
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    # IMPOSTAZIONE TICKS
+    ax.set_xticks([0, 10, 20, 30, 40])
+    ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+
+    # PARAMETRI DEI TICK
+    ax.tick_params(axis='both',       
+                which='major',      
+                direction='out',    
+                length=8,           
+                width=2,            
+                labelsize=22,       
+                colors='black',     
+                pad=10)
+
+    # PLOT
+    ax.plot(simulated_freqs, simulated_psd_mean, color='b', linewidth=2, label=label_sim)
+    ax.plot(freqs_uniform, real_psd_mean, color='r', linewidth=2, label=label_real)
+
+    # LABELS E TITOLO (Nota il prefisso 'set_')
+    ax.set_xlabel("Frequency [Hz]", fontsize=22, labelpad=15)
+    ax.set_ylabel("Normalized PSD", fontsize=22, labelpad=15)
+    ax.set_title(f"PSD", pad=25, fontsize=25)#: MAE = {psd_mae:.3f}
+
+    # LEGENDA (Aumentiamo il font anche qui)
+    ax.legend(fontsize=18, frameon=False)
+
+    ax.grid(alpha=0.3, linestyle='--')
+
+    # SALVATAGGIO E MOSTRA
     if gv.save_plots:
         fig_name = f"sim_vs_real_PSD.png"
         os.makedirs(gv.fig_folder, exist_ok=True)
-        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+        # Usa fig.savefig invece di plt.savefig per sicurezza
+        fig.savefig(os.path.join(gv.fig_folder, fig_name), dpi=300, bbox_inches='tight')
+
     if gv.show_plots:
         plt.show()
     else:
-        plt.close()
+        plt.close(fig)
 
     if return_value:
         return psd_mae, peak_freq 
@@ -304,6 +334,17 @@ def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
     corr_eeg_viz = 2 * (corr_eeg - np.min(corr_eeg)) / (np.max(corr_eeg) - np.min(corr_eeg)) - 1
     normal_corr_mean_viz = 2 * (normal_corr_mean - np.min(normal_corr_mean)) / (np.max(normal_corr_mean) - np.min(normal_corr_mean)) - 1
 
+    # Baseline: matrice casuale
+    random_matrix = np.random.uniform(-1, 1, corr_eeg.shape)
+    mae_baseline = np.mean(np.abs(random_matrix - corr_eeg))
+
+    # Baseline: matrice di zeri
+    mae_zeros = np.mean(np.abs(corr_eeg))
+
+    print(f"MAE simulato: {normal_mae:.3f}")
+    print(f"MAE baseline casuale: {mae_baseline:.3f}")
+    print(f"MAE baseline zeri: {mae_zeros:.3f}")
+    """
     # Plot comparison (regular scale)
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
     im1 = ax[0].imshow(corr_eeg_viz, cmap='bwr', vmin=-1, vmax=1)
@@ -312,11 +353,58 @@ def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
     ax[1].set_title(f"Regular size real FC: MAE = {normal_mae:.3f}")
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
+    """
+
+    # Ordine TVB (quello attuale)
+    common_names_tvb = extract_common_names()
+
+    # Ordine reale
+    your_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
+    eeg_real_data_names = np.load(your_path + 'names_ch.npy')
+    common_names_real = [name for name in eeg_real_data_names if name in set(common_names_tvb)]
+
+    # Permutazione
+    perm = [common_names_tvb.index(name) for name in common_names_real]
+
+    # Riordina solo per visualizzazione
+    corr_eeg_viz_reordered = corr_eeg_viz[np.ix_(perm, perm)]
+    normal_corr_mean_viz_reordered = normal_corr_mean_viz[np.ix_(perm, perm)]
+
+    # --- Visualizzazione Regular Size ---
+    fig, ax = plt.subplots(1, 2, figsize=(14, 7)) # Aumentata la larghezza per dare spazio ai font
+
+    # Plot delle matrici
+    im1 = ax[0].imshow(corr_eeg_viz_reordered, cmap='bwr', vmin=-1, vmax=1)
+    im2 = ax[1].imshow(normal_corr_mean_viz_reordered, cmap='bwr', vmin=-1, vmax=1)
+    ax[0].set_xlabel("EEG channels", fontsize=22)
+    ax[0].set_ylabel("EEG channels", fontsize=22)
+    ax[1].set_xlabel("EEG channels", fontsize=22)
+    ax[1].set_ylabel("EEG channels", fontsize=22)
+
+    # Titoli con font grande (coerente con i grafici precedenti)
+    ax[0].set_title("Simulated FC (Regular)", pad=20, fontsize=22)
+    ax[1].set_title(f"Experimental FC (Regular): \nMAE = {normal_mae:.3f}", pad=20, fontsize=22) #
+
+    # Configurazione ticks per entrambi gli assi
+    for a in ax:
+        a.tick_params(axis='both', which='major', labelsize=18, length=6, width=2)
+        # Se vuoi nascondere i numeri (spesso le FC non hanno bisogno di numeri sui bordi)
+        # puoi usare a.set_xticks([]) e a.set_yticks([])
+
+    # Distanziamento tra le due immagini
+    # wspace controlla lo spazio orizzontale tra i subplots
+    plt.subplots_adjust(wspace=0.3)
+
+    # Colorbar UNICA (posizionata a destra di entrambi)
+    # [left, bottom, width, height]
+    cbar_ax = fig.add_axes([0.92, 0.2, 0.02, 0.6]) 
+    cbar = fig.colorbar(im2, cax=cbar_ax)
+    cbar.ax.tick_params(labelsize=16) # Font dei numeri della colorbar
 
     if gv.save_plots:
         fig_name = "Sim_vs_real_regular_size.png"
         os.makedirs(gv.fig_folder, exist_ok=True)
-        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=300, bbox_inches='tight')
 
     if gv.show_plots:
         plt.show()
@@ -337,7 +425,7 @@ def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
     # Normalize for visualization
     sub_corr_eeg_viz = 2 * (sub_corr_eeg - np.min(sub_corr_eeg)) / (np.max(sub_corr_eeg) - np.min(sub_corr_eeg)) - 1
     sub_corr_mean_viz = 2 * (sub_corr_mean - np.min(sub_corr_mean)) / (np.max(sub_corr_mean) - np.min(sub_corr_mean)) - 1
-
+    """
     # Plot comparison (reduced scale)
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
     im1 = ax[0].imshow(sub_corr_eeg_viz, cmap='bwr', vmin=-1, vmax=1)
@@ -346,20 +434,43 @@ def real_vs_simulated_FC(fc_healty, time_series, return_value=False):
     ax[1].set_title(f"Reduced size real FC: MAE = {reduced_mae:.3f}")
     plt.colorbar(im1, ax=ax[0], fraction=0.046, pad=0.04)
     plt.colorbar(im2, ax=ax[1], fraction=0.046, pad=0.04)
+    """
+    # --- Ripeti la stessa logica per Reduced Size ---
+    fig2, ax2 = plt.subplots(1, 2, figsize=(14, 7))
+
+    im3 = ax2[0].imshow(sub_corr_eeg_viz, cmap='bwr', vmin=-1, vmax=1)
+    im4 = ax2[1].imshow(sub_corr_mean_viz, cmap='bwr', vmin=-1, vmax=1)
+
+    ax2[0].set_title("Simulated FC (Reduced)", pad=20, fontsize=22)
+    ax2[1].set_title(f"Experimental FC (Reduced): \nMAE = {reduced_mae:.3f}", pad=20, fontsize=22) #
+    sestant_labels = ["L-Ant", "L-Mid", "L-Post", "R-Ant", "R-Mid", "R-Post"]
+    ax2[0].set_xticks(range(6))
+    ax2[0].set_xticklabels(sestant_labels, fontsize=22)
+    ax2[0].set_yticks(range(6))
+    ax2[0].set_yticklabels(sestant_labels, fontsize=22)
+    ax2[1].set_xticks(range(6))
+    ax2[1].set_xticklabels(sestant_labels, fontsize=22)
+    ax2[1].set_yticks(range(6))
+    ax2[1].set_yticklabels(sestant_labels, fontsize=22)
+
+    for a in ax2:
+        a.tick_params(axis='both', labelsize=18, length=6, width=2)
+
+    plt.subplots_adjust(wspace=0.3)
+
+    # Colorbar unica per il secondo grafico
+    cbar_ax2 = fig2.add_axes([0.92, 0.2, 0.02, 0.6])
+    cbar2 = fig2.colorbar(im4, cax=cbar_ax2)
+    cbar2.ax.tick_params(labelsize=16)
 
     if gv.save_plots:
-        fig_name = "Sim_vs_real_reduced_size.png"
-        os.makedirs(gv.fig_folder, exist_ok=True)
-        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
+        fig_name_red = "Sim_vs_real_reduced_size.png"
+        fig2.savefig(os.path.join(gv.fig_folder, fig_name_red), dpi=300, bbox_inches='tight')
 
-    if gv.save_plots:
-        fig_name = f"sim_vs_real_PSD.png"
-        os.makedirs(gv.fig_folder, exist_ok=True)
-        plt.savefig(os.path.join(gv.fig_folder, fig_name), dpi=200)
     if gv.show_plots:
         plt.show()
     else:
-        plt.close()
+        plt.close('all')
 
     if return_value:
         return normal_mae, reduced_mae

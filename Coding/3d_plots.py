@@ -4,7 +4,7 @@ import global_variable_creation as gv
 from mpl_toolkits.mplot3d import Axes3D
 from global_variable_creation import get_conn
 
-def visualize_pareto_front(file_path = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\pareto_front_nsga2_03_02.csv", parameters_number=6, metrics_limits = -3):
+def visualize_pareto_front(file_path = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\Risultati_03_02\pareto_front_nsga2_03_02.csv", parameters_number=6, metrics_limits = -3):
 
     pareto_front = np.loadtxt(file_path, delimiter=",", skiprows=1)
     if metrics_limits < -3:

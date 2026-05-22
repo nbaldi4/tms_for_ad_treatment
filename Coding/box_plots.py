@@ -58,6 +58,141 @@ def boxplots(data_bands, ylabel, xlabel, band_names, save_name, values_to_take, 
         for i in range(6):
             print(np.median(data[i, :]))
 
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from scipy.stats import gaussian_kde
+from scipy.ndimage import gaussian_filter1d
+import os
+from statsmodels.nonparametric.smoothers_lowess import lowess
+from scipy.interpolate import make_interp_spline
+from scipy.stats import bootstrap
+
+def scatterplots_smooth(data_bands, ylabel, xlabel, band_names, save_name, values_to_take, save_folder, color_points, color_median, color_median_deviation):
+    for band in range(len(band_names)):
+
+        print(band)
+
+        # --- Estrazione top N valori (stessa logica di prima) ---
+        top_idx = np.argpartition(data_bands, -values_to_take, axis=2)[:, :, -values_to_take:]
+        data_bands_top_vals = np.take_along_axis(data_bands, top_idx, axis=2)
+        data = data_bands_top_vals[:, band, :]  # shape: (n_positions, values_to_take)
+
+        n_positions = data.shape[0]
+        x_positions = np.arange(n_positions)  # 0, 1, 2, ..., 5
+
+        fig, ax = plt.subplots(figsize=(5, 4))
+
+        # --- Scatter con jitter orizzontale ---
+        all_x = []
+        all_y = []
+        for i, x in enumerate(x_positions):
+            y_vals = data[i, :]
+            jitter = np.random.uniform(-0.15, 0.15, size=len(y_vals))
+            x_jittered = x + jitter
+            ax.scatter(x_jittered, y_vals,
+                       color=color_points, alpha=0.4, s=12, zorder=2, linewidths=0)
+            all_x.extend([x] * len(y_vals))
+            all_y.extend(y_vals.tolist())
+
+        all_x = np.array(all_x)
+        all_y = np.array(all_y)
+
+        # Mediane per ogni posizione
+        medians = np.array([np.median(data[i, :]) for i in range(n_positions)])
+
+        # Per ogni posizione x
+        ci_low = []
+        ci_high = []
+
+        for i in range(n_positions):
+            res = bootstrap(
+                (data[i, :],),
+                statistic=np.median,   # sulla mediana, non sulla media
+                confidence_level=0.95,
+                n_resamples=1000,
+                method='percentile'    # non assume gaussianità
+            )
+            ci_low.append(res.confidence_interval.low)
+            ci_high.append(res.confidence_interval.high)
+
+        ci_low  = np.array(ci_low)
+        ci_high = np.array(ci_high)
+
+        # Poi spline su ci_low e ci_high invece di medians ± se
+        spline_upper = make_interp_spline(x_positions, ci_high, k=3)
+        spline_lower = make_interp_spline(x_positions, ci_low,  k=3)
+
+        # Spline cubica smooth che passa per le mediane
+        x_dense = np.linspace(0, n_positions - 1, 300)
+        spline = make_interp_spline(x_positions, medians, k=3)  # k=3 = cubica
+        y_smooth = spline(x_dense)
+
+        ax.plot(x_dense, y_smooth, color=color_median, linewidth=2, zorder=3)
+
+        ax.fill_between(x_dense, spline_lower(x_dense), spline_upper(x_dense),
+                        color=color_median_deviation, alpha=0.35, zorder=1)
+
+
+        # --- Assi e stile ---
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(x_positions)
+        ax.grid(axis='y', linestyle='--', alpha=0.4)
+
+        # Spines
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_linewidth(2)
+        ax.spines['bottom'].set_linewidth(2)
+
+        # Ticks
+        ax.tick_params(axis='both',
+                    which='major',
+                    direction='out',
+                    length=8,
+                    width=2,
+                    labelsize=22,
+                    colors='black',
+                    pad=10)
+
+        # 4 yticks distribuiti uniformemente tra min e max dei dati
+        ymin = data.min()
+        ymax = data.max()
+        ax.set_yticks(np.linspace(ymin, ymax, 4))
+
+        from matplotlib.ticker import FuncFormatter
+
+        def sci_formatter(x, pos):
+            if x == 0:
+                return '0'
+            exp = int(np.floor(np.log10(abs(x))))
+            coeff = x / 10**exp
+            return f'{coeff:.1f}×10$^{{{exp}}}$'
+
+        ax.yaxis.set_major_formatter(FuncFormatter(sci_formatter))
+
+        # Labels assi e titolo
+        ax.set_xlabel(xlabel, fontsize=22, labelpad=15)
+        ax.set_ylabel(ylabel, fontsize=22, labelpad=15)
+        ax.set_title(band_names[band] + " band", pad=25, fontsize=25)
+
+        ax.yaxis.get_offset_text().set_position((-0.01, 0))  # (x, y) in assi coordinati
+        ax.yaxis.get_offset_text().set_fontsize(22)
+
+        # Margine figura per evitare clipping
+        plt.tight_layout()
+
+        folder = os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop", save_folder)
+        os.makedirs(folder, exist_ok=True)
+        plt.savefig(os.path.join(folder, save_name + str(band)), dpi=150)
+        #plt.show()
+        plt.close()
+
+        #print(band_names[band] + " band", xlabel)
+        #print(data.shape)
+        #for i in range(n_positions):
+        #    print(f"x={i}  median={np.median(data[i, :]):.4f}")
+
 def patients_boxplots(ylabel, band_names):
     
     root_path = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data"
@@ -307,17 +442,23 @@ stages_folder = "Rnd_seeds_M_FC_pears_tavg", seeds_number = 40, values_to_take=4
             fc_means_tau_abeta_band_over_broad[prot, 3, seed] = (fc_means_tau_abeta[prot, 4, seed]-fc_means_tau_abeta[prot, 0, seed])/fc_means_tau_abeta[prot, 0, seed]
 
     fc_band_names = ['Broad', 'Delta', 'Theta', 'Alpha', 'Beta']
-    psd_band_names = ['Delta/Broad', 'Theta/Broad', 'Alpha/Broad', 'Beta/Broad']
+    psd_band_names = ['Delta', 'Theta', 'Alpha', 'Beta']
 
     if fc:
-        boxplots(fc_means_tau_abeta, xlabel="Diagonal (tau = abeta)", ylabel="FC regular abs mean", band_names=fc_band_names, save_name='fc_diagonal_', values_to_take=values_to_take, save_folder=save_folder)
-        boxplots(fc_means_tau_0, xlabel="Tau (abeta = 0)", ylabel="FC regular abs mean", band_names=fc_band_names, save_name='fc_tau_', values_to_take=values_to_take, save_folder=save_folder)
-        boxplots(fc_means_0_abeta, xlabel="Abeta (tau = 0)", ylabel="FC regular abs mean", band_names=fc_band_names, save_name='fc_abeta_', values_to_take=values_to_take, save_folder=save_folder)
-        boxplots(fc_means_tau_abeta_band_over_broad, xlabel="Diagonal (tau = abeta)", ylabel="FC regular abs mean normalized", band_names=psd_band_names, save_name='fc_over_broad_diagonal', values_to_take=values_to_take, save_folder=save_folder)
+        #boxplots(fc_means_tau_abeta, xlabel="Diagonal (tau = abeta)", ylabel="FC regular abs mean", band_names=fc_band_names, save_name='fc_diagonal_', values_to_take=values_to_take, save_folder=save_folder)
+        #boxplots(fc_means_tau_0, xlabel="Tau (abeta = 0)", ylabel="FC regular abs mean", band_names=fc_band_names, save_name='fc_tau_', values_to_take=values_to_take, save_folder=save_folder)
+        #boxplots(fc_means_0_abeta, xlabel="Abeta (tau = 0)", ylabel="FC regular abs mean", band_names=fc_band_names, save_name='fc_abeta_', values_to_take=values_to_take, save_folder=save_folder)
+        #boxplots(fc_means_tau_abeta_band_over_broad, xlabel="Diagonal (tau = abeta)", ylabel="FC regular abs mean normalized", band_names=psd_band_names, save_name='fc_over_broad_diagonal', values_to_take=values_to_take, save_folder=save_folder)
+        scatterplots_smooth(fc_means_tau_abeta, xlabel="Diagonal (tau = abeta)", ylabel="FC", band_names=fc_band_names, save_name='fc_diagonal_', values_to_take=values_to_take, save_folder=save_folder, color_points='#2d6a2d', color_median='#2d6a2d', color_median_deviation='#5cb85c')
+        scatterplots_smooth(fc_means_tau_0, xlabel="Tau (abeta = 0)", ylabel="FC", band_names=fc_band_names, save_name='fc_tau_', values_to_take=values_to_take, save_folder=save_folder, color_points='#4a1a6b', color_median='#4a1a6b', color_median_deviation='#9b5cb8')
+        scatterplots_smooth(fc_means_0_abeta, xlabel="Abeta (tau = 0)", ylabel="FC", band_names=fc_band_names, save_name='fc_abeta_', values_to_take=values_to_take, save_folder=save_folder, color_points='#8b1a1a', color_median='#8b1a1a', color_median_deviation='#e05c5c')
     if psd:
-        boxplots(psd_means_tau_abeta, xlabel="Diagonal (tau = abeta)", ylabel="Relative band power", band_names=psd_band_names, save_name='psd_diagonal_', values_to_take=values_to_take, save_folder=save_folder)
-        boxplots(psd_means_tau_0, xlabel="Tau (abeta = 0)", ylabel="Relative band power", band_names=psd_band_names, save_name='psd_tau_', values_to_take=values_to_take, save_folder=save_folder)
-        boxplots(psd_means_0_abeta, xlabel="Abeta (tau = 0)", ylabel="Relative band power", band_names=psd_band_names, save_name='psd_abeta_', values_to_take=values_to_take, save_folder=save_folder)
+        #boxplots(psd_means_tau_abeta, xlabel="Diagonal (tau = abeta)", ylabel="Relative band power", band_names=psd_band_names, save_name='psd_diagonal_', values_to_take=values_to_take, save_folder=save_folder)
+        #boxplots(psd_means_tau_0, xlabel="Tau (abeta = 0)", ylabel="Relative band power", band_names=psd_band_names, save_name='psd_tau_', values_to_take=values_to_take, save_folder=save_folder)
+        #boxplots(psd_means_0_abeta, xlabel="Abeta (tau = 0)", ylabel="Relative band power", band_names=psd_band_names, save_name='psd_abeta_', values_to_take=values_to_take, save_folder=save_folder)
+        scatterplots_smooth(psd_means_tau_abeta, xlabel="Diagonal (tau = abeta)", ylabel="Relative PSD", band_names=psd_band_names, save_name='psd_diagonal_', values_to_take=values_to_take, save_folder=save_folder, color_points='#2d6a2d', color_median='#2d6a2d', color_median_deviation='#5cb85c')
+        scatterplots_smooth(psd_means_tau_0, xlabel="Tau (abeta = 0)", ylabel="Relative PSD", band_names=psd_band_names, save_name='psd_tau_', values_to_take=values_to_take, save_folder=save_folder, color_points='#4a1a6b', color_median='#4a1a6b', color_median_deviation='#9b5cb8')
+        scatterplots_smooth(psd_means_0_abeta, xlabel="Abeta (tau = 0)", ylabel="Relative PSD", band_names=psd_band_names, save_name='psd_abeta_', values_to_take=values_to_take, save_folder=save_folder, color_points='#8b1a1a', color_median='#8b1a1a', color_median_deviation='#e05c5c')
     if patients:
         patients_boxplots(ylabel="FC regular abs mean normalized", band_names=fc_band_names)
 

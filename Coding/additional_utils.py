@@ -101,21 +101,21 @@ def sestants_division(coord_file=r'C:\Users\User\OneDrive - University of Pisa\D
     coords_common = np.array([coord_dict[match_name(name, coord_names)] for name in common_names])
 
     # Compute coordinate ranges
-    width_y = np.abs(np.max(coords_common[:, 1]) - np.min(coords_common[:, 1]))
-    cx = np.abs(np.max(coords_common[:, 0]) + np.min(coords_common[:, 0])) / 2
+    width_y = np.abs(np.max(coords_common[:, 0]) - np.min(coords_common[:, 0]))
+    cx = (np.max(coords_common[:, 1]) + np.min(coords_common[:, 1])) / 2
 
     sestants = {i: [] for i in range(1, 7)}
     for i, coord in enumerate(coords_common):
-        x, y, z = coord
-        if x >= cx and y >= (width_y * 0.67 + np.min(coords_common[:, 1])):
+        y, x, z = coord
+        if x >= cx and y >= (width_y * 0.67 + np.min(coords_common[:, 0])):
             sestants[1].append(i)
-        elif x >= cx and (width_y/3 + np.min(coords_common[:, 1])) <= y < (width_y * 0.67 + np.min(coords_common[:, 1])):
+        elif x >= cx and (width_y/3 + np.min(coords_common[:, 0])) <= y < (width_y * 0.67 + np.min(coords_common[:, 0])):
             sestants[2].append(i)
-        elif x >= cx and y < (width_y/3 + np.min(coords_common[:, 1])):
+        elif x >= cx and y < (width_y/3 + np.min(coords_common[:, 0])):
             sestants[3].append(i)
-        elif x < cx and y >= (width_y * 0.67 + np.min(coords_common[:, 1])):
+        elif x < cx and y >= (width_y * 0.67 + np.min(coords_common[:, 0])):
             sestants[4].append(i)
-        elif x < cx and (width_y/3 + np.min(coords_common[:, 1])) <= y < (width_y * 0.67 + np.min(coords_common[:, 1])):
+        elif x < cx and (width_y/3 + np.min(coords_common[:, 0])) <= y < (width_y * 0.67 + np.min(coords_common[:, 0])):
             sestants[5].append(i)
         else:
             sestants[6].append(i)

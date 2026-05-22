@@ -65,7 +65,7 @@ def grid_search(factor_set=factor_values, a_set=a_values):
                       header=not file_exists)
 
 def heatmap():
-    df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\grid_search_2D_results_with_b_corrected_04_02_prova_2.csv")
+    df = pd.read_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Coding\Risultati_03_02\grid_search_2D_results_with_b_corrected_04_02_prova_2.csv")
     df["factor"] = df["factor"].round(6)
     df["a"] = df["a"].round(6)
     
@@ -111,7 +111,7 @@ def heatmap():
     # Colormap (copiata per poter modificare i NaN)
     cmap = plt.cm.coolwarm.copy() #plt.cm.viridis.copy() sono altri colori
     cmap.set_bad(color="black")  # celle mancanti nere
-
+    """
     plt.figure(figsize=(8, 6))
     im = plt.imshow(
         masked_data,
@@ -146,7 +146,68 @@ def heatmap():
 
     plt.tight_layout()
     plt.show()
+    """
+    # Creazione figura con proporzioni coerenti
+    fig, ax = plt.subplots(figsize=(10, 8))
 
+    # Plot della heatmap
+    im = ax.imshow(
+        masked_data,
+        aspect="auto",
+        origin="lower",
+        cmap=cmap,
+        # interpolation='bilinear' # rimosso come da tuo commento
+    )
+
+    # COLORBAR: Uniformata con font grandi
+    cbar = fig.colorbar(im, ax=ax, pad=0.02)
+    cbar.set_label("MAE Combination", fontsize=22, labelpad=15)
+    cbar.ax.tick_params(labelsize=22)
+
+    # CONFIGURAZIONE TICKS ASSE X (slope)
+    factor_labels = heatmap_data["M1_FC_MAE"].columns
+    step_x = 6
+    ticks_x = np.arange(0, len(factor_labels), step_x)
+    ax.set_xticks(ticks_x)
+    ax.set_xticklabels(factor_labels[ticks_x])
+
+    # CONFIGURAZIONE TICKS ASSE Y (a)
+    step_y = 6
+    ticks_y = np.arange(0, len(heatmap_data.index), step_y)
+    ax.set_yticks(ticks_y)
+    ax.set_yticklabels(heatmap_data.index[ticks_y])
+
+    # UNIFORMITÀ STILE (Tick laterali e bordi)
+    ax.tick_params(
+        axis='both', 
+        which='major', 
+        direction='out', 
+        length=8, 
+        width=2, 
+        labelsize=22, # Leggermente più piccolo di 22 perché le heatmap hanno spesso molti numeri
+        pad=10
+    )
+
+    # RIMOZIONE BORDI (solo sopra e destra per mantenere la cornice della heatmap)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_linewidth(2)
+    ax.spines['bottom'].set_linewidth(2)
+
+    # LABEL E TITOLO
+    ax.set_xlabel("m", fontsize=22, labelpad=15)
+    ax.set_ylabel(r"$a_0$", fontsize=22, labelpad=15)
+    ax.set_title("MAE Distribution Analysis", pad=25, fontsize=25, fontweight='bold')
+
+    plt.tight_layout()
+
+    # Salvataggio in alta risoluzione
+    fig_folder = r"C:\Users\User\OneDrive - University of Pisa\Desktop"
+
+    fig_name = "MAE_heatmap_optimized.png"
+    fig.savefig(os.path.join(fig_folder, fig_name), dpi=300, bbox_inches='tight') #gv.fig_folder
+
+    plt.show()
     # 1. Trova l'indice del valore minimo ignorando i NaN
     # np.nanargmin restituisce l'indice come se l'array fosse piatto (1D)
     idx_min_flat = np.nanargmin(z)
@@ -174,4 +235,6 @@ def heatmap():
 #grid_search(a_set=np.linspace(0.055, 0.085, 25), factor_set=np.linspace(-0.92, -0.04, 23))
 #grid_search(a_set=np.linspace(0.06, 0.105, 37), factor_set=np.linspace(0, 0.4, 11))
 #grid_search(a_set=np.linspace(0.055, 0.085, 1), factor_set=np.linspace(-0.92, -0.04, 1))
+#grid_search(a_set=np.linspace(0.055, 0.05875, 4), factor_set=np.linspace(0, 0.4, 11))
+#grid_search(a_set=np.linspace(0.08625, 0.105, 16), factor_set=np.linspace(-0.92, -0.04, 23))
 heatmap()
