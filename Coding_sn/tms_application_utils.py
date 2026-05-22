@@ -190,7 +190,7 @@ def best_sf(df, amplitude_threshold_up=1.5, ampltitude_threshold_down=0.5, ratio
 
     return result, best_sf_value, best_n_channels
 
-def infer_stage2(root = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stat_an", dir_pattern = r"St_b(\d+)t(\d+)_sp(\d+)_f--(\w+)_f[/\\]tau(\d+)_abeta(\d+).*_rs(\d+)"):
+def infer_stage2(root = r"..\tms_for_ad_treatment\Results_data\Stat_an", dir_pattern = r"St_b(\d+)t(\d+)_sp(\d+)_f--(\w+)_f[/\\]tau(\d+)_abeta(\d+).*_rs(\d+)"):
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
     pd.set_option('display.width', None)
@@ -280,7 +280,7 @@ def infer_stage2(root = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tm
     df_highlights = pd.DataFrame(records_hl)
     return df_highlights
 
-def infer_stage(root = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stat_an", dir_pattern = r"St_b(\d+)t(\d+)_sp(\d+)_f--(\w+)_f[/\\]tau(\d+)_abeta(\d+).*_rs(\d+)"):
+def infer_stage(root = r"..\tms_for_ad_treatment\Results_data\Stat_an", dir_pattern = r"St_b(\d+)t(\d+)_sp(\d+)_f--(\w+)_f[/\\]tau(\d+)_abeta(\d+).*_rs(\d+)"):
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
     pd.set_option('display.width', None)
@@ -374,7 +374,7 @@ def load_npz(fpath):
         return {key: data[key] for key in data.files}
 
 def stages_boxplots(dir_pattern = r"Stage_(\d+)_(\d+)[/\\]tau(\d+)_abeta(\d+).*_rs(\d+)"):
-    root = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\Stages_simnibs_2"
+    root = r"..\tms_for_ad_treatment\Results_data\Stages_simnibs_2"
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
     pd.set_option('display.width', None)
@@ -678,7 +678,7 @@ def find_closest_stage3(stim_box, no_stim_box, metrics=None):
 
     
     df_ns_values = pd.DataFrame(ns_values, columns=['abeta', 'tau', 'disease_value'])
-    df_ns_values.to_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\df_ns_values")
+    df_ns_values.to_csv(r"..\df_ns_values")
     
     s_values = []
     for _, s_row in stim_box.iterrows():
@@ -697,7 +697,7 @@ def find_closest_stage3(stim_box, no_stim_box, metrics=None):
         s_values.append((abeta, tau, spot, freq, inte, current_value))
 
     df_stim_values = pd.DataFrame(s_values, columns=['abeta', 'tau', 'spot', 'freq', 'inte', 'disease_value'])
-    df_stim_values.to_csv(r"C:\Users\User\OneDrive - University of Pisa\Desktop\df_stim_values")
+    df_stim_values.to_csv(r"..\df_stim_values")
 
     """
     print(len(files))
