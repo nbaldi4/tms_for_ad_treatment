@@ -190,34 +190,34 @@ def main():
     weights_vector = np.ones(86)
 
     if gv.stimulation_spot == 0:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\PCU_1_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\PCU_1_stimulus_vector_TVB.npy")
         
     if gv.stimulation_spot == 1:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\PCU_10_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\PCU_10_stimulus_vector_TVB.npy")
 
     if gv.stimulation_spot == 2:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\Fp1_1_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\Fp1_1_stimulus_vector_TVB.npy")
 
     if gv.stimulation_spot == 3:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\Fp1_10_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\Fp1_10_stimulus_vector_TVB.npy")
 
     if gv.stimulation_spot == 4:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\Fp2_1_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\Fp2_1_stimulus_vector_TVB.npy")
 
     if gv.stimulation_spot == 5:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\Fp2_10_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\Fp2_10_stimulus_vector_TVB.npy")
 
     if gv.stimulation_spot == 6:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\T7T3_1_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\T7T3_1_stimulus_vector_TVB.npy")
 
     if gv.stimulation_spot == 7:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\T7T3_10_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\T7T3_10_stimulus_vector_TVB.npy")
         
     if gv.stimulation_spot == 8:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\T8T4_1_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\T8T4_1_stimulus_vector_TVB.npy")
 
     if gv.stimulation_spot == 9:
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\T8T4_10_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\T8T4_10_stimulus_vector_TVB.npy")
 
     #print(weights_vector)
 
@@ -284,7 +284,7 @@ def main():
         df = tms_seeds_analysis(file_path, abeta=args.abeta, tau=args.tau, period=period, weights_vector=weights_vector, stimulus_onset=stimulus_onset, tested_values=tested_values, n_seeds=seeds_number, freq=gv.high_tms_freq)
 
     if find_best_int == True:
-        base_dir = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Tms_results_end_18"
+        base_dir = r"..\Tms_results_end_18"
         os.makedirs(base_dir, exist_ok=True)
         files = glob.glob(os.path.join(base_dir, "tms_seeds_a*_t*_f*_s*"))
         print(len(files))
@@ -333,7 +333,7 @@ def main():
             df.to_pickle(os.path.join(save_dir, 'no_stim_box.pkl'))
 
         df_stages = infer_stage(
-            root = os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data",results_folder), 
+            root = os.path.join(r"..\Results_data",results_folder), 
             dir_pattern = r"Ab(\d+)t(\d+)s(\d+)f--(\w+)_fi(\d+(?:\.\d+)?)[/\\]tau(\d+)_abeta(\d+)_rs(\d+)"
             )
         df_stages = df_stages.rename(columns={
@@ -356,7 +356,7 @@ def main():
 
         save_dir = os.path.join(r"..\Results_data", cure_folder)
         stim_box = pd.read_pickle(os.path.join(save_dir, 'stim_box.pkl'))
-        no_stim_box = pd.read_pickle(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\No_stim_box_plots\no_stim_box.pkl")
+        no_stim_box = pd.read_pickle(r"..\Results_data\No_stim_box_plots\no_stim_box.pkl")
         df_closest = find_closest_stage(stim_box, no_stim_box, metrics=['Fa', 'Fbe', 'Pdobr', 'Ptobr', 'Paobr', 'Pbobr'])
         df_closest.to_csv(os.path.join(save_dir, 'closest_stage_Fa_Fbe_Pdobr_Ptobr_Paobr_Pbobr_norm.csv'), index=False)
         df_closest.to_pickle(os.path.join(save_dir, 'closest_stage_Fa_Fbe_Pdobr_Ptobr_Paobr_Pbobr_norm.pkl'))
@@ -365,7 +365,7 @@ def main():
         df_closest_all_pairs.to_pickle(os.path.join(save_dir, 'closest_stage_all_pairs_Fa_Fbe_Pdobr_Ptobr_Paobr_Pbobr_norm.pkl'))
 
     if disease_landscape == True:
-        no_stim_box = pd.read_pickle(r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Results_data\No_stim_box_plots\no_stim_box.pkl")
+        no_stim_box = pd.read_pickle(r"..\Results_data\No_stim_box_plots\no_stim_box.pkl")
         metrics = ['Pdobr', 'Ptobr', 'Paobr', 'Pbobr']#['Fa', 'Fbe', 'Pdobr', 'Ptobr', 'Paobr', 'Pbobr']#, 'Fd', 'Ft', 'Fa', 'Fbe', 'Pdobr', 'Ptobr', 'Paobr', 'Pbobr']
         suffix = '_med'
         distances = np.zeros((6,6))
@@ -436,7 +436,7 @@ def main():
         df_stim_dist = pd.DataFrame(distances_stim, columns=['abeta', 'tau', 'spot', 'freq', 'inte', 'current_dist'])
 
         #print(df_stim_dist.head())
-        df_stim_dist.to_pickle(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop", 'test.pkl'))
+        df_stim_dist.to_pickle(os.path.join(r"..", 'test.pkl'))
 
         #mask = distances_stim > 0
         #print(distances_stim)
@@ -447,7 +447,7 @@ def main():
 
         intens = 500
 
-        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\T8T4_1_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"..\Pesi_protocolli_TMS\T8T4_1_stimulus_vector_TVB.npy")
         train = make_train(
             np.arange(0, 86),
             intens * weights_vector,
