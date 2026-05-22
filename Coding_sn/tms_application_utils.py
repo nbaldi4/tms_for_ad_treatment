@@ -99,8 +99,8 @@ def tms_pulse_kick_all_channels(scale_fact, tau, abeta, seed, period, weights_ve
 
 def tms_seeds_analysis(file_name, tau, abeta, period, weights_vector, stimulus_onset, freq, tested_values=100, n_seeds=20):
 
-    scale_factor_span = np.logspace(0, 3, tested_values)#np.logspace(-1, 2.5, tested_values)
-    scale_factor_span = np.array([0.5,2,4,6,8])
+    #scale_factor_span = np.logspace(0, 3, tested_values)#np.logspace(-1, 2.5, tested_values)
+    scale_factor_span = np.array([0.5,1,5,10,15,20]) #np.array([0.5,2,4,6,8])
     seed_span = np.arange(n_seeds)  # 0 ... 19
 
     # Genera tutte le coppie (sf, seed)

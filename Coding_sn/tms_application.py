@@ -44,7 +44,7 @@ def main():
     parser.add_argument("--save_plots", action="store_true", help="Save plots to disk")
     parser.add_argument("--save_folder", type=str, help="Folder to save figures and data")
     parser.add_argument("--tms", action="store_true", help="Perform TMS stimulation")
-    parser.add_argument("--spot", type=int, help="0 = PCU, 1 = Fp1, 2 = Fp2, 3 = T3/T7, 4 = T4/T8")
+    parser.add_argument("--spot", type=int, help="0 = PCU 1 mm, 2 = Fp1 1 mm, 4 = Fp2 1 mm, 6 = T3/T7 1 mm, 8 = T4/T8 1 mm")
     parser.add_argument("--PSD", action="store_true", help="Perform psd")
     parser.add_argument("--FC", action="store_true", help="Perform fc")
     parser.add_argument("--int_an", action="store_true", help="Perform intensitity analysis")
@@ -237,7 +237,7 @@ def main():
     pattern = stimulus()
     """
 
-    seeds_number= 2
+    seeds_number= 4
     tested_values = 28
     threshold = 1.5
 
@@ -278,14 +278,14 @@ def main():
             psd(tavg, 'TAVG')
 
     if seeds_analysis == True:
-        results_dir = os.path.join('..', 'Tms_results_10')
+        results_dir = os.path.join('..', 'Tms_results_end')
         os.makedirs(results_dir, exist_ok=True)
         file_path = os.path.join(results_dir, f"tms_seeds_a{args.abeta}_t{args.tau}_f{freq}_s{gv.stimulation_spot}")
         df = tms_seeds_analysis(file_path, abeta=args.abeta, tau=args.tau, period=period, weights_vector=weights_vector, stimulus_onset=stimulus_onset, tested_values=tested_values, n_seeds=seeds_number, freq=gv.high_tms_freq)
 
     if find_best_int == True:
-        base_dir = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Tms_results_9"
-
+        base_dir = r"C:\Users\User\OneDrive - University of Pisa\Desktop\tms_for_ad_treatment\Tms_results_end_18"
+        os.makedirs(base_dir, exist_ok=True)
         files = glob.glob(os.path.join(base_dir, "tms_seeds_a*_t*_f*_s*"))
         print(len(files))
         sf_values = []
@@ -306,7 +306,7 @@ def main():
         #sf_df.to_pickle(os.path.join(base_dir, 'best_sf_values.pkl'))
 
     cure_folder = 'Compare_cure_n02_th18_new_var5'
-    results_folder = 'TMS_n02_th18_new_var5'
+    results_folder = 'n02_th10_2'
     if build_bp == True:
         new_bp_stages = False
         save_dir = os.path.join(r"..\Results_data", cure_folder)

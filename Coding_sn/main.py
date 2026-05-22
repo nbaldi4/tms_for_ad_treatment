@@ -363,12 +363,13 @@ def main():
 
 
 
-        scale_fact = 38#10000 #con 0.63 otteniamo un rapporto 2picco/1picco = 3.23 #per ristabilire valore assoluto in output da simnibs sarebbe 0.366343
+        scale_fact = 2.5#10000 #con 0.63 otteniamo un rapporto 2picco/1picco = 3.23 #per ristabilire valore assoluto in output da simnibs sarebbe 0.366343
         start_time = 2500
 
         weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\stimulus_vector_TVB.npy")#np.zeros(86)#
         weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\simnibs_simulation_M1_stimulus_vector_TVB.npy")
         weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\prova_protocollo_1_stimulus_vector_TVB.npy")
+        weights_vector = np.load(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Pesi_protocolli_TMS\T7T3_1_stimulus_vector_TVB.npy")
         #print(weights_vector)
         
         train_05Hz = make_train(np.arange(0,86), scale_fact*weights_vector, onset=start_time, T=2000.0, tau=1.0)
@@ -384,7 +385,7 @@ def main():
         stimulus = MultiStimuliRegion(train1, train2,train3, train4, train5)
         """
         
-        stimulus = MultiStimuliRegion(train_05Hz)
+        stimulus = MultiStimuliRegion(train_10Hz)
         stimulus.configure_space()
         time = np.r_[1e3:3e3:15.0]
         stimulus.configure_time(time)
@@ -404,7 +405,18 @@ def main():
         all_eeg_channels = np.arange(0,63)
         near_m1_channles_Pz_CPz = [3,17]#[30,32,33,8,9]
         channel_Cz = [0]#[21,31]
-        chlist = channel_Cz
+        chlist = [9, 21, 22, 26, 27, 28, 58, 75, 76, 77]
+        #chlist = np.arange(0,86)
+        #[ctx-lh-lateraloccipital,
+        # ctx-lh-posteriorcingulate,
+        # ctx-lh-precentral,
+        # ctx-lh-superiorfrontal,
+        # ctx-lh-superiorparietal,
+        # ctx-lh-superiortemporal,
+        # ctx-rh-lateraloccipital,
+        # ctx-rh-superiorfrontal,
+        # ctx-rh-superiorparietal,
+        # ctx-rh-superiortemporal]
 
         mon_EEG = gv.get_eeg_monitor()
 
@@ -414,12 +426,29 @@ def main():
             label = value['label']
             color = value['color']
 
+            # === Regional signals ===
+            tavg_stim = tavg_stim[:display_time, :]
+            tavg_stim /= (np.max(tavg_stim, 0) - np.min(tavg_stim, 0))
+            tavg_stim -= np.mean(tavg_stim, 0)
+            times_tavg = np.arange(tavg_stim.shape[0])
+
             #Plot EEG
             plt.figure(figsize=(10,12))
-            plt.plot(teeg_stim[:display_time], eeg_stim[:display_time, 0, chlist, 0] + np.r_[:(len(chlist))], color = color)
-            plt.yticks(np.r_[:len(chlist)], mon_EEG.sensors.labels[chlist], fontsize = 12)
-            plt.title("EEG sensors," + label, fontsize = 18)
-            plt.xlabel('time (ms)', fontsize = 16)
+            #plt.plot(ttavg_stim[:display_time], 
+            #        tavg_stim[:display_time, 0, chlist, 0] + np.r_[:(len(chlist))],  # <-- riduci il moltiplicatore per meno spazio
+            #        color=color,
+            #        linewidth=1)
+            
+            conn = gv.get_conn()
+            plt.plot(times_tavg, tavg_stim[:,0,chlist,0] + np.r_[:len(chlist)] * 1.1,
+                     color='b',
+                     linewidth=3)
+            plt.xticks([])
+            plt.yticks([])
+            #plt.yticks(np.r_[:len(chlist)], mon_EEG.sensors.labels[chlist], fontsize = 12)
+            #plt.title("EEG sensors," + label, fontsize = 18)
+            #plt.xlabel('time (ms)', fontsize = 16)
+            #plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Thesis\Visual_abstract\Immagini_che_ha_chiesto_lorenzo_il_16_05\tavg_activity_stage_3_3.png", bbox_inches='tight', pad_inches=0)
             if gv.save_plots == True:
                 plt.savefig(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Immagini da far vedere a Lorenzo_20_03\Stimulation_channels_Pz_CPz\20_sensors.png")
             if gv.show_plots == True:
@@ -462,8 +491,8 @@ def main():
         
         amplitude_baseline = np.array(amplitude_baseline)
         amplitude_TMS = np.array(amplitude_TMS)
-        np.save("amplitude_base_stage_11_05_Hz_38_stim.npy", amplitude_baseline)
-        np.save("amplitude_TMS_stage_11_05_Hz_38_stim.npy", amplitude_TMS)
+        #np.save("amplitude_base_stage_11_05_Hz_38_stim.npy", amplitude_baseline)
+        #np.save("amplitude_TMS_stage_11_05_Hz_38_stim.npy", amplitude_TMS)
         
             
         ################################## USEFUL ONLY WHEN STIMULUS IS APPLIED ###################################################

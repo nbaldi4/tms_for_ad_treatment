@@ -16,6 +16,9 @@ def visualize_pareto_front(file_path = r"C:\Users\User\OneDrive - University of 
     mean_metrics1 = np.mean(metrics[:,0])
     mean_metrics2 = np.mean(metrics[:,1])
     mean_metrics3 = np.mean(metrics[:,2])
+    print('mean FC reg: ', mean_metrics1)
+    print('mean FC red: ', mean_metrics2)
+    print('mean PSD: ', mean_metrics3)
     metrics_deviations = np.ones(metrics.shape)
     metrics_deviations[:,0] = (metrics[:,0] - np.ones(len(metrics[:,0]))*mean_metrics1)/mean_metrics1
     metrics_deviations[:,1] = (metrics[:,1] - np.ones(len(metrics[:,1]))*mean_metrics2)/mean_metrics2

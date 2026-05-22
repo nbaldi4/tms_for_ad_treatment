@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 from scipy.spatial import KDTree
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy import stats
+import matplotlib.patches as mpatches
 
 def main():
     tau_stage_1 = [ #2 areas
@@ -366,7 +367,7 @@ def main():
 
         return regions_86_stages
 
-    def plot_regions(centres, region_values, title, cortex, cortex_simnibs):
+    def plot_regions2(centres, region_values, title, cortex, cortex_simnibs):
         tree = KDTree(centres)
         cortex.configure()
         x_cortex, y_cortex, z_cortex = cortex.vertices.T
@@ -416,10 +417,132 @@ def main():
         sm.set_array([])
         fig.colorbar(sm, ax=fig.get_axes(), shrink=0.5, pad=0.05, label='stages')
 
-        fig.suptitle(title)
+        #fig.suptitle(title)
         plt.savefig(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop", title))
         plt.close()
 
+    def plot_regions(centres, region_values, title, cortex, cortex_simnibs, abeta):
+        tree = KDTree(centres)
+        cortex.configure()
+        x_cortex, y_cortex, z_cortex = cortex.vertices.T
+
+        _, nearest_region = tree.query(cortex.vertices)
+        vertex_values = region_values[nearest_region]
+        tri_values = vertex_values[cortex.triangles].mean(axis=1)
+
+        # Colori personalizzati: 0->grigio, 1->rosso, 2->arancione, 3->giallo
+        """
+        color_map = {
+            0: np.array([0.5, 0.5, 0.5, 1.0]),   # grigio
+            1: np.array([0.99, 0.90, 0.10, 1.0]), # giallo
+            2: np.array([0.95, 0.55, 0.05, 1.0]), # arancione
+            3: np.array([0.85, 0.15, 0.10, 1.0]), # rosso
+        }
+        """
+        color_map_abeta = {
+            0: np.array([0.5, 0.5, 0.5, 0.5]),   # grigio
+            1: np.array([0.99, 0.90, 0.10, 0.5]), # giallo
+            2: np.array([0.95, 0.55, 0.05, 0.5]), # arancione
+            3: np.array([0.85, 0.15, 0.10, 0.5]), # rosso
+        }
+
+        color_map_tau = {
+            0: np.array([0.5, 0.5, 0.5, 0.5]),   # Grigio (Stato sano / assenza)
+            1: np.array([0.65, 0.80, 0.95, 0.5]), # Blu molto chiaro / Celeste (Stadio iniziale)
+            2: np.array([0.25, 0.50, 0.85, 0.5]), # Blu reale intermedio (Stadio moderato)
+            3: np.array([0.05, 0.15, 0.55, 0.5]), # Blu scuro intenso (Stadio grave)
+        }
+
+        if abeta: color_map = color_map_abeta
+        else: color_map = color_map_tau
+
+        def get_face_colors(tri_values, color_map):
+            """Assegna colore a ogni triangolo in base al valore medio arrotondato."""
+            face_colors = np.zeros((len(tri_values), 4))
+            for val, color in color_map.items():
+                mask = np.round(tri_values) == val
+                face_colors[mask] = color
+            return face_colors
+
+        face_colors = get_face_colors(tri_values, color_map)
+        verts = cortex.vertices[cortex.triangles]
+
+        if cortex_simnibs:
+            views = [
+                ('Top',        90,  -90),
+                ('Bottom',    -90,   90),
+                ('Frontal',     0,   90),
+                ('Back',        0,  -90),
+                ('Lateral sx',  0,    0),
+                ('Lateral dx',  0,  180),
+            ]
+        else:
+            views = [
+                ('Top',        90, -180),
+                ('Bottom',    -90,    0),
+                ('Frontal',     0,    0),
+                ('Back',        0,  180),
+                ('Lateral sx',  0,  -90),
+                ('Lateral dx',  0,   90),
+            ]
+
+        fig = plt.figure(figsize=(28, 20))
+
+        for i, (view_name, elev, azim) in enumerate(views):
+            ax = fig.add_subplot(2, 3, i + 1, projection='3d')
+
+            poly = Poly3DCollection(verts, alpha=0.8, edgecolor='none')
+            poly.set_facecolor(face_colors)
+            ax.add_collection3d(poly)
+
+            ax.set_xlim(x_cortex.min(), x_cortex.max())
+            ax.set_ylim(y_cortex.min(), y_cortex.max())
+            ax.set_zlim(z_cortex.min(), z_cortex.max())
+
+            ax.set_title(view_name, fontsize=100, pad=0) #, fontweight='bold'
+
+            ax.tick_params(axis='both', labelsize=70, pad=20)
+            ax.xaxis.set_major_locator(plt.MaxNLocator(3))
+            ax.yaxis.set_major_locator(plt.MaxNLocator(3))
+            ax.zaxis.set_major_locator(plt.MaxNLocator(3))
+            if ((i == 0) or (i== 1)) and (cortex_simnibs==False): ax.set_zticks([])
+            if ((i == 4) or (i== 5)) and (cortex_simnibs==False): ax.set_yticks([])
+            if ((i == 2) or (i== 3)) and (cortex_simnibs==False): ax.set_xticks([])
+
+            if ((i == 0) or (i== 1)) and (cortex_simnibs==True): ax.set_zticks([])
+            if ((i == 4) or (i== 5)) and (cortex_simnibs==True): ax.set_xticks([])
+            if ((i == 2) or (i== 3)) and (cortex_simnibs==True): ax.set_yticks([])
+
+            ax.view_init(elev=elev, azim=azim)
+
+        # --- Legend discreta (solo valori 1, 2, 3 — il grigio/0 non appare) ---
+        legend_entries = [
+            (3, '1st group affected', color_map[3]),
+            (2, '2nd group affected', color_map[2]),
+            (1, '3rd group affected', color_map[1]),
+            (0, 'Never affected', color_map[0]),
+        ]
+        legend_handles = [
+            mpatches.Patch(color=color, label=label)
+            for _, label, color in legend_entries
+        ]
+        fig.legend(
+            handles=legend_handles,
+            loc='center left',        # ancora a sinistra del bbox_to_anchor
+            ncol=1,
+            fontsize=100,
+            title='Groups',
+            title_fontsize=100,
+            frameon=True,
+            bbox_to_anchor=(1.0, 0.5),  # x=1.0 = bordo destro della figura, y=0.5 = centro
+        )
+
+        #plt.suptitle(title.replace('.png', ''), fontsize=20, fontweight='bold', y=1.01)
+        plt.tight_layout(rect=[0, 0, 0.95, 1])
+        plt.savefig(os.path.join(r"C:\Users\User\OneDrive - University of Pisa\Desktop\Thesis\Immagini_tesi\Results\Stages_multiple_view", title),
+                    bbox_inches='tight', dpi=200)
+        plt.close()
+        
     def plot_centres(centres, centres_2, region_values_76, regions_values_86, title):
         plt.figure(figsize=(6, 6))
         ax = plt.subplot(111, projection='3d')
@@ -449,9 +572,14 @@ def main():
 
     #plot_regions(centres=conn_76.centres, region_values=v1_76_vector, simnibs=False, title='v1_conn_76_cortex_tvb', cortex=surfaces.CorticalSurface.from_file())
     #plot_regions(centres=centres_76_rel, region_values=abeta_stage_1_76_vector, cortex_simnibs=True, title='abeta_stage_1_conn_76_cortex_86', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
-    plot_regions(centres=conn_76.centres, region_values=tau_stage_1_76_vector, cortex_simnibs=False, title='tau_stage_1_conn_76_cortex_76', cortex=surfaces.CorticalSurface.from_file())
-    plot_regions(centres=centres_76_rel, region_values=tau_stage_1_76_vector, cortex_simnibs=True, title='tau_stage_1_conn_76_cortex_86', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
-    plot_regions(centres=conn_86.centres, region_values=tau_stage_1_nearest_center_staging, cortex_simnibs=True, title='tau_stage_1_conn_86_cortex_86', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
-
+    #plot_regions(centres=conn_76.centres, region_values=tau_stage_1_76_vector, cortex_simnibs=False, title='tau_stage_1_conn_76_cortex_76', cortex=surfaces.CorticalSurface.from_file())
+    #plot_regions(centres=centres_76_rel, region_values=tau_stage_1_76_vector, cortex_simnibs=True, title='tau_stage_1_conn_76_cortex_86', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
+    #plot_regions(centres=conn_86.centres, region_values=tau_stage_1_nearest_center_staging, cortex_simnibs=True, title='tau_stage_1_conn_86_cortex_86', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
+    
+    #plot_regions(centres=conn_86.centres, region_values=nearest_centre_tau_values, cortex_simnibs=True, title='tau_staging_conn_86_cortex_86', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs))
+    #plot_regions(centres=conn_76.centres, region_values=regions_76_abeta_stages, cortex_simnibs=False, title='abeta_staging_conn_76_cortex_76', cortex=surfaces.CorticalSurface.from_file(), abeta=True)
+    plot_regions(centres=conn_86.centres, region_values=nearest_centre_abeta_values, cortex_simnibs=True, title='abeta_staging_conn_86', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs), abeta=True)
+    plot_regions(centres=conn_86.centres, region_values=nearest_centre_tau_values, cortex_simnibs=True, title='tau_staging_conn_86', cortex=surfaces.CorticalSurface.from_file(cortex_simnibs), abeta=False)
+    
 if __name__ == "__main__":
     main()

@@ -39,6 +39,7 @@ def extract_common_names():
 
     # Keep Brainstorm order
     common_names = [name for name in sensor_names if name in eeg_real_set]
+    print(common_names)
     return common_names
 
 
@@ -110,9 +111,10 @@ def sestants_division(coord_file=r"C:\Users\User\OneDrive - University of Pisa\D
 
     # Compute coordinate ranges
     width_y = np.abs(np.max(coords_common[:, 1]) - np.min(coords_common[:, 1]))
-    cx = np.abs(np.max(coords_common[:, 0]) + np.min(coords_common[:, 0])) / 2
+    cx = (np.max(coords_common[:, 0]) + np.min(coords_common[:, 0])) / 2
 
     sestants = {i: [] for i in range(1, 7)}
+    """
     for i, coord in enumerate(coords_common):
         x, y, z = coord
         if x >= cx and y >= (width_y * 0.67 + np.min(coords_common[:, 1])):
@@ -124,6 +126,22 @@ def sestants_division(coord_file=r"C:\Users\User\OneDrive - University of Pisa\D
         elif x < cx and y >= (width_y * 0.67 + np.min(coords_common[:, 1])):
             sestants[4].append(i)
         elif x < cx and (width_y/3 + np.min(coords_common[:, 1])) <= y < (width_y * 0.67 + np.min(coords_common[:, 1])):
+            sestants[5].append(i)
+        else:
+            sestants[6].append(i)
+    return sestants
+    """
+    for i, coord in enumerate(coords_common):
+        x, y, z = coord
+        if x < cx and y >= (width_y * 0.67 + np.min(coords_common[:, 1])):
+            sestants[1].append(i)
+        elif x < cx and (width_y/3 + np.min(coords_common[:, 1])) <= y < (width_y * 0.67 + np.min(coords_common[:, 1])):
+            sestants[2].append(i)
+        elif x < cx and y < (width_y/3 + np.min(coords_common[:, 1])):
+            sestants[3].append(i)
+        elif x >= cx and y >= (width_y * 0.67 + np.min(coords_common[:, 1])):
+            sestants[4].append(i)
+        elif x >= cx and (width_y/3 + np.min(coords_common[:, 1])) <= y < (width_y * 0.67 + np.min(coords_common[:, 1])):
             sestants[5].append(i)
         else:
             sestants[6].append(i)

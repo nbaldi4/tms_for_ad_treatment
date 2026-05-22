@@ -2669,8 +2669,8 @@ def new_parcellation_simulate(sim_time=20000,
     print('J finale', J_stages[0:8])
     """
 
-    mltlow = [-1,-1, 1, 1]#[-0.2,-0.2, 0.6, 0.6]#A, a, B, b  # -0.2 # max_long_term_depotentiation_percentage
-    mlthigh =[0 ,-1,-1,-1]#[0   ,-0.2,-0.2,-0.2]#A, a, B, b # 0.6 # max_long_term_potentiation_percentage
+    mltlow = [-1,-1, 1, 1,-1]#[-0.2,-0.2, 0.6, 0.6]#A, a, B, b  # -0.2 # max_long_term_depotentiation_percentage proviamo a mettere -1 e +1 ai pesi
+    mlthigh =[0 ,-1,-1,-1, 1]#[0   ,-0.2,-0.2,-0.2]#A, a, B, b # 0.6 # max_long_term_potentiation_percentage
 
     Cep_value_array = Cep_value*np.ones((region_number,1))
     Cip_value_array = Cip_value*np.ones((region_number,1))
@@ -2758,7 +2758,7 @@ def new_parcellation_simulate(sim_time=20000,
 
         file_name = f"super_th_reg_a{abeta_stage}_t{tau_stage}_f{searching_freq}_s{spot}"
         base_dir = os.path.dirname(os.path.abspath(__file__))  # cartella di utils.py
-        path = os.path.join(base_dir, '..', 'Tms_results_10', file_name)
+        path = os.path.join(base_dir, '..', 'Tms_results_end_18', file_name)
         df = pd.read_pickle(path)
 
         intensityplus = intensity + 0.01
@@ -2800,9 +2800,9 @@ def new_parcellation_simulate(sim_time=20000,
                 par = subth_param
             
             #par = subth_param
-
-            new_weights[i,:] = new_weights[i,:] + 0.5*old_weights[i,:]*mlt[2]*par[0]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
-            new_weights[:,i] = new_weights[:,i] + 0.5*old_weights[:,i]*mlt[2]*par[0]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
+            # prima moltiplicavo i pesi per mlt[2] e non per mlt[4]
+            new_weights[i,:] = new_weights[i,:] + 0.5*old_weights[i,:]*mlt[4]*par[0]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
+            new_weights[:,i] = new_weights[:,i] + 0.5*old_weights[:,i]*mlt[4]*par[0]*(np.abs(post_stim_amp[i]-pre_stim_amp[i]))/norm#(np.abs(post_stim_amp[i]))/norm#/np.abs(baseline[i])
 
         conn.weights = new_weights
     

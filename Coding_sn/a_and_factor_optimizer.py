@@ -86,9 +86,9 @@ def heatmap():
     mean_z1 = np.nanmean(z1)
     mean_z2 = np.nanmean(z2)
     mean_z3 = np.nanmean(z3)
-    print(mean_z1)
-    print(mean_z2)
-    print(mean_z3)
+    print('reg FC mean: ', mean_z1)
+    print('red FC mean: ', mean_z2)
+    print('PSD mean: ', mean_z3)
 
     dev_z1 = (z1 - mean_z1)/mean_z1
     dev_z2 = (z2 - mean_z2)/mean_z2
@@ -100,9 +100,9 @@ def heatmap():
     idx_min_flat = np.nanargmin(z)
     row_idx_min, col_idx_min = np.unravel_index(idx_min_flat, z.shape)
     print(z[row_idx_min,col_idx_min])
-    print(z1[row_idx_min,col_idx_min])
-    print(z2[row_idx_min,col_idx_min])
-    print(z3[row_idx_min,col_idx_min])
+    print('best FC reg: ', z1[row_idx_min,col_idx_min])
+    print('best FC red: ', z2[row_idx_min,col_idx_min])
+    print('best PSD: ', z3[row_idx_min,col_idx_min])
     
     #idx_max_flat = np.nanargmax(z)
     #row_idx_max, col_idx_max = np.unravel_index(idx_max_flat, z.shape)

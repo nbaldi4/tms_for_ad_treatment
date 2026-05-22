@@ -9,11 +9,11 @@ from tqdm import tqdm
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 handler = ConcurrentRotatingFileHandler('logs/library.log', maxBytes=10**6, backupCount=5)
 
-stages_couples = [("3", "3")]# [("0","1"), ("0","3"), ("1","0"), ("3","0"), ("5","0"), ("5","3"), ("1","1"), ("3","3"), ("5","5")]
-frequence = ["--high"]#["--low_f", "--high_f"]#, "--low_f"]
-application_spots = ["4"]#, "5", "6", "7"]#["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-seeds = ["0"]#, "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
-intensities = ["8"]#["0.5", "2", "4", "6", "8"]#["1", "10", "100", "500"]#, "2", "4", "6"#["0.5", "2", "4", "6", "8"]#
+stages_couples = [("0","1"), ("0","3"), ("1","0"), ("3","0"), ("5","0"), ("5","3"), ("1","1"), ("3","3"), ("5","5")]
+frequence = ["--low_f", "--high_f"]#, "--low_f"]
+application_spots = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]#["4", "5", "6", "7"]#
+seeds = ["0", "1", "2", "3"]#, "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"]
+intensities = ["0.5", "1", "5", "10", "15", "20"]#["0.5", "2", "4", "6", "8"]#["1", "10", "100", "500"]#, "2", "4", "6"#["0.5", "2", "4", "6", "8"]#
 
 from contextlib import contextmanager
 
@@ -38,8 +38,8 @@ def launch_simulation(f, i, j, k, l, a):
     comando = [
         "python", 
         "tms_application.py",
-        "--show_plots",
-        "--save_folder", f"Prova_boh", #f"TMS_n02_th18_new_var5\Ab{i}t{j}s{k}f{f}i{a}", 
+        "--save_plots",
+        "--save_folder", f"n02_th10_4\Ab{i}t{j}s{k}f{f}i{a}", #f"TMS_n02_th18_new_var5\Ab{i}t{j}s{k}f{f}i{a}", 
         f,
         "--tms",
         "--tms_intensity", a,
@@ -50,6 +50,9 @@ def launch_simulation(f, i, j, k, l, a):
         "--spot", k,
         "--rnd", l,
     ]
+    #n02_th10_2 fa variare i pesi di -1 per lowfreq e +1 per highfreq e soglia 10 per essere superth
+    #n02_th10_3 fa variare i pesi di -1 per lowfreq e 0 per highfreq e soglia 10 per essere superth
+    #n02_th10_4 fa variare i pesi di -1 per lowfreq e +1 per highfreq e soglia 18 per essere superth
 
     risultato = subprocess.run(comando) 
     if risultato.returncode == 0:
