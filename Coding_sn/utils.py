@@ -2758,7 +2758,7 @@ def new_parcellation_simulate(sim_time=20000,
 
         file_name = f"super_th_reg_a{abeta_stage}_t{tau_stage}_f{searching_freq}_s{spot}"
         base_dir = os.path.dirname(os.path.abspath(__file__))  # cartella di utils.py
-        path = os.path.join(base_dir, '..', 'Tms_results_end_18', file_name)
+        path = os.path.join(base_dir, '..', 'Tms_results_end', file_name)
         df = pd.read_pickle(path)
 
         intensityplus = intensity + 0.01
