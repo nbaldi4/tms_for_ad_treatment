@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 import global_variable_creation as gv
 
@@ -12,8 +13,8 @@ def extract_common_names():
     common_names : list of str
         Ordered list of channel names present in both datasets.
     """
-    your_path = 'C:/Users/User/OneDrive - University of Pisa/Desktop/TVB_tutorials/Dati_Healthy/'
-    eeg_real_data_names = np.load(your_path + 'names_ch.npy')
+    your_path = r"..\HC_data"
+    eeg_real_data_names = np.load(os.path.join(your_path, 'names_ch.npy'))
     eeg_real_data_names = np.array(eeg_real_data_names)
     monitor_eeg = gv.get_eeg_monitor()
     sensor_names = np.array(monitor_eeg.sensors.labels)
