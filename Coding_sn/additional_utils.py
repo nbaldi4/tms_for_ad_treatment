@@ -39,7 +39,7 @@ def extract_common_names():
 
     # Keep Brainstorm order
     common_names = [name for name in sensor_names if name in eeg_real_set]
-    print(common_names)
+    #print(common_names)
     return common_names
 
 
@@ -50,7 +50,7 @@ def match_name(name, coord_names):
             return c
     raise ValueError(f"{name} not found in coordinate file.")
 
-def quadrants_division(coord_file=r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_EEG_Locations.txt"):
+def quadrants_division(coord_file=r"..\HC_data\sub-CLB00044_EEG_Locations.txt"):
     """
     Divides EEG channels into 4 macroareas (quadrants) based on spatial coordinates.
     """
@@ -90,7 +90,7 @@ def quadrants_division(coord_file=r"C:\Users\User\OneDrive - University of Pisa\
 
     return quadrants
 
-def sestants_division(coord_file=r"C:\Users\User\OneDrive - University of Pisa\Desktop\prova_disperata\sub-CLB00044_EEG_Locations.txt"):
+def sestants_division(coord_file=r"..\HC_data\sub-CLB00044_EEG_Locations.txt"):
     """
     Divides EEG channels into 6 macroareas (sestants) based on spatial coordinates.
     """

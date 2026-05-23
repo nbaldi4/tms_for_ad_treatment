@@ -19,7 +19,7 @@ struct_path = r'..\Degeneration_data\tau_matrices.npy'
 struct_path_connectivity_86 = r"..\Degeneration_data\tau_matrices_connectivity_86.npy"
 a_path = r'..\Degeneration_data\a_stages.npy'
 b_path = r'..\Degeneration_data\b_stages.npy'
-HC_FC_data = r"..\tms_for_ad_treatment\HC_data\fc_ctr_preview.npy"
+HC_FC_data = r"..\HC_data\fc_ctr_preview.npy"
 HC_PSD_data = r'..\HC_data\psd_ctr_preview.npy'
 MCI_FC_data = r'..\MCI_data\fc_mci_preview.npy'
 MCI_PSD_data = r'..\MCI_data\psd_mci_preview.npy'
@@ -72,8 +72,10 @@ connectivity_simnibs = True
 
 def connectivity_factory():
     if connectivity_simnibs == True:
-        """Factory che gestisce un oggetto Connectivity con configurazione persistente."""
-        filename = r"..\HC_data\real_patient_connectome.zip"
+        import os
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        filename = os.path.join(BASE_DIR, 'HC_data', 'real_patient_connectome.zip')
+        
         config = {
             'filename': filename
         }
@@ -131,12 +133,15 @@ def connectivity_factory():
 get_conn = connectivity_factory()
 
 def eeg_monitor_factory(connectivity=get_conn()):
-    """Factory che gestisce un monitor EEG con configurazione persistente."""
     if connectivity_simnibs == True:
-        """Crea un monitor EEG, ricreandolo ad ogni chiamata perché dipende da conn."""
-        SENSORS_FNAME = r'..\HC_data\sub-CLB00044_EEG_Locations.txt'
-        PROJECTION_FNAME = r'..\HC_data\sub-CLB00044_EEGProjection.mat'
-        RM_FNAME = r'..\HC_data\sub-CLB00044_region_mapping.txt'
+        import os
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        HC_DIR = os.path.join(BASE_DIR, 'HC_data')
+
+        SENSORS_FNAME    = os.path.join(HC_DIR, 'sub-CLB00044_EEG_Locations.txt')
+        PROJECTION_FNAME = os.path.join(HC_DIR, 'sub-CLB00044_EEGProjection.mat')
+        RM_FNAME         = os.path.join(HC_DIR, 'sub-CLB00044_region_mapping.txt')
+
 
         # Carica una volta sola i file statici
         sensorsEEG = SensorsEEG.from_file(SENSORS_FNAME)
