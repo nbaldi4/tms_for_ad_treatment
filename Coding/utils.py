@@ -679,10 +679,10 @@ def simulate(sim_time=20000,
     b_array = np.ones((76,1))*b #*(1+b_delta*0.01*tau_stage)
     regions_centers = conn.centres
     distance = np.ones((76,1))
-    wide_y = np.max(regions_centers[:,1]) - np.min(regions_centers[:,1])
-    for i in range(len(regions_centers[:,1])):
-        region_coordinate_y = regions_centers[i,1]
-        distance[i] = (region_coordinate_y - np.max(regions_centers[:,1]))/wide_y
+    wide_y = np.max(regions_centers[:,0]) - np.min(regions_centers[:,0])
+    for i in range(len(regions_centers[:,0])):
+        region_coordinate_y = regions_centers[i,0]
+        distance[i] = (region_coordinate_y - np.max(regions_centers[:,0]))/wide_y
         a_array[i] = a*(1 + distance[i]*factor)
     J_delta = 0.3
 
